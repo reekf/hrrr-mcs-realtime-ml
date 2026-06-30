@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Standalone HRRR-MCS-triggered realtime ML probability plotter. Checked v8: legacy-cache compatible.
+Standalone realtime ML probability plotter with an internal generation gate. Checked v8: legacy-cache compatible.
 
 Run from shell/cron/systemd. It does NOT require a notebook session.
 
@@ -15,8 +15,8 @@ Core workflow:
   4) Predict probabilities; fail loudly if trained predictors are missing or contain
      NaN/inf unless --allow-feature-nan-fill-zero is explicitly set.
   5) Merge/rasterize WPC Day-1 ERO if available.
-  6) Save ERO-category maps for each radius member plus WPC, with the HRRR-detected
-     MCS object contoured.
+  6) Save public ERO-category maps for each radius member plus WPC only.
+     Public forecast graphics never include internal generation-gate contours.
 
 Example automation run:
   python realtime_mcs_trigger_plot_standalone_v8_checked_legacycache_radii_wpc.py --date 20260629 --radii 40 60 75 100
@@ -176,6 +176,21 @@ def date8(value) -> str:
     if not m:
         raise ValueError(f"Could not parse YYYYMMDD date from {value!r}")
     return m.group(1)
+
+
+def valid_period_12z(date: str) -> tuple[datetime, datetime, str]:
+    """Return the operational product valid window for a case date.
+
+    The public ML/WPC product should be described as valid from 12Z on the
+    case date to 12Z on the following day. The HRRR cycle used for the trigger
+    is only an internal trigger-detail field and should not be presented as the
+    ML product cycle.
+    """
+    d = date8(date)
+    start = datetime.strptime(d + "12", "%Y%m%d%H").replace(tzinfo=timezone.utc)
+    end = start + timedelta(days=1)
+    label = f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z"
+    return start, end, label
 
 
 def extent_dict(extent=None) -> dict[str, float]:
@@ -2518,6 +2533,7 @@ def plot_realtime_ero_panels(
     point_size: float = 7.0,
     alpha: float = 0.85,
     cycle_label: str | None = None,
+    overlay_mcs_contour_on_public_plot: bool = False,
 ) -> Path:
     d = date8(date)
     radii = radii or DEFAULT_RADII_KM
@@ -2535,31 +2551,23 @@ def plot_realtime_ero_panels(
     axes = np.atleast_1d(axes).ravel()
     lon = pd.to_numeric(sub["Lon"], errors="coerce").to_numpy(float)
     lat = pd.to_numeric(sub["Lat"], errors="coerce").to_numpy(float)
-    contour_added = False
     for ax, (title, col) in zip(axes, panels):
         setup_map_ax(ax, extent)
         vals = pd.to_numeric(sub[col], errors="coerce").fillna(0).clip(0, 1).to_numpy(float)
         scatter_categorical(ax, lon, lat, vals, point_size=point_size, alpha=alpha, show_below_5=show_below_5)
-        if overlay_mcs_contour(ax, mcs_mask, mcs_lat, mcs_lon):
-            contour_added = True
-        ax.set_title(f"{d} | {title}")
+        # Public forecast product: radius-member ML probabilities plus WPC only.
+        # Never overlay internal generation-gate masks/contours on this graphic.
+        ax.set_title(f"{title}")
     for ax in axes[len(panels):]:
         ax.set_visible(False)
     handles = [Patch(facecolor=RISK_COLORS[lab], edgecolor="0.3", label=lab) for lab in RISK_LABELS if show_below_5 or lab != "<5%"]
-    if contour_added:
-        import matplotlib.lines as mlines
-        handles.append(mlines.Line2D([], [], color="black", linewidth=1.8, label="Detected MCS object"))
     fig.legend(handles=handles, loc="lower center", ncols=min(len(handles), 6), frameon=True)
-    mcs_text = ""
-    if mcs_info and mcs_info.selected:
-        s = mcs_info.selected
-        mcs_text = f" | MCS area={s.area_km2:,.0f} km², minBT={s.min_bt_k:.1f} K"
-    fig.suptitle(f"MCS-triggered realtime ML flood probabilities | {d} | cycle={cycle_label or 'default'}{mcs_text}", fontsize=15)
-    safe_cycle = cycle_cache_token(cycle_label)
-    outpath = rp.outdir / f"mcs_triggered_realtime_ml_{d}_{safe_cycle}_radii_wpc.png"
+    _, _, valid_label = valid_period_12z(d)
+    fig.suptitle(f"Realtime ML flood probabilities | Valid {valid_label}", fontsize=15)
+    outpath = rp.outdir / f"realtime_ml_public_{d}_valid12to12_radii_wpc.png"
     fig.savefig(outpath, dpi=175, bbox_inches="tight")
     plt.close(fig)
-    log(f"Saved realtime MCS-triggered plot: {outpath}")
+    log(f"Saved public realtime ML/WPC forecast plot: {outpath}")
     return outpath
 
 
@@ -2614,7 +2622,8 @@ def parse_args(argv=None):
     p.add_argument("--lon-var", default=None, help="Longitude variable name in --ir-path.")
     p.add_argument("--bt-threshold-k", type=float, default=MCS_BT_THRESHOLD_K_DEFAULT, help="MCS cold cloud threshold. Default: BT < 241 K")
     p.add_argument("--min-mcs-area-km2", type=float, default=MCS_MIN_AREA_KM2_DEFAULT, help="Minimum cold object area. Default: 6e4 km^2")
-    p.add_argument("--force-trigger", action="store_true", help="Skip/override MCS detection and run ML plotting anyway. If --mcs-mask-path or --ir-path is provided, contours are still plotted.")
+    p.add_argument("--force-trigger", action="store_true", help="Skip/override MCS detection and run ML plotting anyway.")
+    p.add_argument("--overlay-mcs-contour-on-public-plot", action="store_true", help="Deprecated/no-op. Public ML/WPC plots never include internal generation-gate contours.")
 
     p.add_argument("--radii", nargs="+", type=int, default=DEFAULT_RADII_KM, help="Radius members to run. Default: 40 60 75 100")
     p.add_argument("--training-script-by-radius", nargs="*", default=None, help="Optional radius:script.py overrides, e.g. 40:generated_v33_radius_sensitivity_slimmaster_r40km.py")
@@ -2657,9 +2666,14 @@ def main(argv=None) -> int:
     d = date8(args.date)
     rp = make_runtime_paths(args)
     status_path = Path(args.status_json).expanduser().resolve() if args.status_json else (rp.outdir / f"status_{d}_{cycle_cache_token(args.cycle_label)}.json")
+    valid_start, valid_end, valid_label = valid_period_12z(d)
     status = {
         "date": d,
-        "cycle_label": args.cycle_label,
+        "valid_start_utc": valid_start.isoformat().replace("+00:00", "Z"),
+        "valid_end_utc": valid_end.isoformat().replace("+00:00", "Z"),
+        "valid_period_label": valid_label,
+        "trigger_cycle_label": args.cycle_label,
+        "hrrr_trigger_cycle": f"{str(args.hrrr_cycle).zfill(2)}Z",
         "started_utc": datetime.now(timezone.utc).isoformat(),
         "project_dir": str(rp.project_dir),
         "script_dir": str(rp.script_dir),
@@ -2686,7 +2700,7 @@ def main(argv=None) -> int:
         if mcs_result.selected:
             log(f"MCS trigger TRUE: area={mcs_result.selected.area_km2:,.0f} km^2, pixels={mcs_result.selected.pixel_count:,}, minBT={mcs_result.selected.min_bt_k:.1f} K")
         else:
-            log("MCS trigger TRUE by --force-trigger; no MCS contour will be plotted unless a mask/IR file was provided.")
+            log("MCS trigger TRUE by --force-trigger.")
 
         df = build_predict_verify_realtime_multi_radius(
             date=d,
@@ -2727,6 +2741,7 @@ def main(argv=None) -> int:
             point_size=args.point_size,
             alpha=args.alpha,
             cycle_label=args.cycle_label,
+            overlay_mcs_contour_on_public_plot=args.overlay_mcs_contour_on_public_plot,
         )
         status["plot_path"] = str(plot_path)
         status["finished_utc"] = datetime.now(timezone.utc).isoformat()
