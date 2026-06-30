@@ -10,7 +10,7 @@
   "data_path": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj/v33_realtime_radiusstats_forecasts/verified/realtime_verified_v33_multiradius_r40_r60_r75_r100_20260629.parquet",
   "date": "20260629",
   "error": null,
-  "finished_utc": "2026-06-30T05:13:50.034501+00:00",
+  "finished_utc": "2026-06-30T05:16:21.802148+00:00",
   "latest_plot": "latest.png",
   "mcs_detection": {
     "hrrr_cycle": "12",
@@ -46,7 +46,7 @@
   "project_dir": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj",
   "published": true,
   "script_dir": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/mesoanalysis/gempak-scripts",
-  "site_updated_utc": "2026-06-30T05:13:50Z",
-  "started_utc": "2026-06-30T05:13:46.914655+00:00",
+  "site_updated_utc": "2026-06-30T05:16:22Z",
+  "started_utc": "2026-06-30T05:16:18.656413+00:00",
   "triggered": true
 }

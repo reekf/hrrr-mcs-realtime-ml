@@ -1,7 +1,7 @@
 {
   "date": "20260629",
   "cycle_label": "hrrr12z",
-  "started_utc": "2026-06-30T05:13:46.914655+00:00",
+  "started_utc": "2026-06-30T05:16:18.656413+00:00",
   "project_dir": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj",
   "script_dir": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/mesoanalysis/gempak-scripts",
   "triggered": true,
@@ -43,5 +43,5 @@
     75,
     100
   ],
-  "finished_utc": "2026-06-30T05:13:50.034501+00:00"
+  "finished_utc": "2026-06-30T05:16:21.802148+00:00"
 }
