@@ -1,0 +1,30 @@
+# Ignore everything in this messy working directory by default.
+*
+
+# Keep repo metadata/docs.
+!.gitignore
+!README.md
+
+# Keep the clean operational script.
+!realtime_mcs_trigger_plot.py
+
+# Keep the generated v33 helper code needed by the script.
+!generated_v33_radius_sensitivity_slimmaster_rowsample/
+!generated_v33_radius_sensitivity_slimmaster_rowsample/*.py
+
+# Optional requirements file/directory if present.
+!requirements_hazard_ml
+!requirements_hazard_ml/
+!requirements_hazard_ml/**
+
+# Still ignore Python/runtime junk inside allowed folders.
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.log
+*.out
+*.err
+core
+core.*
+*.part
+*.tmp
