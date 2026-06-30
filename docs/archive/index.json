@@ -1,0 +1,14 @@
+{
+  "entries": [
+    {
+      "date": "20260629",
+      "plot_available": true,
+      "plot_href": "archive/20260629/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T05:24:41Z",
+      "status_href": "archive/20260629/status.json",
+      "valid_period_label": "2026-06-29 12Z to 2026-06-30 12Z"
+    }
+  ],
+  "generated_utc": "2026-06-30T05:24:41Z"
+}
