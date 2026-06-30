@@ -32,3 +32,6 @@ core.*
 # GitHub Pages site
 !docs/
 !docs/**
+
+# Automation wrapper
+!publish_latest_ml_output.sh
