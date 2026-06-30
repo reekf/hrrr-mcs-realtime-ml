@@ -108,6 +108,9 @@ def write_status(date: str, destination: Path) -> None:
         "latest_plot": "latest.png",
         "site_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "product_description": "Machine-learning radius products, WPC ERO, and Practically Perfect verification.",
+        "verification_available": True,
+        "verification_plot": "latest.png",
+        "verification_embedded_in_forecast": True,
     }
     destination.write_text(json.dumps(status, indent=2, sort_keys=True) + "\n")
 
@@ -120,6 +123,10 @@ def rebuild_archive_index() -> None:
             continue
         status = json.loads(status_path.read_text())
         plot_exists = (day_dir / "latest.png").exists()
+        verification_exists = (day_dir / "verification.png").exists()
+        verification_embedded = bool(status.get("verification_embedded_in_forecast", False)) or (
+            "practically perfect verification" in str(status.get("product_description", "")).lower()
+        )
         entries.append(
             {
                 "date": str(status.get("date") or day_dir.name),
@@ -129,6 +136,13 @@ def rebuild_archive_index() -> None:
                 "site_updated_utc": status.get("site_updated_utc", ""),
                 "status_href": f"archive/{day_dir.name}/status.json",
                 "plot_href": f"archive/{day_dir.name}/latest.png" if plot_exists else None,
+                "verification_available": bool(verification_exists or (verification_embedded and plot_exists)),
+                "verification_plot_href": (
+                    f"archive/{day_dir.name}/verification.png" if verification_exists
+                    else (f"archive/{day_dir.name}/latest.png" if verification_embedded and plot_exists else None)
+                ),
+                "verification_embedded_in_forecast": bool(verification_embedded and not verification_exists),
+                "verification_updated_utc": status.get("verification_updated_utc", status.get("site_updated_utc", "")),
             }
         )
     payload = {

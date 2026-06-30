@@ -104,7 +104,7 @@
             const verificationLink = document.createElement("a");
             const verificationVersion = encodeURIComponent(entry.verification_updated_utc || cacheVersion);
             verificationLink.href = verificationHref + (verificationHref.includes("?") ? "&" : "?") + "cache=" + verificationVersion;
-            verificationLink.textContent = "View graphic";
+            verificationLink.textContent = entry.verification_embedded_in_forecast ? "View combined graphic" : "View graphic";
             verification.append(verificationLink);
           } else {
             verification.textContent = "Pending";

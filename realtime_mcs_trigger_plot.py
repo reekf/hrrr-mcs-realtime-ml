@@ -2842,17 +2842,23 @@ def main(argv=None) -> int:
             verification_plot = None
             if verified_path:
                 verified_df = pd.read_parquet(verified_path)
+                verified_df = add_wpc_ero_to_realtime_from_iem(
+                    verified_df,
+                    date=d,
+                    rp=rp,
+                    force_wpc=args.force_wpc,
+                )
                 verification_plot = plot_realtime_ero_panels(
                     verified_df,
                     date=d,
                     rp=rp,
                     radii=args.radii,
-                    include_wpc=False,
+                    include_wpc=True,
                     include_ufvs=False,
                     include_pp=True,
                     show_below_5=False,
                     output_filename=f"realtime_ml_verification_{d}_valid12to12_radii_pp.png",
-                    figure_title=f"ML forecast and Practically Perfect verification | Valid {valid_label}",
+                    figure_title=f"ML forecast, WPC ERO, and Practically Perfect verification | Valid {valid_label}",
                 )
             status["verification_plot_path"] = str(verification_plot) if verification_plot else None
             status["finished_utc"] = datetime.now(timezone.utc).isoformat()

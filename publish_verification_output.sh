@@ -75,6 +75,9 @@ for candidate in sorted((p for p in archive_root.iterdir() if p.is_dir()), rever
         candidate_status = {}
     forecast_exists = (candidate / "latest.png").exists()
     verification_exists = (candidate / "verification.png").exists()
+    verification_embedded = bool(candidate_status.get("verification_embedded_in_forecast", False)) or (
+        "practically perfect verification" in str(candidate_status.get("product_description", "")).lower()
+    )
     entries.append({
         "date": str(candidate_status.get("date") or candidate.name),
         "valid_period_label": candidate_status.get("valid_period_label", ""),
@@ -83,9 +86,13 @@ for candidate in sorted((p for p in archive_root.iterdir() if p.is_dir()), rever
         "site_updated_utc": candidate_status.get("site_updated_utc", ""),
         "status_href": f"archive/{candidate.name}/status.json",
         "plot_href": f"archive/{candidate.name}/latest.png" if forecast_exists else None,
-        "verification_available": verification_exists,
-        "verification_plot_href": f"archive/{candidate.name}/verification.png" if verification_exists else None,
-        "verification_updated_utc": candidate_status.get("verification_updated_utc", ""),
+        "verification_available": bool(verification_exists or (verification_embedded and forecast_exists)),
+        "verification_plot_href": (
+            f"archive/{candidate.name}/verification.png" if verification_exists
+            else (f"archive/{candidate.name}/latest.png" if verification_embedded and forecast_exists else None)
+        ),
+        "verification_embedded_in_forecast": bool(verification_embedded and not verification_exists),
+        "verification_updated_utc": candidate_status.get("verification_updated_utc", candidate_status.get("site_updated_utc", "")),
     })
 
 manifest = {"generated_utc": updated, "entries": entries}

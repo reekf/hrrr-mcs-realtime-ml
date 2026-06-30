@@ -9,8 +9,9 @@
       "status_href": "archive/20260630/status.json",
       "valid_period_label": "2026-06-30 12Z to 2026-07-01 12Z",
       "verification_available": false,
+      "verification_embedded_in_forecast": false,
       "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_updated_utc": "2026-06-30T14:07:31Z"
     },
     {
       "date": "20260629",
@@ -21,8 +22,9 @@
       "status_href": "archive/20260629/status.json",
       "valid_period_label": "2026-06-29 12Z to 2026-06-30 12Z",
       "verification_available": true,
+      "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260629/verification.png",
-      "verification_updated_utc": "2026-06-30T20:42:36Z"
+      "verification_updated_utc": "2026-06-30T21:35:24Z"
     },
     {
       "date": "20250729",
@@ -32,9 +34,10 @@
       "site_updated_utc": "2026-06-30T13:24:18Z",
       "status_href": "archive/20250729/status.json",
       "valid_period_label": "2025-07-29 12Z to 2025-07-30 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250729/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:18Z"
     },
     {
       "date": "20250727",
@@ -44,9 +47,10 @@
       "site_updated_utc": "2026-06-30T13:24:17Z",
       "status_href": "archive/20250727/status.json",
       "valid_period_label": "2025-07-27 12Z to 2025-07-28 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250727/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:17Z"
     },
     {
       "date": "20250723",
@@ -56,9 +60,10 @@
       "site_updated_utc": "2026-06-30T13:24:17Z",
       "status_href": "archive/20250723/status.json",
       "valid_period_label": "2025-07-23 12Z to 2025-07-24 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250723/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:17Z"
     },
     {
       "date": "20250721",
@@ -68,9 +73,10 @@
       "site_updated_utc": "2026-06-30T13:24:16Z",
       "status_href": "archive/20250721/status.json",
       "valid_period_label": "2025-07-21 12Z to 2025-07-22 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250721/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:16Z"
     },
     {
       "date": "20250720",
@@ -80,9 +86,10 @@
       "site_updated_utc": "2026-06-30T13:24:15Z",
       "status_href": "archive/20250720/status.json",
       "valid_period_label": "2025-07-20 12Z to 2025-07-21 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250720/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:15Z"
     },
     {
       "date": "20250716",
@@ -92,9 +99,10 @@
       "site_updated_utc": "2026-06-30T13:24:15Z",
       "status_href": "archive/20250716/status.json",
       "valid_period_label": "2025-07-16 12Z to 2025-07-17 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250716/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:15Z"
     },
     {
       "date": "20250715",
@@ -104,9 +112,10 @@
       "site_updated_utc": "2026-06-30T13:24:14Z",
       "status_href": "archive/20250715/status.json",
       "valid_period_label": "2025-07-15 12Z to 2025-07-16 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250715/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:14Z"
     },
     {
       "date": "20250711",
@@ -116,9 +125,10 @@
       "site_updated_utc": "2026-06-30T13:24:13Z",
       "status_href": "archive/20250711/status.json",
       "valid_period_label": "2025-07-11 12Z to 2025-07-12 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250711/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:13Z"
     },
     {
       "date": "20250707",
@@ -128,9 +138,10 @@
       "site_updated_utc": "2026-06-30T13:24:13Z",
       "status_href": "archive/20250707/status.json",
       "valid_period_label": "2025-07-07 12Z to 2025-07-08 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250707/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:13Z"
     },
     {
       "date": "20250629",
@@ -140,9 +151,10 @@
       "site_updated_utc": "2026-06-30T13:24:12Z",
       "status_href": "archive/20250629/status.json",
       "valid_period_label": "2025-06-29 12Z to 2025-06-30 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250629/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:12Z"
     },
     {
       "date": "20250626",
@@ -152,9 +164,10 @@
       "site_updated_utc": "2026-06-30T13:24:11Z",
       "status_href": "archive/20250626/status.json",
       "valid_period_label": "2025-06-26 12Z to 2025-06-27 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250626/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:11Z"
     },
     {
       "date": "20250619",
@@ -164,9 +177,10 @@
       "site_updated_utc": "2026-06-30T13:24:10Z",
       "status_href": "archive/20250619/status.json",
       "valid_period_label": "2025-06-19 12Z to 2025-06-20 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250619/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:10Z"
     },
     {
       "date": "20250618",
@@ -176,9 +190,10 @@
       "site_updated_utc": "2026-06-30T13:24:10Z",
       "status_href": "archive/20250618/status.json",
       "valid_period_label": "2025-06-18 12Z to 2025-06-19 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250618/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:10Z"
     },
     {
       "date": "20250617",
@@ -188,9 +203,10 @@
       "site_updated_utc": "2026-06-30T13:24:09Z",
       "status_href": "archive/20250617/status.json",
       "valid_period_label": "2025-06-17 12Z to 2025-06-18 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250617/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:09Z"
     },
     {
       "date": "20250616",
@@ -200,9 +216,10 @@
       "site_updated_utc": "2026-06-30T13:24:08Z",
       "status_href": "archive/20250616/status.json",
       "valid_period_label": "2025-06-16 12Z to 2025-06-17 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250616/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:08Z"
     },
     {
       "date": "20250615",
@@ -212,9 +229,10 @@
       "site_updated_utc": "2026-06-30T13:24:07Z",
       "status_href": "archive/20250615/status.json",
       "valid_period_label": "2025-06-15 12Z to 2025-06-16 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250615/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:07Z"
     },
     {
       "date": "20250614",
@@ -224,9 +242,10 @@
       "site_updated_utc": "2026-06-30T13:24:07Z",
       "status_href": "archive/20250614/status.json",
       "valid_period_label": "2025-06-14 12Z to 2025-06-15 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250614/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:07Z"
     },
     {
       "date": "20250613",
@@ -236,9 +255,10 @@
       "site_updated_utc": "2026-06-30T13:24:06Z",
       "status_href": "archive/20250613/status.json",
       "valid_period_label": "2025-06-13 12Z to 2025-06-14 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250613/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:06Z"
     },
     {
       "date": "20250611",
@@ -248,9 +268,10 @@
       "site_updated_utc": "2026-06-30T13:24:05Z",
       "status_href": "archive/20250611/status.json",
       "valid_period_label": "2025-06-11 12Z to 2025-06-12 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250611/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:05Z"
     },
     {
       "date": "20250610",
@@ -260,9 +281,10 @@
       "site_updated_utc": "2026-06-30T13:24:04Z",
       "status_href": "archive/20250610/status.json",
       "valid_period_label": "2025-06-10 12Z to 2025-06-11 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20250610/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:04Z"
     },
     {
       "date": "20240801",
@@ -272,9 +294,10 @@
       "site_updated_utc": "2026-06-30T13:24:04Z",
       "status_href": "archive/20240801/status.json",
       "valid_period_label": "2024-08-01 12Z to 2024-08-02 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240801/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:04Z"
     },
     {
       "date": "20240731",
@@ -284,9 +307,10 @@
       "site_updated_utc": "2026-06-30T13:24:03Z",
       "status_href": "archive/20240731/status.json",
       "valid_period_label": "2024-07-31 12Z to 2024-08-01 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240731/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:03Z"
     },
     {
       "date": "20240730",
@@ -296,9 +320,10 @@
       "site_updated_utc": "2026-06-30T13:24:02Z",
       "status_href": "archive/20240730/status.json",
       "valid_period_label": "2024-07-30 12Z to 2024-07-31 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240730/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:02Z"
     },
     {
       "date": "20240729",
@@ -308,9 +333,10 @@
       "site_updated_utc": "2026-06-30T13:24:02Z",
       "status_href": "archive/20240729/status.json",
       "valid_period_label": "2024-07-29 12Z to 2024-07-30 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240729/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:02Z"
     },
     {
       "date": "20240719",
@@ -320,9 +346,10 @@
       "site_updated_utc": "2026-06-30T13:24:01Z",
       "status_href": "archive/20240719/status.json",
       "valid_period_label": "2024-07-19 12Z to 2024-07-20 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240719/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:01Z"
     },
     {
       "date": "20240717",
@@ -332,9 +359,10 @@
       "site_updated_utc": "2026-06-30T13:24:00Z",
       "status_href": "archive/20240717/status.json",
       "valid_period_label": "2024-07-17 12Z to 2024-07-18 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240717/latest.png",
+      "verification_updated_utc": "2026-06-30T13:24:00Z"
     },
     {
       "date": "20240716",
@@ -344,9 +372,10 @@
       "site_updated_utc": "2026-06-30T13:23:59Z",
       "status_href": "archive/20240716/status.json",
       "valid_period_label": "2024-07-16 12Z to 2024-07-17 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240716/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:59Z"
     },
     {
       "date": "20240715",
@@ -356,9 +385,10 @@
       "site_updated_utc": "2026-06-30T13:23:59Z",
       "status_href": "archive/20240715/status.json",
       "valid_period_label": "2024-07-15 12Z to 2024-07-16 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240715/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:59Z"
     },
     {
       "date": "20240714",
@@ -368,9 +398,10 @@
       "site_updated_utc": "2026-06-30T13:23:58Z",
       "status_href": "archive/20240714/status.json",
       "valid_period_label": "2024-07-14 12Z to 2024-07-15 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240714/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:58Z"
     },
     {
       "date": "20240708",
@@ -380,9 +411,10 @@
       "site_updated_utc": "2026-06-30T13:23:57Z",
       "status_href": "archive/20240708/status.json",
       "valid_period_label": "2024-07-08 12Z to 2024-07-09 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240708/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:57Z"
     },
     {
       "date": "20240707",
@@ -392,9 +424,10 @@
       "site_updated_utc": "2026-06-30T13:23:57Z",
       "status_href": "archive/20240707/status.json",
       "valid_period_label": "2024-07-07 12Z to 2024-07-08 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240707/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:57Z"
     },
     {
       "date": "20240702",
@@ -404,9 +437,10 @@
       "site_updated_utc": "2026-06-30T13:23:56Z",
       "status_href": "archive/20240702/status.json",
       "valid_period_label": "2024-07-02 12Z to 2024-07-03 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240702/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:56Z"
     },
     {
       "date": "20240701",
@@ -416,9 +450,10 @@
       "site_updated_utc": "2026-06-30T13:23:55Z",
       "status_href": "archive/20240701/status.json",
       "valid_period_label": "2024-07-01 12Z to 2024-07-02 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240701/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:55Z"
     },
     {
       "date": "20240626",
@@ -428,9 +463,10 @@
       "site_updated_utc": "2026-06-30T13:23:54Z",
       "status_href": "archive/20240626/status.json",
       "valid_period_label": "2024-06-26 12Z to 2024-06-27 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240626/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:54Z"
     },
     {
       "date": "20240625",
@@ -440,9 +476,10 @@
       "site_updated_utc": "2026-06-30T13:23:54Z",
       "status_href": "archive/20240625/status.json",
       "valid_period_label": "2024-06-25 12Z to 2024-06-26 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240625/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:54Z"
     },
     {
       "date": "20240624",
@@ -452,9 +489,10 @@
       "site_updated_utc": "2026-06-30T13:23:53Z",
       "status_href": "archive/20240624/status.json",
       "valid_period_label": "2024-06-24 12Z to 2024-06-25 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240624/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:53Z"
     },
     {
       "date": "20240621",
@@ -464,9 +502,10 @@
       "site_updated_utc": "2026-06-30T13:23:52Z",
       "status_href": "archive/20240621/status.json",
       "valid_period_label": "2024-06-21 12Z to 2024-06-22 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240621/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:52Z"
     },
     {
       "date": "20240620",
@@ -476,9 +515,10 @@
       "site_updated_utc": "2026-06-30T13:23:52Z",
       "status_href": "archive/20240620/status.json",
       "valid_period_label": "2024-06-20 12Z to 2024-06-21 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240620/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:52Z"
     },
     {
       "date": "20240618",
@@ -488,9 +528,10 @@
       "site_updated_utc": "2026-06-30T13:23:51Z",
       "status_href": "archive/20240618/status.json",
       "valid_period_label": "2024-06-18 12Z to 2024-06-19 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240618/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:51Z"
     },
     {
       "date": "20240616",
@@ -500,9 +541,10 @@
       "site_updated_utc": "2026-06-30T13:23:50Z",
       "status_href": "archive/20240616/status.json",
       "valid_period_label": "2024-06-16 12Z to 2024-06-17 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240616/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:50Z"
     },
     {
       "date": "20240614",
@@ -512,9 +554,10 @@
       "site_updated_utc": "2026-06-30T13:23:49Z",
       "status_href": "archive/20240614/status.json",
       "valid_period_label": "2024-06-14 12Z to 2024-06-15 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240614/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:49Z"
     },
     {
       "date": "20240613",
@@ -524,9 +567,10 @@
       "site_updated_utc": "2026-06-30T13:23:49Z",
       "status_href": "archive/20240613/status.json",
       "valid_period_label": "2024-06-13 12Z to 2024-06-14 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240613/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:49Z"
     },
     {
       "date": "20240612",
@@ -536,9 +580,10 @@
       "site_updated_utc": "2026-06-30T13:23:48Z",
       "status_href": "archive/20240612/status.json",
       "valid_period_label": "2024-06-12 12Z to 2024-06-13 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240612/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:48Z"
     },
     {
       "date": "20240611",
@@ -548,9 +593,10 @@
       "site_updated_utc": "2026-06-30T13:23:47Z",
       "status_href": "archive/20240611/status.json",
       "valid_period_label": "2024-06-11 12Z to 2024-06-12 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240611/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:47Z"
     },
     {
       "date": "20240610",
@@ -560,10 +606,11 @@
       "site_updated_utc": "2026-06-30T13:23:47Z",
       "status_href": "archive/20240610/status.json",
       "valid_period_label": "2024-06-10 12Z to 2024-06-11 12Z",
-      "verification_available": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": ""
+      "verification_available": true,
+      "verification_embedded_in_forecast": true,
+      "verification_plot_href": "archive/20240610/latest.png",
+      "verification_updated_utc": "2026-06-30T13:23:47Z"
     }
   ],
-  "generated_utc": "2026-06-30T20:42:36Z"
+  "generated_utc": "2026-06-30T21:36:18Z"
 }

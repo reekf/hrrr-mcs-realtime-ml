@@ -114,6 +114,9 @@ if archive_root.exists():
         date = status.get("date") or day_dir.name
         plot_exists = (day_dir / "latest.png").exists()
         verification_exists = (day_dir / "verification.png").exists()
+        verification_embedded = bool(status.get("verification_embedded_in_forecast", False)) or (
+            "practically perfect verification" in str(status.get("product_description", "")).lower()
+        )
         entries.append({
             "date": str(date),
             "valid_period_label": status.get("valid_period_label", ""),
@@ -122,9 +125,13 @@ if archive_root.exists():
             "site_updated_utc": status.get("site_updated_utc", ""),
             "status_href": f"archive/{day_dir.name}/status.json",
             "plot_href": f"archive/{day_dir.name}/latest.png" if plot_exists else None,
-            "verification_available": bool(verification_exists),
-            "verification_plot_href": f"archive/{day_dir.name}/verification.png" if verification_exists else None,
-            "verification_updated_utc": status.get("verification_updated_utc", ""),
+            "verification_available": bool(verification_exists or (verification_embedded and plot_exists)),
+            "verification_plot_href": (
+                f"archive/{day_dir.name}/verification.png" if verification_exists
+                else (f"archive/{day_dir.name}/latest.png" if verification_embedded and plot_exists else None)
+            ),
+            "verification_embedded_in_forecast": bool(verification_embedded and not verification_exists),
+            "verification_updated_utc": status.get("verification_updated_utc", status.get("site_updated_utc", "")),
         })
 
 out = {
