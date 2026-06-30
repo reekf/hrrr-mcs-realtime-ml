@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Realtime ML Flash Flood Output</title>
+  <title>ML-Based Flash Flood Forecast for Mesoscale Convective Systems</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-    <h1>Realtime ML Flash Flood Output</h1>
+    <h1>ML-Based Flash Flood Forecast for Mesoscale Convective Systems</h1>
 
     <section class="card">
       <h2>Status</h2>
@@ -18,6 +18,23 @@
     <section class="card" id="plot-card" style="display:none;">
       <h2>Latest ML / WPC Plot</h2>
       <img id="latest-plot" alt="Latest realtime ML probability plot">
+    </section>
+
+    <section class="card">
+      <h2>Archived Forecasts</h2>
+      <p id="archive-status">Loading archived forecasts...</p>
+      <div class="table-wrap" id="archive-table-wrap" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Valid Period</th>
+              <th scope="col">Files</th>
+            </tr>
+          </thead>
+          <tbody id="archive-rows"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -31,10 +48,8 @@
         if (!status.published) return;
 
         const parts = [];
-        if (status.date) parts.push("Date: " + status.date);
-        if (status.cycle_label) parts.push("Cycle: " + status.cycle_label);
-        if (status.triggered !== undefined) parts.push("MCS trigger: " + status.triggered);
-        if (status.created_utc) parts.push("Updated: " + status.created_utc);
+        if (status.valid_period_label) parts.push("Valid " + status.valid_period_label);
+        if (status.site_updated_utc) parts.push("Updated: " + status.site_updated_utc);
 
         document.getElementById("status").textContent = parts.join(" | ");
         document.getElementById("latest-plot").src = "latest/latest.png?cache=" + Date.now();
@@ -44,7 +59,50 @@
       }
     }
 
+    async function loadArchive() {
+      const archiveStatus = document.getElementById("archive-status");
+
+      try {
+        const response = await fetch("archive/index.json?cache=" + Date.now());
+        if (!response.ok) throw new Error("Archive index unavailable");
+
+        const archive = await response.json();
+        const entries = Array.isArray(archive) ? archive : archive.entries;
+        if (!Array.isArray(entries) || entries.length === 0) {
+          archiveStatus.textContent = "No archived forecasts are available yet.";
+          return;
+        }
+
+        const rows = document.getElementById("archive-rows");
+        entries.forEach((entry) => {
+          const row = document.createElement("tr");
+          const date = document.createElement("td");
+          const validPeriod = document.createElement("td");
+          const files = document.createElement("td");
+          const plotLink = document.createElement("a");
+          const statusLink = document.createElement("a");
+
+          date.textContent = entry.date || "—";
+          validPeriod.textContent = entry.valid_period_label || "—";
+          plotLink.href = entry.plot_url || entry.plot_href;
+          plotLink.textContent = "Forecast graphic";
+          statusLink.href = entry.status_url || entry.status_href;
+          statusLink.textContent = "Forecast metadata";
+
+          files.append(plotLink, document.createTextNode(" | "), statusLink);
+          row.append(date, validPeriod, files);
+          rows.appendChild(row);
+        });
+
+        archiveStatus.hidden = true;
+        document.getElementById("archive-table-wrap").hidden = false;
+      } catch (err) {
+        archiveStatus.textContent = "Archived forecasts are temporarily unavailable.";
+      }
+    }
+
     loadStatus();
+    loadArchive();
   </script>
 </body>
 </html>
