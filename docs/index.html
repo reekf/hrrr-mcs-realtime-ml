@@ -84,9 +84,12 @@
 
           date.textContent = entry.date || "—";
           validPeriod.textContent = entry.valid_period_label || "—";
-          plotLink.href = entry.plot_url || entry.plot_href;
+          const cacheVersion = encodeURIComponent(entry.site_updated_utc || entry.date || Date.now());
+          const plotHref = entry.plot_url || entry.plot_href;
+          const statusHref = entry.status_url || entry.status_href;
+          plotLink.href = plotHref + (plotHref.includes("?") ? "&" : "?") + "cache=" + cacheVersion;
           plotLink.textContent = "Forecast graphic";
-          statusLink.href = entry.status_url || entry.status_href;
+          statusLink.href = statusHref + (statusHref.includes("?") ? "&" : "?") + "cache=" + cacheVersion;
           statusLink.textContent = "Forecast metadata";
 
           files.append(plotLink, document.createTextNode(" | "), statusLink);
