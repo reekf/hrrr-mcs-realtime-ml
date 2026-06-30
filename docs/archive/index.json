@@ -8,7 +8,412 @@
       "site_updated_utc": "2026-06-30T05:24:41Z",
       "status_href": "archive/20260629/status.json",
       "valid_period_label": "2026-06-29 12Z to 2026-06-30 12Z"
+    },
+    {
+      "date": "20250729",
+      "plot_available": true,
+      "plot_href": "archive/20250729/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:20Z",
+      "status_href": "archive/20250729/status.json",
+      "valid_period_label": "2025-07-29 12Z to 2025-07-30 12Z"
+    },
+    {
+      "date": "20250727",
+      "plot_available": true,
+      "plot_href": "archive/20250727/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:19Z",
+      "status_href": "archive/20250727/status.json",
+      "valid_period_label": "2025-07-27 12Z to 2025-07-28 12Z"
+    },
+    {
+      "date": "20250723",
+      "plot_available": true,
+      "plot_href": "archive/20250723/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:18Z",
+      "status_href": "archive/20250723/status.json",
+      "valid_period_label": "2025-07-23 12Z to 2025-07-24 12Z"
+    },
+    {
+      "date": "20250721",
+      "plot_available": true,
+      "plot_href": "archive/20250721/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:18Z",
+      "status_href": "archive/20250721/status.json",
+      "valid_period_label": "2025-07-21 12Z to 2025-07-22 12Z"
+    },
+    {
+      "date": "20250720",
+      "plot_available": true,
+      "plot_href": "archive/20250720/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:17Z",
+      "status_href": "archive/20250720/status.json",
+      "valid_period_label": "2025-07-20 12Z to 2025-07-21 12Z"
+    },
+    {
+      "date": "20250716",
+      "plot_available": true,
+      "plot_href": "archive/20250716/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:17Z",
+      "status_href": "archive/20250716/status.json",
+      "valid_period_label": "2025-07-16 12Z to 2025-07-17 12Z"
+    },
+    {
+      "date": "20250715",
+      "plot_available": true,
+      "plot_href": "archive/20250715/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:16Z",
+      "status_href": "archive/20250715/status.json",
+      "valid_period_label": "2025-07-15 12Z to 2025-07-16 12Z"
+    },
+    {
+      "date": "20250711",
+      "plot_available": true,
+      "plot_href": "archive/20250711/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:15Z",
+      "status_href": "archive/20250711/status.json",
+      "valid_period_label": "2025-07-11 12Z to 2025-07-12 12Z"
+    },
+    {
+      "date": "20250707",
+      "plot_available": true,
+      "plot_href": "archive/20250707/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:15Z",
+      "status_href": "archive/20250707/status.json",
+      "valid_period_label": "2025-07-07 12Z to 2025-07-08 12Z"
+    },
+    {
+      "date": "20250629",
+      "plot_available": true,
+      "plot_href": "archive/20250629/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:14Z",
+      "status_href": "archive/20250629/status.json",
+      "valid_period_label": "2025-06-29 12Z to 2025-06-30 12Z"
+    },
+    {
+      "date": "20250626",
+      "plot_available": true,
+      "plot_href": "archive/20250626/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:13Z",
+      "status_href": "archive/20250626/status.json",
+      "valid_period_label": "2025-06-26 12Z to 2025-06-27 12Z"
+    },
+    {
+      "date": "20250619",
+      "plot_available": true,
+      "plot_href": "archive/20250619/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:13Z",
+      "status_href": "archive/20250619/status.json",
+      "valid_period_label": "2025-06-19 12Z to 2025-06-20 12Z"
+    },
+    {
+      "date": "20250618",
+      "plot_available": true,
+      "plot_href": "archive/20250618/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:12Z",
+      "status_href": "archive/20250618/status.json",
+      "valid_period_label": "2025-06-18 12Z to 2025-06-19 12Z"
+    },
+    {
+      "date": "20250617",
+      "plot_available": true,
+      "plot_href": "archive/20250617/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:11Z",
+      "status_href": "archive/20250617/status.json",
+      "valid_period_label": "2025-06-17 12Z to 2025-06-18 12Z"
+    },
+    {
+      "date": "20250616",
+      "plot_available": true,
+      "plot_href": "archive/20250616/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:11Z",
+      "status_href": "archive/20250616/status.json",
+      "valid_period_label": "2025-06-16 12Z to 2025-06-17 12Z"
+    },
+    {
+      "date": "20250615",
+      "plot_available": true,
+      "plot_href": "archive/20250615/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:10Z",
+      "status_href": "archive/20250615/status.json",
+      "valid_period_label": "2025-06-15 12Z to 2025-06-16 12Z"
+    },
+    {
+      "date": "20250614",
+      "plot_available": true,
+      "plot_href": "archive/20250614/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:09Z",
+      "status_href": "archive/20250614/status.json",
+      "valid_period_label": "2025-06-14 12Z to 2025-06-15 12Z"
+    },
+    {
+      "date": "20250613",
+      "plot_available": true,
+      "plot_href": "archive/20250613/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:08Z",
+      "status_href": "archive/20250613/status.json",
+      "valid_period_label": "2025-06-13 12Z to 2025-06-14 12Z"
+    },
+    {
+      "date": "20250611",
+      "plot_available": true,
+      "plot_href": "archive/20250611/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:08Z",
+      "status_href": "archive/20250611/status.json",
+      "valid_period_label": "2025-06-11 12Z to 2025-06-12 12Z"
+    },
+    {
+      "date": "20250610",
+      "plot_available": true,
+      "plot_href": "archive/20250610/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:07Z",
+      "status_href": "archive/20250610/status.json",
+      "valid_period_label": "2025-06-10 12Z to 2025-06-11 12Z"
+    },
+    {
+      "date": "20240801",
+      "plot_available": true,
+      "plot_href": "archive/20240801/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:07Z",
+      "status_href": "archive/20240801/status.json",
+      "valid_period_label": "2024-08-01 12Z to 2024-08-02 12Z"
+    },
+    {
+      "date": "20240731",
+      "plot_available": true,
+      "plot_href": "archive/20240731/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:06Z",
+      "status_href": "archive/20240731/status.json",
+      "valid_period_label": "2024-07-31 12Z to 2024-08-01 12Z"
+    },
+    {
+      "date": "20240730",
+      "plot_available": true,
+      "plot_href": "archive/20240730/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:05Z",
+      "status_href": "archive/20240730/status.json",
+      "valid_period_label": "2024-07-30 12Z to 2024-07-31 12Z"
+    },
+    {
+      "date": "20240729",
+      "plot_available": true,
+      "plot_href": "archive/20240729/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:05Z",
+      "status_href": "archive/20240729/status.json",
+      "valid_period_label": "2024-07-29 12Z to 2024-07-30 12Z"
+    },
+    {
+      "date": "20240719",
+      "plot_available": true,
+      "plot_href": "archive/20240719/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:04Z",
+      "status_href": "archive/20240719/status.json",
+      "valid_period_label": "2024-07-19 12Z to 2024-07-20 12Z"
+    },
+    {
+      "date": "20240717",
+      "plot_available": true,
+      "plot_href": "archive/20240717/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:03Z",
+      "status_href": "archive/20240717/status.json",
+      "valid_period_label": "2024-07-17 12Z to 2024-07-18 12Z"
+    },
+    {
+      "date": "20240716",
+      "plot_available": true,
+      "plot_href": "archive/20240716/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:03Z",
+      "status_href": "archive/20240716/status.json",
+      "valid_period_label": "2024-07-16 12Z to 2024-07-17 12Z"
+    },
+    {
+      "date": "20240715",
+      "plot_available": true,
+      "plot_href": "archive/20240715/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:02Z",
+      "status_href": "archive/20240715/status.json",
+      "valid_period_label": "2024-07-15 12Z to 2024-07-16 12Z"
+    },
+    {
+      "date": "20240714",
+      "plot_available": true,
+      "plot_href": "archive/20240714/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:01Z",
+      "status_href": "archive/20240714/status.json",
+      "valid_period_label": "2024-07-14 12Z to 2024-07-15 12Z"
+    },
+    {
+      "date": "20240708",
+      "plot_available": true,
+      "plot_href": "archive/20240708/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:01Z",
+      "status_href": "archive/20240708/status.json",
+      "valid_period_label": "2024-07-08 12Z to 2024-07-09 12Z"
+    },
+    {
+      "date": "20240707",
+      "plot_available": true,
+      "plot_href": "archive/20240707/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:14:00Z",
+      "status_href": "archive/20240707/status.json",
+      "valid_period_label": "2024-07-07 12Z to 2024-07-08 12Z"
+    },
+    {
+      "date": "20240702",
+      "plot_available": true,
+      "plot_href": "archive/20240702/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:59Z",
+      "status_href": "archive/20240702/status.json",
+      "valid_period_label": "2024-07-02 12Z to 2024-07-03 12Z"
+    },
+    {
+      "date": "20240701",
+      "plot_available": true,
+      "plot_href": "archive/20240701/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:59Z",
+      "status_href": "archive/20240701/status.json",
+      "valid_period_label": "2024-07-01 12Z to 2024-07-02 12Z"
+    },
+    {
+      "date": "20240626",
+      "plot_available": true,
+      "plot_href": "archive/20240626/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:58Z",
+      "status_href": "archive/20240626/status.json",
+      "valid_period_label": "2024-06-26 12Z to 2024-06-27 12Z"
+    },
+    {
+      "date": "20240625",
+      "plot_available": true,
+      "plot_href": "archive/20240625/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:57Z",
+      "status_href": "archive/20240625/status.json",
+      "valid_period_label": "2024-06-25 12Z to 2024-06-26 12Z"
+    },
+    {
+      "date": "20240624",
+      "plot_available": true,
+      "plot_href": "archive/20240624/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:57Z",
+      "status_href": "archive/20240624/status.json",
+      "valid_period_label": "2024-06-24 12Z to 2024-06-25 12Z"
+    },
+    {
+      "date": "20240621",
+      "plot_available": true,
+      "plot_href": "archive/20240621/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:56Z",
+      "status_href": "archive/20240621/status.json",
+      "valid_period_label": "2024-06-21 12Z to 2024-06-22 12Z"
+    },
+    {
+      "date": "20240620",
+      "plot_available": true,
+      "plot_href": "archive/20240620/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:55Z",
+      "status_href": "archive/20240620/status.json",
+      "valid_period_label": "2024-06-20 12Z to 2024-06-21 12Z"
+    },
+    {
+      "date": "20240618",
+      "plot_available": true,
+      "plot_href": "archive/20240618/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:55Z",
+      "status_href": "archive/20240618/status.json",
+      "valid_period_label": "2024-06-18 12Z to 2024-06-19 12Z"
+    },
+    {
+      "date": "20240616",
+      "plot_available": true,
+      "plot_href": "archive/20240616/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:54Z",
+      "status_href": "archive/20240616/status.json",
+      "valid_period_label": "2024-06-16 12Z to 2024-06-17 12Z"
+    },
+    {
+      "date": "20240614",
+      "plot_available": true,
+      "plot_href": "archive/20240614/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:53Z",
+      "status_href": "archive/20240614/status.json",
+      "valid_period_label": "2024-06-14 12Z to 2024-06-15 12Z"
+    },
+    {
+      "date": "20240613",
+      "plot_available": true,
+      "plot_href": "archive/20240613/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:53Z",
+      "status_href": "archive/20240613/status.json",
+      "valid_period_label": "2024-06-13 12Z to 2024-06-14 12Z"
+    },
+    {
+      "date": "20240612",
+      "plot_available": true,
+      "plot_href": "archive/20240612/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:52Z",
+      "status_href": "archive/20240612/status.json",
+      "valid_period_label": "2024-06-12 12Z to 2024-06-13 12Z"
+    },
+    {
+      "date": "20240611",
+      "plot_available": true,
+      "plot_href": "archive/20240611/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:51Z",
+      "status_href": "archive/20240611/status.json",
+      "valid_period_label": "2024-06-11 12Z to 2024-06-12 12Z"
+    },
+    {
+      "date": "20240610",
+      "plot_available": true,
+      "plot_href": "archive/20240610/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-06-30T13:13:36Z",
+      "status_href": "archive/20240610/status.json",
+      "valid_period_label": "2024-06-10 12Z to 2024-06-11 12Z"
     }
   ],
-  "generated_utc": "2026-06-30T05:24:41Z"
+  "generated_utc": "2026-06-30T13:14:20Z"
 }
