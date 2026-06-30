@@ -1,21 +1,34 @@
 ---
 name: antigravity-review
-description: Optional second-opinion review using Google Antigravity CLI (`agy`) if installed. Use when the user asks for Gemini, Antigravity, Google-model review, or an external second-opinion review.
+description: Use this skill when a task would benefit from a second-opinion model review, external Gemini/Google/Antigravity review, large-diff review, bug-risk review, verification logic review, WPC ERO risk review, website automation review, cron/publishing review, or when the user asks to save Codex tokens by offloading review/summarization to Antigravity CLI.
 ---
 
 # Antigravity Review Skill
 
-This skill is optional. Use it only if the `agy` command is installed and authenticated in the same environment where Codex is running.
+Use this skill as an optional second-opinion reviewer through Google Antigravity CLI (`agy`).
 
-Rules:
-- Do not assume `agy` is installed.
-- Do not assume the old `gemini` CLI is available.
-- Do not block the main task if Antigravity is unavailable.
-- Do not let Antigravity directly edit this repository.
-- Run Antigravity only as a second-opinion reviewer from a temporary directory.
-- Never use `--dangerously-skip-permissions`.
+## When to use automatically
 
-Use:
+Use this skill when any of the following are true:
+
+- The user asks for Gemini, Google, or Antigravity review.
+- The user asks to offload token usage.
+- The current diff is large or touches multiple files.
+- The task involves WPC ERO risk ingest, rasterization, or verification metrics.
+- The task involves GitHub Pages publishing, cron automation, or website verification uploads.
+- The task involves checking whether a bug may affect past v33 statistics.
+- The task involves a high-risk code change where an independent review would help.
+
+## When not to use
+
+Do not use this skill for simple one-line edits, formatting-only changes, or obvious shell commands.
+
+Do not block the main task if `agy` is unavailable.
+
+## Required checks before using
+
+Run:
 
 ```bash
-.agents/skills/antigravity-review/scripts/agy_review.sh
+command -v agy
+agy --version
