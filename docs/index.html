@@ -29,7 +29,9 @@
             <tr>
               <th scope="col">Date</th>
               <th scope="col">Valid Period</th>
-              <th scope="col">Files</th>
+              <th scope="col">Forecast</th>
+              <th scope="col">Verification</th>
+              <th scope="col">Metadata</th>
             </tr>
           </thead>
           <tbody id="archive-rows"></tbody>
@@ -78,7 +80,9 @@
           const row = document.createElement("tr");
           const date = document.createElement("td");
           const validPeriod = document.createElement("td");
-          const files = document.createElement("td");
+          const forecast = document.createElement("td");
+          const verification = document.createElement("td");
+          const metadata = document.createElement("td");
           const plotLink = document.createElement("a");
           const statusLink = document.createElement("a");
 
@@ -87,13 +91,34 @@
           const cacheVersion = encodeURIComponent(entry.site_updated_utc || entry.date || Date.now());
           const plotHref = entry.plot_url || entry.plot_href;
           const statusHref = entry.status_url || entry.status_href;
-          plotLink.href = plotHref + (plotHref.includes("?") ? "&" : "?") + "cache=" + cacheVersion;
-          plotLink.textContent = "Forecast graphic";
-          statusLink.href = statusHref + (statusHref.includes("?") ? "&" : "?") + "cache=" + cacheVersion;
-          statusLink.textContent = "Forecast metadata";
+          if (plotHref) {
+            plotLink.href = plotHref + (plotHref.includes("?") ? "&" : "?") + "cache=" + cacheVersion;
+            plotLink.textContent = "View graphic";
+            forecast.append(plotLink);
+          } else {
+            forecast.textContent = "Unavailable";
+          }
 
-          files.append(plotLink, document.createTextNode(" | "), statusLink);
-          row.append(date, validPeriod, files);
+          const verificationHref = entry.verification_plot_url || entry.verification_plot_href;
+          if (entry.verification_available && verificationHref) {
+            const verificationLink = document.createElement("a");
+            const verificationVersion = encodeURIComponent(entry.verification_updated_utc || cacheVersion);
+            verificationLink.href = verificationHref + (verificationHref.includes("?") ? "&" : "?") + "cache=" + verificationVersion;
+            verificationLink.textContent = "View graphic";
+            verification.append(verificationLink);
+          } else {
+            verification.textContent = "Pending";
+          }
+
+          if (statusHref) {
+            statusLink.href = statusHref + (statusHref.includes("?") ? "&" : "?") + "cache=" + cacheVersion;
+            statusLink.textContent = "View JSON";
+            metadata.append(statusLink);
+          } else {
+            metadata.textContent = "Unavailable";
+          }
+
+          row.append(date, validPeriod, forecast, verification, metadata);
           rows.appendChild(row);
         });
 

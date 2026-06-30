@@ -2674,6 +2674,8 @@ def plot_realtime_ero_panels(
     alpha: float = 0.85,
     cycle_label: str | None = None,
     overlay_mcs_contour_on_public_plot: bool = False,
+    output_filename: str | None = None,
+    figure_title: str | None = None,
 ) -> Path:
     d = date8(date)
     radii = radii or DEFAULT_RADII_KM
@@ -2703,11 +2705,11 @@ def plot_realtime_ero_panels(
     handles = [Patch(facecolor=RISK_COLORS[lab], edgecolor="0.3", label=lab) for lab in RISK_LABELS if show_below_5 or lab != "<5%"]
     fig.legend(handles=handles, loc="lower center", ncols=min(len(handles), 6), frameon=True)
     _, _, valid_label = valid_period_12z(d)
-    fig.suptitle(f"Realtime ML flood probabilities | Valid {valid_label}", fontsize=15)
-    outpath = rp.outdir / f"realtime_ml_public_{d}_valid12to12_radii_wpc.png"
+    fig.suptitle(figure_title or f"Realtime ML flood probabilities | Valid {valid_label}", fontsize=15)
+    outpath = rp.outdir / (output_filename or f"realtime_ml_public_{d}_valid12to12_radii_wpc.png")
     fig.savefig(outpath, dpi=175, bbox_inches="tight")
     plt.close(fig)
-    log(f"Saved public realtime ML/WPC forecast plot: {outpath}")
+    log(f"Saved ML probability plot: {outpath}")
     return outpath
 
 
@@ -2830,13 +2832,29 @@ def main(argv=None) -> int:
                 date=d,
                 radii=args.radii,
                 rp=rp,
-                force_ufvs=True,
+                force_ufvs=args.force_ufvs,
                 include_regular_flood_lsr=args.include_regular_flood_lsr,
                 pp_expansion_radius_km=args.pp_expansion_radius_km,
                 pp_smooth_radius_km=args.pp_smooth_radius_km,
                 cycle_label=args.cycle_label,
             )
             status["verification_path"] = str(verified_path) if verified_path else None
+            verification_plot = None
+            if verified_path:
+                verified_df = pd.read_parquet(verified_path)
+                verification_plot = plot_realtime_ero_panels(
+                    verified_df,
+                    date=d,
+                    rp=rp,
+                    radii=args.radii,
+                    include_wpc=False,
+                    include_ufvs=False,
+                    include_pp=True,
+                    show_below_5=False,
+                    output_filename=f"realtime_ml_verification_{d}_valid12to12_radii_pp.png",
+                    figure_title=f"ML forecast and Practically Perfect verification | Valid {valid_label}",
+                )
+            status["verification_plot_path"] = str(verification_plot) if verification_plot else None
             status["finished_utc"] = datetime.now(timezone.utc).isoformat()
             write_status(status_path, status)
             return 0

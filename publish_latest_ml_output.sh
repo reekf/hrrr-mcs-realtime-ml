@@ -33,17 +33,6 @@ python realtime_mcs_trigger_plot.py \
   --date "$DATE_ARG" \
   --radii $RADII
 
-# Verification is delayed until the full prior 12Z-to-12Z period has ended.
-# This reads existing prediction caches only and never changes the public plot.
-VERIFY_DATE_ARG="$(date -u -d "${DATE_ARG} -1 day" +%Y%m%d)"
-echo
-echo "Running internal UFVS/PP verification for completed period ${VERIFY_DATE_ARG}..."
-python realtime_mcs_trigger_plot.py \
-  --date "$VERIFY_DATE_ARG" \
-  --radii $RADII \
-  --verification-only \
-  --force-ufvs || echo "WARNING: Internal verification did not complete for ${VERIFY_DATE_ARG}."
-
 echo
 echo "Finding script outputs..."
 
@@ -124,6 +113,7 @@ if archive_root.exists():
             status = {}
         date = status.get("date") or day_dir.name
         plot_exists = (day_dir / "latest.png").exists()
+        verification_exists = (day_dir / "verification.png").exists()
         entries.append({
             "date": str(date),
             "valid_period_label": status.get("valid_period_label", ""),
@@ -132,6 +122,9 @@ if archive_root.exists():
             "site_updated_utc": status.get("site_updated_utc", ""),
             "status_href": f"archive/{day_dir.name}/status.json",
             "plot_href": f"archive/{day_dir.name}/latest.png" if plot_exists else None,
+            "verification_available": bool(verification_exists),
+            "verification_plot_href": f"archive/{day_dir.name}/verification.png" if verification_exists else None,
+            "verification_updated_utc": status.get("verification_updated_utc", ""),
         })
 
 out = {
@@ -158,10 +151,11 @@ else
   git rm -f --ignore-unmatch "docs/archive/${DATE_ARG}/latest.png" >/dev/null 2>&1 || true
 fi
 
-if git diff --cached --quiet; then
+PUBLISH_PATHS=(docs/latest/status.json docs/archive/index.json docs/latest/latest.png "docs/archive/${DATE_ARG}/status.json" "docs/archive/${DATE_ARG}/latest.png")
+if git diff --cached --quiet -- "${PUBLISH_PATHS[@]}"; then
   echo "No website changes to commit."
 else
-  git commit -m "Publish realtime ML forecast for ${DATE_ARG}"
+  git commit -m "Publish realtime ML forecast for ${DATE_ARG}" -- "${PUBLISH_PATHS[@]}"
   git push origin main
 fi
 
