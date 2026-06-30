@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Realtime ML Flash Flood Output</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Realtime ML Flash Flood Output</h1>
+
+    <section class="card">
+      <h2>Status</h2>
+      <p id="status">Website deployed. No ML output has been published yet.</p>
+    </section>
+
+    <section class="card" id="plot-card" style="display:none;">
+      <h2>Latest ML / WPC Plot</h2>
+      <img id="latest-plot" alt="Latest realtime ML probability plot">
+    </section>
+  </main>
+
+  <script>
+    async function loadStatus() {
+      try {
+        const response = await fetch("latest/status.json?cache=" + Date.now());
+        if (!response.ok) return;
+
+        const status = await response.json();
+        if (!status.published) return;
+
+        const parts = [];
+        if (status.date) parts.push("Date: " + status.date);
+        if (status.cycle_label) parts.push("Cycle: " + status.cycle_label);
+        if (status.triggered !== undefined) parts.push("MCS trigger: " + status.triggered);
+        if (status.created_utc) parts.push("Updated: " + status.created_utc);
+
+        document.getElementById("status").textContent = parts.join(" | ");
+        document.getElementById("latest-plot").src = "latest/latest.png?cache=" + Date.now();
+        document.getElementById("plot-card").style.display = "block";
+      } catch (err) {
+        // Keep placeholder text.
+      }
+    }
+
+    loadStatus();
+  </script>
+</body>
+</html>

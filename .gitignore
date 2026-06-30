@@ -28,3 +28,7 @@ core
 core.*
 *.part
 *.tmp
+
+# GitHub Pages site
+!docs/
+!docs/**
