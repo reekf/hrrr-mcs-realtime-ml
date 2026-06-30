@@ -1,0 +1,47 @@
+{
+  "date": "20260629",
+  "cycle_label": "hrrr12z",
+  "started_utc": "2026-06-30T05:04:04.418097+00:00",
+  "project_dir": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj",
+  "script_dir": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/mesoanalysis/gempak-scripts",
+  "triggered": true,
+  "plot_path": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj/v33_realtime_radiusstats_forecasts/mcs_triggered_figures/mcs_triggered_realtime_ml_20260629_hrrr12z_radii_wpc.png",
+  "data_path": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj/v33_realtime_radiusstats_forecasts/verified/realtime_verified_v33_multiradius_r40_r60_r75_r100_20260629.parquet",
+  "mcs_detection": {
+    "triggered": true,
+    "threshold_k": 241.0,
+    "min_area_km2": 60000.0,
+    "n_objects_total": 55,
+    "n_objects_passing": 25,
+    "largest_area_km2": 1900908.0,
+    "selected": {
+      "label": 1,
+      "area_km2": 1900908.0,
+      "pixel_count": 211212,
+      "min_bt_k": 193.8699951171875,
+      "mean_bt_k": 230.26423381661436,
+      "lat_min": 29.740812000000012,
+      "lat_max": 50.89064595806523,
+      "lon_min": -104.95080435347359,
+      "lon_max": -75.06746317278595
+    },
+    "mask_path": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj/v33_realtime_radiusstats_forecasts/mcs_triggered_figures/hrrr_mcs_mask_20260629_12z_bt<241p0_area60000.npz",
+    "source": "HRRR simulated IR SBT123/SBT124",
+    "hrrr_cycle": "12",
+    "selected_fhr": 22,
+    "selected_valid_utc": "2026-06-30T10:00:00+00:00",
+    "ir_trigger": true,
+    "qpf6_trigger": false,
+    "summary_path": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj/v33_realtime_radiusstats_forecasts/hrrr_mcs_trigger_inputs/20260629_12z/hrrr_mcs_trigger_summary_20260629_12z.json",
+    "ir_debug_image": "/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj/v33_realtime_radiusstats_forecasts/hrrr_mcs_trigger_inputs/20260629_12z/hrrr_20260629_12z_f22_simulated_ir_trigger_debug.png",
+    "qpf6_debug_image": null
+  },
+  "error": null,
+  "available_radii": [
+    40,
+    60,
+    75,
+    100
+  ],
+  "finished_utc": "2026-06-30T05:04:07.668655+00:00"
+}
