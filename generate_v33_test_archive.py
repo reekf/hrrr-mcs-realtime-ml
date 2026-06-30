@@ -2,8 +2,8 @@
 """Generate forecast-only website archive images for every v33 test case.
 
 The source data are the v33 radius-sensitivity viewer prediction caches and its
-historical WPC/PP grid.  Only the four ML radius forecasts and WPC ERO are
-published; verification and proxy fields remain internal.
+historical WPC/PP grid. The archive plot contains the four ML radius forecasts,
+WPC ERO, and the viewer's Practically Perfect Any flood proxy verification.
 """
 
 from __future__ import annotations
@@ -62,13 +62,18 @@ def build_case_dataframe(date: str) -> pd.DataFrame:
                 raise RuntimeError(f"v33 prediction grids do not align for {date}, r{radius}")
             base[radius_prob_col(radius)] = frame[radius_prob_col(radius)].to_numpy()
 
-    wpc = read_case(WPC_GRID, date, ["Date", "Lat", "Lon", "WPC_ERO_Risk"])
+    wpc = read_case(
+        WPC_GRID,
+        date,
+        ["Date", "Lat", "Lon", "WPC_ERO_Risk", "PP_Any flood proxy"],
+    )
     if wpc.empty:
         raise RuntimeError(f"No historical WPC viewer rows for {date}")
     wpc = wpc.sort_values(["Lat", "Lon"]).reset_index(drop=True)
     if len(wpc) != len(base) or not wpc[["Date", "Lat", "Lon"]].equals(expected_keys):
         raise RuntimeError(f"Historical WPC grid does not align with v33 predictions for {date}")
     base["WPC_ERO_Risk"] = wpc["WPC_ERO_Risk"].fillna(0).to_numpy()
+    base["PP_Any flood proxy"] = wpc["PP_Any flood proxy"].fillna(0).to_numpy()
     return base
 
 
@@ -102,7 +107,7 @@ def write_status(date: str, destination: Path) -> None:
         "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
         "latest_plot": "latest.png",
         "site_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "product_description": "Machine-learning radius products plus WPC ERO.",
+        "product_description": "Machine-learning radius products, WPC ERO, and Practically Perfect verification.",
     }
     destination.write_text(json.dumps(status, indent=2, sort_keys=True) + "\n")
 
@@ -151,7 +156,7 @@ def generate_case(date: str, force: bool = False) -> None:
         radii=list(RADII),
         include_wpc=True,
         include_ufvs=False,
-        include_pp=False,
+        include_pp=True,
     )
     os.replace(generated, output)
     write_status(date, status)
