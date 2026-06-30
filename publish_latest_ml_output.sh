@@ -33,6 +33,17 @@ python realtime_mcs_trigger_plot.py \
   --date "$DATE_ARG" \
   --radii $RADII
 
+# Verification is delayed until the full prior 12Z-to-12Z period has ended.
+# This reads existing prediction caches only and never changes the public plot.
+VERIFY_DATE_ARG="$(date -u -d "${DATE_ARG} -1 day" +%Y%m%d)"
+echo
+echo "Running internal UFVS/PP verification for completed period ${VERIFY_DATE_ARG}..."
+python realtime_mcs_trigger_plot.py \
+  --date "$VERIFY_DATE_ARG" \
+  --radii $RADII \
+  --verification-only \
+  --force-ufvs || echo "WARNING: Internal verification did not complete for ${VERIFY_DATE_ARG}."
+
 echo
 echo "Finding script outputs..."
 

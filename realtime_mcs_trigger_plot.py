@@ -28,6 +28,7 @@ If an upstream detector already decided to trigger:
 from __future__ import annotations
 
 import argparse
+import gc
 import glob
 import importlib.util
 import json
@@ -792,7 +793,7 @@ def multi_radius_cache_path(rp: RuntimePaths, date: str, available_radii: Iterab
 
 
 def safe_validate_grib_file_no_pygrib(path, *args, **kwargs):
-    """Cheap bool-style GRIB validation that avoids pygrib/eccodes.
+    """Validate GRIB framing and isolate pygrib/ecCodes native failures.
 
     The generated helper's original validator appears to be used as a predicate in
     at least one path: missing/bad files should return False so the helper can
@@ -821,10 +822,73 @@ def safe_validate_grib_file_no_pygrib(path, *args, **kwargs):
                 text=True,
                 timeout=45,
             )
-            return proc.returncode == 0
-        return True
+            if proc.returncode != 0:
+                return False
+
+        # pygrib/ecCodes can segfault instead of raising on a transient/incomplete
+        # file. Open the first message in a disposable interpreter so a native
+        # crash becomes a failed validation rather than terminating automation.
+        probe = (
+            "import pygrib,sys; "
+            "g=pygrib.open(sys.argv[1]); "
+            "m=g.message(1); "
+            "_=m.values.shape; "
+            "g.close()"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", probe, str(p)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=60,
+        )
+        return proc.returncode == 0
     except Exception:
         return False
+
+
+def isolated_grib_domain_mask(sample_grib_file, lat_min, lat_max, lon_min, lon_max):
+    """Read a GRIB grid in a disposable process and return training-domain arrays."""
+    import tempfile
+
+    fd, npz_path = tempfile.mkstemp(prefix="realtime_rap_domain_", suffix=".npz", dir="/tmp")
+    os.close(fd)
+    probe = """
+import numpy as np
+import pygrib
+import sys
+g = pygrib.open(sys.argv[1])
+lats, lons = g.message(1).latlons()
+g.close()
+np.savez_compressed(sys.argv[2], lats=lats, lons=lons)
+"""
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", probe, str(sample_grib_file), npz_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=90,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"Isolated pygrib domain read failed rc={proc.returncode}: {proc.stderr[-1000:]}"
+            )
+        with np.load(npz_path) as data:
+            lats = np.asarray(data["lats"])
+            lons = np.asarray(data["lons"])
+        lons = np.where(lons > 180.0, lons - 360.0, lons)
+        mask = (
+            (lats >= float(lat_min))
+            & (lats <= float(lat_max))
+            & (lons >= float(lon_min))
+            & (lons <= float(lon_max))
+        )
+        return lats, lons, mask, lats[mask], lons[mask]
+    finally:
+        try:
+            os.remove(npz_path)
+        except OSError:
+            pass
 
 
 @contextlib.contextmanager
@@ -936,6 +1000,16 @@ def build_realtime_features(
     # Avoid a known pygrib/eccodes segfault in the generated helper validation path.
     patch("validate_nam_forecast_file", safe_validate_grib_file_no_pygrib)
     patch("validate_forecast_file", safe_validate_grib_file_no_pygrib)
+    patch(
+        "get_nam_domain_mask",
+        lambda sample: isolated_grib_domain_mask(
+            sample,
+            getattr(h, "TRAIN_DOMAIN_LAT_MIN"),
+            getattr(h, "TRAIN_DOMAIN_LAT_MAX"),
+            getattr(h, "TRAIN_DOMAIN_LON_MIN"),
+            getattr(h, "TRAIN_DOMAIN_LON_MAX"),
+        ),
+    )
 
     try:
         log(f"Building realtime features for {d} r{r}km")
@@ -1167,6 +1241,8 @@ def build_predict_verify_realtime_multi_radius(
                 base = merge_grid_by_date_latlon(base, one, columns_to_add=[pcol, f"ML_r{r}_Model_Path", f"ML_r{r}_Feature_Names_Path"])
             available.append(r)
             log(f"Realtime radius member r{r}km loaded: {len(pred):,} rows")
+            del pred, one
+            gc.collect()
         except Exception as exc:
             missing.append((r, repr(exc)))
             log(f"Skipping realtime radius r{r}km: {exc}")
@@ -1200,6 +1276,60 @@ def build_predict_verify_realtime_multi_radius(
     base.to_parquet(cache_path, index=False)
     log(f"Saved realtime multi-radius cache: {cache_path}")
     return base
+
+
+def verify_existing_realtime_predictions(
+    date: str,
+    radii: list[int],
+    rp: RuntimePaths,
+    force_ufvs: bool = True,
+    include_regular_flood_lsr: bool = False,
+    pp_expansion_radius_km: float = 40.0,
+    pp_smooth_radius_km: float = 100.0,
+    cycle_label: str | None = None,
+) -> Path | None:
+    """Attach UFVS/PP verification to existing forecasts without rebuilding features."""
+    d = date8(date)
+    base = None
+    available = []
+    for radius in [int(round(float(r))) for r in radii]:
+        candidates = [
+            p for p in realtime_prediction_cache_candidates(rp, d, radius, cycle_label)
+            if p.exists() and p.stat().st_size > 1024
+        ]
+        if not candidates:
+            log(f"Verification skipped missing r{radius} prediction cache for {d}")
+            continue
+        pred = pd.read_parquet(candidates[0])
+        pred["Date"] = pred["Date"].astype(str).str.slice(0, 8)
+        pcol = radius_prob_col(radius)
+        keep = [c for c in ["Date", "Year", "Lat", "Lon"] if c in pred.columns]
+        one = pred[keep].copy()
+        one[pcol] = pd.to_numeric(pred["ML_Forecast_Prob"], errors="coerce").astype(np.float32)
+        if base is None:
+            base = one
+        else:
+            base = merge_grid_by_date_latlon(base, one, columns_to_add=[pcol])
+        available.append(radius)
+
+    if base is None or not available:
+        log(f"No existing prediction caches for {d}; internal verification not run.")
+        return None
+
+    verified = add_ufvs_and_realtime_pp(
+        base,
+        date=d,
+        rp=rp,
+        force_ufvs=force_ufvs,
+        include_regular_flood_lsr=include_regular_flood_lsr,
+        pp_expansion_radius_km=pp_expansion_radius_km,
+        pp_smooth_radius_km=pp_smooth_radius_km,
+    )
+    rr = "_".join(f"r{int(r)}" for r in available)
+    out_path = rp.verified_cache_dir / f"realtime_ufvs_verified_v33_multiradius_{rr}_{d}.parquet"
+    verified.to_parquet(out_path, index=False)
+    log(f"Saved internally verified realtime forecast: {out_path}")
+    return out_path
 
 
 # ======================================================================================
@@ -1473,8 +1603,10 @@ def fetch_ufvs_points(date: str, prefix: str, rp: RuntimePaths, force: bool = Fa
         cache_path = ufvs_raw_cache_path(rp, prefix, date, start_stamp, end_stamp)
         url = f"{UFVS_BASE_URL}/{prefix}_s{start_stamp}_e{end_stamp}.txt"
         try:
+            source_available = False
             if cache_path.exists() and cache_path.stat().st_size > 0 and not force:
                 text = cache_path.read_text(errors="ignore")
+                source_available = True
             else:
                 log(f"Fetching UFVS {prefix}: {url}")
                 resp = requests.get(url, timeout=timeout)
@@ -1483,8 +1615,10 @@ def fetch_ufvs_points(date: str, prefix: str, rp: RuntimePaths, force: bool = Fa
                     continue
                 text = resp.text
                 cache_path.write_text(text)
+                source_available = True
             pts = parse_ufvs_text_points(text, prefix)
             pts["ufvs_file"] = cache_path.name
+            pts.attrs["ufvs_available"] = source_available
             return pts
         except Exception as exc:
             last_error = repr(exc)
@@ -1598,15 +1732,21 @@ def add_ufvs_and_realtime_pp(
     log(f"Starting UFVS/PP processing for {d}: prefixes={prefixes}, domain_rows={len(grid_domain):,}")
     prefix_to_points = {}
     summary = []
+    available_sources = 0
     for prefix in prefixes:
         col = UFVS_PREFIX_TO_COL.get(prefix, f"UFVS_{prefix}")
-        pts = filter_points_to_extent(fetch_ufvs_points(d, prefix, rp=rp, force=force_ufvs), extent=extent)
+        fetched = fetch_ufvs_points(d, prefix, rp=rp, force=force_ufvs)
+        source_available = bool(fetched.attrs.get("ufvs_available", False))
+        available_sources += int(source_available)
+        pts = filter_points_to_extent(fetched, extent=extent)
         prefix_to_points[prefix] = pts
         flags_domain = event_mask_from_points(grid_domain, pts, max_dist_km=max_nearest_dist_km).astype(np.int8)
         out[col] = 0
         out.loc[grid_domain.index, col] = flags_domain
-        summary.append({"prefix": prefix, "column": col, "points_in_extent": int(len(pts)), "nearest_event_pixels": int(flags_domain.sum())})
+        summary.append({"prefix": prefix, "column": col, "available": source_available, "points_in_extent": int(len(pts)), "nearest_event_pixels": int(flags_domain.sum())})
         log(f"  {prefix}: points_in_extent={len(pts):,}, nearest_event_pixels={int(flags_domain.sum()):,}")
+    if available_sources == 0:
+        raise RuntimeError(f"UFVS verification is not available yet for {d}; no verification cache was written.")
     ufvs_cols = [UFVS_PREFIX_TO_COL[p] for p in prefixes if p in UFVS_PREFIX_TO_COL and UFVS_PREFIX_TO_COL[p] in out.columns]
     if ufvs_cols:
         out["UFVS_ANY"] = (out[ufvs_cols].apply(pd.to_numeric, errors="coerce").fillna(0).max(axis=1) > 0).astype(np.int8)
@@ -2636,11 +2776,12 @@ def parse_args(argv=None):
     p.add_argument("--force-ufvs", action="store_true", help="Refetch/rebuild UFVS/PP cache.")
     p.add_argument("--include-wpc", action=argparse.BooleanOptionalAction, default=True, help="Fetch/rasterize WPC ERO. Default: true")
     p.add_argument("--include-ufvs", action="store_true", help="Fetch UFVS and build PP/proxy panels. Default: false/day-zero mode.")
+    p.add_argument("--verification-only", action="store_true", help="Force internal UFVS/PP verification for existing prediction caches; do not run detection, feature extraction, prediction, or public plotting.")
     p.add_argument("--include-regular-flood-lsr", action="store_true", help="Include LSRREG in UFVS processing.")
     p.add_argument("--pp-expansion-radius-km", type=float, default=40.0)
     p.add_argument("--pp-smooth-radius-km", type=float, default=100.0)
 
-    p.add_argument("--allow-feature-nan-fill-zero", action="store_true", help="Dangerous compatibility switch: fill NaN/inf trained predictors with 0.0 instead of failing.")
+    p.add_argument("--allow-feature-nan-fill-zero", action=argparse.BooleanOptionalAction, default=True, help="Match the v33 viewer model matrix by replacing NaN/inf predictors with 0.0. Default: true.")
     p.add_argument("--plot-field", default=None, help=argparse.SUPPRESS)  # deprecated; ignored. Radius panels are always plotted.
     p.add_argument("--include-members", action="store_true", help=argparse.SUPPRESS)  # deprecated; ignored.
     p.add_argument("--include-pp-panel", action="store_true", help="Plot PP panel if include-ufvs created nonzero PP.")
@@ -2684,6 +2825,22 @@ def main(argv=None) -> int:
         "error": None,
     }
     try:
+        if args.verification_only:
+            verified_path = verify_existing_realtime_predictions(
+                date=d,
+                radii=args.radii,
+                rp=rp,
+                force_ufvs=True,
+                include_regular_flood_lsr=args.include_regular_flood_lsr,
+                pp_expansion_radius_km=args.pp_expansion_radius_km,
+                pp_smooth_radius_km=args.pp_smooth_radius_km,
+                cycle_label=args.cycle_label,
+            )
+            status["verification_path"] = str(verified_path) if verified_path else None
+            status["finished_utc"] = datetime.now(timezone.utc).isoformat()
+            write_status(status_path, status)
+            return 0
+
         mcs_result, mcs_mask, mcs_lat, mcs_lon, mcs_bt = get_mcs_detection(args, rp)
         # force-trigger overrides only the yes/no gate; it does not invent a contour.
         triggered = bool(mcs_result.triggered or args.force_trigger)
@@ -2697,6 +2854,32 @@ def main(argv=None) -> int:
             status["finished_utc"] = datetime.now(timezone.utc).isoformat()
             write_status(status_path, status)
             return 0
+
+        # ecCodes/pygrib can crash when RAP files are opened after the detector's
+        # GRIB files in the same interpreter. Re-exec the ML stage in a clean
+        # process, carrying only the saved mask and the positive gate decision.
+        if args.run_hrrr_detector and os.environ.get("REALTIME_ML_STAGE_CHILD") != "1":
+            child_args = []
+            skip_next = False
+            for token in sys.argv[1:]:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if token == "--mcs-mask-path":
+                    skip_next = True
+                    continue
+                if token in {"--run-hrrr-detector", "--no-run-hrrr-detector", "--force-trigger"}:
+                    continue
+                child_args.append(token)
+            child_args.extend(["--no-run-hrrr-detector", "--force-trigger"])
+            if mcs_result.mask_path:
+                child_args.extend(["--mcs-mask-path", str(mcs_result.mask_path)])
+            env = os.environ.copy()
+            env["REALTIME_ML_STAGE_CHILD"] = "1"
+            log("Starting isolated ML feature/prediction stage in a fresh Python process.")
+            proc = subprocess.run([sys.executable, str(Path(__file__).resolve()), *child_args], env=env)
+            return int(proc.returncode)
+
         if mcs_result.selected:
             log(f"MCS trigger TRUE: area={mcs_result.selected.area_km2:,.0f} km^2, pixels={mcs_result.selected.pixel_count:,}, minBT={mcs_result.selected.min_bt_k:.1f} K")
         else:
