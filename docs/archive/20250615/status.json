@@ -4,8 +4,11 @@
   "plot_available": true,
   "product_description": "Machine-learning radius products, WPC ERO, and Practically Perfect verification.",
   "published": true,
-  "site_updated_utc": "2026-06-30T13:24:07Z",
+  "site_updated_utc": "2026-06-30T21:50:10Z",
   "valid_end_utc": "2025-06-16T12:00:00Z",
   "valid_period_label": "2025-06-15 12Z to 2025-06-16 12Z",
-  "valid_start_utc": "2025-06-15T12:00:00Z"
+  "valid_start_utc": "2025-06-15T12:00:00Z",
+  "verification_available": true,
+  "verification_embedded_in_forecast": true,
+  "verification_plot": "latest.png"
 }
