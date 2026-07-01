@@ -21,10 +21,10 @@
       "site_updated_utc": "2026-06-30T14:07:31Z",
       "status_href": "archive/20260630/status.json",
       "valid_period_label": "2026-06-30 12Z to 2026-07-01 12Z",
-      "verification_available": false,
+      "verification_available": true,
       "verification_embedded_in_forecast": false,
-      "verification_plot_href": null,
-      "verification_updated_utc": "2026-06-30T14:07:31Z"
+      "verification_plot_href": "archive/20260630/verification.png",
+      "verification_updated_utc": "2026-07-01T18:30:26Z"
     },
     {
       "date": "20260629",
@@ -625,5 +625,5 @@
       "verification_updated_utc": "2026-06-30T13:23:47Z"
     }
   ],
-  "generated_utc": "2026-07-01T15:36:11Z"
+  "generated_utc": "2026-07-01T18:30:26Z"
 }
