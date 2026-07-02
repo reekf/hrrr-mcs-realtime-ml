@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "date": "20260702",
+      "plot_available": true,
+      "plot_href": "archive/20260702/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-07-02T13:47:53Z",
+      "status_href": "archive/20260702/status.json",
+      "valid_period_label": "2026-07-02 12Z to 2026-07-03 12Z",
+      "verification_available": false,
+      "verification_embedded_in_forecast": false,
+      "verification_plot_href": null,
+      "verification_updated_utc": "2026-07-02T13:47:53Z"
+    },
+    {
       "date": "20260701",
       "plot_available": true,
       "plot_href": "archive/20260701/latest.png",
@@ -625,5 +638,5 @@
       "verification_updated_utc": "2026-06-30T13:23:47Z"
     }
   ],
-  "generated_utc": "2026-07-01T18:30:26Z"
+  "generated_utc": "2026-07-02T13:47:53Z"
 }
