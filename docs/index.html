@@ -48,6 +48,11 @@
       <div class="section-label">Contour overlays</div>
       <div id="contour-options" class="contour-options"></div>
 
+      <div id="observation-section" hidden>
+        <div class="section-label">Flood proxy observations</div>
+        <div id="observation-options" class="observation-options"></div>
+      </div>
+
       <div class="opacity-control">
         <label for="fill-opacity">Forecast transparency</label>
         <div>
@@ -79,7 +84,7 @@
       <p class="lead">Experimental machine-learning guidance for mesoscale convective systems, showing the probability that observed rainfall will exceed Flash Flood Guidance within a specified radius.</p>
 
       <h2>What you are viewing</h2>
-      <p>Flash Flood Guidance estimates the amount of rainfall needed to produce flash flooding. The ML configurations predict exceedance within 40, 60, 75, or 100 km of each grid point. WPC ERO is included as the official reference forecast.</p>
+      <p>Flash Flood Guidance (FFG) estimates how much rainfall over a specified duration would be needed to cause small streams to overflow their banks. The ML configurations predict the probability that observed rainfall will exceed FFG within 40, 60, 75, or 100 km of each grid point. WPC ERO is included as the official reference forecast.</p>
 
       <h2>Key test-set result</h2>
       <p><strong>The 60-km configuration was the most balanced overall, followed closely by 75 km.</strong> Average test-set results indicate better ML skill than WPC for Moderate-or-greater risks, although performance varies from event to event.</p>
@@ -88,7 +93,7 @@
       <p>Practically Perfect is an observation-based benchmark created after the valid period from observed flood-proxy locations. Those observations are expanded and smoothed to show an idealized placement of risk areas. It is not a forecast. It is typically available around 11:10 AM CT the following day.</p>
 
       <h2>Using the map</h2>
-      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. Use the Archive button to change dates or open the original static graphics.</p>
+      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. Use the Archive button to change dates or open the original static graphics.</p>
 
       <button class="primary-button dialog-close" type="button">Enter map</button>
     </div>

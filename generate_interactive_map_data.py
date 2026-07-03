@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -25,8 +26,15 @@ REALTIME_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "verified"
 REALTIME_WPC_DIR = PROJECT_DIR / "realtime_wpc_ero_cache_v33"
 HISTORICAL_GRID = PROJECT_DIR / "df_pp_viewer_with_wpc_ero_day1.parquet"
 HISTORICAL_PREDICTIONS = PROJECT_DIR / "v33_singletarget_radius_sensitivity_viewer_prediction_cache"
+OBSERVATION_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "ufvs_raw"
 RADII = (40, 60, 75, 100)
 THRESHOLDS = (0.05, 0.15, 0.40, 0.70)
+OBSERVATION_SPECS = {
+    "stage4_ffg": ("Stage IV > FFG", "ST4gFFG"),
+    "stage4_ari": ("Stage IV ARI", "ST4gARI"),
+    "usgs": ("USGS", "USGS"),
+    "flash_lsr": ("Flash-flood reports", "LSRFLASH"),
+}
 
 LAYER_SPECS = {
     "ml_r40": ("ML r40 km", "ML_r40_Prob", "forecast"),
@@ -177,6 +185,36 @@ def contour_segments(lon: np.ndarray, lat: np.ndarray, values: np.ndarray) -> di
     return result
 
 
+def _parse_observation_points(text: str) -> list[list[float]]:
+    points = set()
+    for line in str(text).splitlines():
+        values = [float(value) for value in re.findall(r"[-+]?\d+(?:\.\d+)?", line)]
+        if len(values) < 2:
+            continue
+        first, second = values[:2]
+        if 15.0 <= first <= 60.0 and -130.0 <= second <= -60.0:
+            lat, lon = first, second
+        elif 15.0 <= second <= 60.0 and -130.0 <= first <= -60.0:
+            lat, lon = second, first
+        else:
+            continue
+        if 30.0 <= lat <= 50.1 and -105.1 <= lon <= -80.4:
+            points.add((round(lat, 4), round(lon, 4)))
+    return [list(point) for point in sorted(points)]
+
+
+def load_observations(date: str) -> dict:
+    end = (datetime.strptime(date, "%Y%m%d") + timedelta(days=1)).strftime("%Y%m%d")
+    observations = {}
+    for key, (label, prefix) in OBSERVATION_SPECS.items():
+        candidates = sorted(OBSERVATION_DIR.glob(f"{prefix}_s{date}*_e{end}12.txt"))
+        if not candidates:
+            continue
+        points = _parse_observation_points(candidates[0].read_text(errors="ignore"))
+        observations[key] = {"label": label, "points": points}
+    return observations
+
+
 def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
     required = ["Date", "Lat", "Lon"]
     missing = [column for column in required if column not in frame.columns]
@@ -217,6 +255,7 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
         },
         "layers": layers,
         "contours": contours,
+        "observations": load_observations(date) if "pp" in layers else {},
     }
 
 

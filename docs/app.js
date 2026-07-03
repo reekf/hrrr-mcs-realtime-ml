@@ -9,28 +9,28 @@ const RISK_COLORS = {
 
 const PRODUCT_META = {
   ml_r40: {
-    short: "ML r40",
+    short: "ML r40 (25 mi)",
     title: "40-km radius ML",
     note: "40-km radius ML forecasts are typically the most conservative in both risk size and severity.",
     detail: "Predicts rainfall exceeding Flash Flood Guidance within 40 km. Test-set analysis shows that this configuration often produces risk areas that are too small and too weak.",
     dash: null,
   },
   ml_r60: {
-    short: "ML r60",
+    short: "ML r60 (37 mi)",
     title: "60-km radius ML",
     note: "60-km radius ML forecasts were the most balanced overall in the test-set analysis.",
     detail: "Predicts rainfall exceeding Flash Flood Guidance within 60 km. This configuration provided the best balance between missed events and overly broad or severe risk areas in the test set.",
     dash: "8 4",
   },
   ml_r75: {
-    short: "ML r75",
+    short: "ML r75 (47 mi)",
     title: "75-km radius ML",
     note: "75-km radius ML forecasts were a close second to 60 km for overall balance.",
     detail: "Predicts rainfall exceeding Flash Flood Guidance within 75 km. It performed similarly to 60 km while tending toward somewhat broader and stronger risk areas.",
     dash: "3 5",
   },
   ml_r100: {
-    short: "ML r100",
+    short: "ML r100 (62 mi)",
     title: "100-km radius ML",
     note: "100-km radius ML forecasts are typically the most aggressive.",
     detail: "Predicts rainfall exceeding Flash Flood Guidance within 100 km. Test-set analysis shows that risk areas can be too large and that high probabilities can be issued too frequently.",
@@ -40,7 +40,7 @@ const PRODUCT_META = {
     short: "WPC ERO",
     title: "WPC Excessive Rainfall Outlook",
     note: "WPC ERO is the official reference forecast shown alongside the experimental ML guidance.",
-    detail: "The WPC Excessive Rainfall Outlook is the official categorical reference forecast. Average test-set results indicate better ML skill for Moderate-or-greater risks, but performance varies by event.",
+    detail: "The WPC Excessive Rainfall Outlook is the official categorical reference forecast, expressed here as the probability of rainfall exceeding Flash Flood Guidance within 40 km (25 mi) of a point. Average test-set results indicate better ML skill for Moderate-or-greater risks, but performance varies by event.",
     dash: "1 4",
   },
   pp: {
@@ -54,15 +54,23 @@ const PRODUCT_META = {
 
 const PRODUCT_ORDER = ["ml_r40", "ml_r60", "ml_r75", "ml_r100", "wpc", "pp"];
 const THRESHOLDS = [5, 15, 40, 70];
+const OBSERVATION_META = {
+  stage4_ffg: { label: "Stage IV > FFG", color: "#00e5ff" },
+  stage4_ari: { label: "Stage IV ARI", color: "#ff9d36" },
+  usgs: { label: "USGS", color: "#58a6ff" },
+  flash_lsr: { label: "Flash-flood reports", color: "#ffffff" },
+};
 
 const state = {
   archive: [],
   data: null,
   selected: "ml_r60",
   contours: new Set(),
+  observations: new Set(),
   fillOpacity: 0.68,
   fillLayer: null,
   contourLayer: null,
+  observationLayer: null,
 };
 
 const map = L.map("map", {
@@ -82,6 +90,8 @@ map.getPane("contourPane").style.zIndex = 450;
 map.createPane("labelPane");
 map.getPane("labelPane").style.zIndex = 500;
 map.getPane("labelPane").style.pointerEvents = "none";
+map.createPane("observationPane");
+map.getPane("observationPane").style.zIndex = 475;
 
 L.control.zoom({ position: "bottomright" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
@@ -140,7 +150,12 @@ function hideLoading() {
 }
 
 function setMessage(key) {
-  document.getElementById("product-message").textContent = PRODUCT_META[key]?.note || "";
+  const radius = { ml_r40: "40 km (25 mi)", ml_r60: "60 km (37 mi)", ml_r75: "75 km (47 mi)", ml_r100: "100 km (62 mi)" }[key];
+  let prediction = "";
+  if (radius) prediction = ` It predicts the probability that observed rainfall will exceed Flash Flood Guidance within ${radius} of a point.`;
+  if (key === "wpc") prediction = " It predicts the probability of rainfall exceeding Flash Flood Guidance within 40 km (25 mi) of a point.";
+  if (key === "pp") prediction = " It shows an observation-based, idealized placement of risk after the valid period—not a forecast.";
+  document.getElementById("product-message").textContent = `${PRODUCT_META[key]?.note || ""}${prediction}`;
 }
 
 function renderFilledLayer() {
@@ -208,6 +223,27 @@ function renderContours() {
   state.contourLayer = group.addTo(map);
 }
 
+function renderObservations() {
+  if (state.observationLayer) map.removeLayer(state.observationLayer);
+  const group = L.layerGroup();
+  for (const key of state.observations) {
+    const source = state.data?.observations?.[key];
+    if (!source) continue;
+    const meta = OBSERVATION_META[key] || { label: source.label || key, color: "#fff" };
+    for (const point of source.points || []) {
+      L.circleMarker(point, {
+        pane: "observationPane",
+        radius: 4.2,
+        color: "#07090b",
+        weight: 1.5,
+        fillColor: meta.color,
+        fillOpacity: 1,
+      }).bindTooltip(meta.label, { direction: "top" }).addTo(group);
+    }
+  }
+  state.observationLayer = group.addTo(map);
+}
+
 function showProductInfo(key) {
   const meta = PRODUCT_META[key];
   if (!meta) return;
@@ -267,6 +303,29 @@ function buildLayerControls() {
     contourContainer.append(contourRow);
   }
 
+  const observationSection = document.getElementById("observation-section");
+  const observationContainer = document.getElementById("observation-options");
+  observationContainer.replaceChildren();
+  const availableObservations = Object.entries(state.data?.observations || {}).filter(([, source]) => source?.points?.length);
+  observationSection.hidden = availableObservations.length === 0;
+  for (const [key, source] of availableObservations) {
+    const meta = OBSERVATION_META[key] || { label: source.label || key, color: "#fff" };
+    const label = document.createElement("label");
+    label.className = "observation-choice";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = state.observations.has(key);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) state.observations.add(key);
+      else state.observations.delete(key);
+      renderObservations();
+    });
+    const swatch = document.createElement("i");
+    swatch.style.setProperty("--observation-color", meta.color);
+    label.append(checkbox, swatch, document.createTextNode(`${meta.label} (${source.points.length})`));
+    observationContainer.append(label);
+  }
+
   const hasVerification = Boolean(state.data?.layers?.pp);
   document.getElementById("verification-availability").textContent = hasVerification
     ? "Practically Perfect verification is available for this valid period."
@@ -300,9 +359,11 @@ async function loadDate(date, fit = false) {
       state.selected = state.data.layers.ml_r60 ? "ml_r60" : Object.keys(state.data.layers)[0];
     }
     state.contours = new Set([...state.contours].filter((key) => state.data.layers[key]));
+    state.observations = new Set([...state.observations].filter((key) => state.data.observations?.[key]));
     buildLayerControls();
     renderFilledLayer();
     renderContours();
+    renderObservations();
     updateDateUI(entry);
     if (fit) map.fitBounds([[30, -105], [50, -80.5]], { padding: [15, 15] });
     history.replaceState(null, "", `?date=${state.data.date}`);
@@ -420,6 +481,7 @@ opacityInput.addEventListener("input", () => {
 map.on("zoomend", () => {
   renderFilledLayer();
   renderContours();
+  renderObservations();
 });
 
 async function init() {

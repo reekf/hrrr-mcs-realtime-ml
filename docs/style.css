@@ -181,7 +181,27 @@ button { cursor: pointer; }
   background: transparent;
 }
 
-.product-options, .contour-options { display: grid; gap: 5px; }
+.product-options, .contour-options, .observation-options { display: grid; gap: 5px; }
+
+.observation-choice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 29px;
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.observation-choice input { accent-color: #c4d3dc; }
+
+.observation-choice i {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border: 1px solid #080a0c;
+  border-radius: 50%;
+  background: var(--observation-color);
+}
 
 .opacity-control {
   margin-top: 15px;
@@ -274,20 +294,20 @@ button { cursor: pointer; }
   position: fixed;
   z-index: 800;
   right: 16px;
-  bottom: 58px;
+  bottom: 92px;
   display: flex;
-  gap: 12px;
-  padding: 9px 11px;
+  gap: 15px;
+  padding: 13px 16px;
   background: rgba(9, 11, 13, 0.9);
   border: 1px solid var(--line);
-  font-size: 0.68rem;
+  font-size: 0.84rem;
 }
 
 .legend span { display: flex; align-items: center; gap: 5px; }
 
 .legend i {
-  width: 10px;
-  height: 10px;
+  width: 22px;
+  height: 16px;
   display: inline-block;
   background: var(--swatch);
 }
@@ -297,14 +317,15 @@ button { cursor: pointer; }
   z-index: 850;
   left: 50%;
   bottom: 15px;
-  width: min(720px, calc(100% - 32px));
+  width: min(920px, calc(100% - 32px));
   transform: translateX(-50%);
-  padding: 8px 12px;
+  padding: 11px 16px;
   color: #d2d9dd;
   background: rgba(9, 11, 13, 0.93);
   border: 1px solid var(--line);
   text-align: center;
-  font-size: 0.72rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .loading {
@@ -419,13 +440,23 @@ noscript {
     width: min(286px, calc(100% - 20px));
     max-height: 48vh;
   }
-  .legend { right: 10px; bottom: 98px; flex-wrap: wrap; max-width: 160px; }
-  .product-message { bottom: 8px; font-size: 0.64rem; }
+  .legend { right: 10px; bottom: 100px; flex-wrap: wrap; max-width: 190px; }
+  .product-message { bottom: 8px; font-size: 0.78rem; }
 }
 
 @media (max-width: 560px) {
   .brand h1 { max-width: 170px; white-space: normal; line-height: 1.1; }
   .icon-button { padding: 0 8px; font-size: 0.7rem; }
   #valid-period { display: none; }
-  .legend { display: none; }
+  .legend {
+    right: 8px;
+    bottom: 108px;
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    max-width: none;
+    gap: 5px 9px;
+    padding: 7px 9px;
+    font-size: 0.62rem;
+  }
+  .legend i { width: 15px; height: 11px; }
 }
