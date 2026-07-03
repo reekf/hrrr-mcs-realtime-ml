@@ -42,12 +42,9 @@ header p {
 }
 
 .product-explainer {
-  margin-top: 22px;
-  padding: 18px 20px;
-  border: 1px solid #d7e2ef;
-  border-left: 5px solid #1b5fbf;
-  border-radius: 8px;
-  background: #f7faff;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #ddd;
   line-height: 1.55;
 }
 
@@ -64,10 +61,6 @@ header p {
 }
 
 .key-takeaway {
-  padding: 12px 14px;
-  border-radius: 6px;
-  background: #e7f1ff;
-  color: #153f73;
   font-size: 1.05rem;
 }
 
