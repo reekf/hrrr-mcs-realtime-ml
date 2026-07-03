@@ -12,6 +12,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html, body, #map {
   width: 100%;
@@ -374,6 +375,8 @@ button { cursor: pointer; }
 }
 
 .archive-table-wrap { overflow-x: auto; }
+
+.pending-cell { color: var(--muted); }
 
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px 8px; border-bottom: 1px solid #2a3137; text-align: left; }

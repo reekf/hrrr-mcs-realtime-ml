@@ -277,6 +277,15 @@ function updateDateUI(entry) {
   document.getElementById("valid-period").textContent = `Valid ${state.data.valid_period_label}`;
   const staticHref = entry?.plot_href || `archive/${state.data.date}/latest.png`;
   document.getElementById("current-png-link").href = `${staticHref}?v=${encodeURIComponent(entry?.site_updated_utc || state.data.generated_utc)}`;
+  const verificationLink = document.getElementById("current-verification-link");
+  if (entry?.verification_available && entry.verification_plot_href) {
+    verificationLink.href = `${entry.verification_plot_href}?v=${encodeURIComponent(entry.verification_updated_utc || entry.site_updated_utc || state.data.generated_utc)}`;
+    verificationLink.textContent = entry.verification_embedded_in_forecast ? "Combined PNG" : "Verification PNG";
+    verificationLink.hidden = false;
+  } else {
+    verificationLink.hidden = true;
+    verificationLink.removeAttribute("href");
+  }
   document.getElementById("date-select").value = state.data.date;
 }
 
@@ -327,6 +336,7 @@ function populateArchive() {
     const validCell = document.createElement("td");
     const mapCell = document.createElement("td");
     const staticCell = document.createElement("td");
+    const verificationCell = document.createElement("td");
     dateCell.textContent = entry.date;
     validCell.textContent = entry.valid_period_label || "—";
 
@@ -351,7 +361,22 @@ function populateArchive() {
     } else {
       staticCell.textContent = "—";
     }
-    row.append(dateCell, validCell, mapCell, staticCell);
+
+    if (entry.verification_available && entry.verification_plot_href) {
+      const link = document.createElement("a");
+      link.href = entry.verification_plot_href;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = entry.verification_embedded_in_forecast ? "Combined PNG" : "Open PNG";
+      link.title = entry.verification_embedded_in_forecast
+        ? "Forecast and Practically Perfect verification in one image"
+        : "Open Practically Perfect verification image";
+      verificationCell.append(link);
+    } else {
+      verificationCell.textContent = "Pending";
+      verificationCell.className = "pending-cell";
+    }
+    row.append(dateCell, validCell, mapCell, staticCell, verificationCell);
     rows.append(row);
   }
 }
