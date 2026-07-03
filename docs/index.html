@@ -4,155 +4,116 @@
   <meta charset="utf-8">
   <title>ML-Based Flash Flood Forecast for Mesoscale Convective Systems</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b0d">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
-    <h1>ML-Based Flash Flood Forecast for Mesoscale Convective Systems</h1>
+  <div id="map" aria-label="Interactive ML flash-flood probability map"></div>
 
-    <section class="card">
-      <h2>Status</h2>
-      <p id="status">Website deployed. No ML output has been published yet.</p>
-    </section>
-
-    <section class="card" id="plot-card" style="display:none;">
-      <h2>Latest ML / WPC Plot</h2>
-      <img id="latest-plot" alt="Latest realtime ML probability plot">
-
-      <div class="product-explainer">
-        <h3>How to interpret this experimental guidance</h3>
-        <p class="key-takeaway"><strong>Key takeaway:</strong> Test-set analysis indicates that the 60-km configuration provides the most balanced guidance, followed closely by the 75-km configuration.</p>
-
-        <p>This is an experimental forecast product. Across the test set, the ML guidance showed better average skill than the WPC Excessive Rainfall Outlook for Moderate-or-greater risks. These results describe average test-set performance and do not guarantee better performance for every event.</p>
-
-        <h4>What the ML predicts</h4>
-        <p>Each configuration predicts the probability that observed rainfall will exceed Flash Flood Guidance somewhere within a specified radius (<em>r</em>). Flash Flood Guidance estimates the amount of rainfall needed to produce flash flooding. The four configurations use radii of 40, 60, 75, and 100 km.</p>
-
-        <ul class="configuration-summary">
-          <li><strong>r = 60 km:</strong> Most balanced overall in the test-set analysis.</li>
-          <li><strong>r = 75 km:</strong> A close second, with somewhat broader and stronger risk areas.</li>
-          <li><strong>r = 40 km:</strong> Often too conservative in both risk-area size and severity.</li>
-          <li><strong>r = 100 km:</strong> Often too aggressive; risk areas can be too large, with high probabilities issued too frequently.</li>
-        </ul>
-
-        <h4>What “Practically Perfect” means</h4>
-        <p>Practically Perfect is an observation-based verification benchmark created after the valid period from observed flood-proxy locations. The observations are spatially expanded and smoothed to show an idealized placement of risk areas. It is not a forecast and is displayed only for verification.</p>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">FF</span>
+      <div>
+        <h1>ML Flash-Flood Forecast</h1>
+        <span class="experimental-label">Experimental</span>
       </div>
-    </section>
+    </div>
 
-    <section class="card">
-      <h2>Archived Forecasts</h2>
-      <p id="archive-status">Loading archived forecasts...</p>
-      <div class="table-wrap" id="archive-table-wrap" hidden>
+    <div class="date-controls">
+      <label for="date-select">Forecast</label>
+      <select id="date-select" aria-label="Forecast date"></select>
+      <span id="valid-period">Loading forecast…</span>
+    </div>
+
+    <nav class="top-actions" aria-label="Site actions">
+      <a id="current-png-link" class="text-button" href="#" target="_blank" rel="noopener">PNG</a>
+      <button class="icon-button" id="archive-button" type="button" aria-label="Open archive">Archive</button>
+      <button class="round-button" id="about-button" type="button" aria-label="About this website">?</button>
+    </nav>
+  </header>
+
+  <aside class="layer-panel" aria-label="Map layers">
+    <div class="panel-heading">
+      <span>Filled product</span>
+      <button id="collapse-layers" class="panel-toggle" type="button" aria-label="Collapse layer controls">−</button>
+    </div>
+    <div id="layer-panel-content">
+      <div id="product-options" class="product-options"></div>
+
+      <div class="section-label">Contour overlays</div>
+      <div id="contour-options" class="contour-options"></div>
+
+      <p id="verification-availability" class="availability-note"></p>
+    </div>
+  </aside>
+
+  <div class="legend" aria-label="Probability legend">
+    <span><i style="--swatch:#57c84d"></i>&gt;5%</span>
+    <span><i style="--swatch:#f0df35"></i>&gt;15%</span>
+    <span><i style="--swatch:#e14b3f"></i>&gt;40%</span>
+    <span><i style="--swatch:#d94ad7"></i>&gt;70%</span>
+  </div>
+
+  <div id="product-message" class="product-message" role="status"></div>
+  <div id="loading" class="loading" role="status">Loading map data…</div>
+
+  <dialog id="about-dialog" class="site-dialog">
+    <div class="dialog-header">
+      <span>About this product</span>
+      <button class="round-button dialog-close" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="dialog-content">
+      <p class="lead">Experimental machine-learning guidance for mesoscale convective systems, showing the probability that observed rainfall will exceed Flash Flood Guidance within a specified radius.</p>
+
+      <h2>What you are viewing</h2>
+      <p>Flash Flood Guidance estimates the amount of rainfall needed to produce flash flooding. The ML configurations predict exceedance within 40, 60, 75, or 100 km of each grid point. WPC ERO is included as the official reference forecast.</p>
+
+      <h2>Key test-set result</h2>
+      <p><strong>The 60-km configuration was the most balanced overall, followed closely by 75 km.</strong> Average test-set results indicate better ML skill than WPC for Moderate-or-greater risks, although performance varies from event to event.</p>
+
+      <h2>Practically Perfect verification</h2>
+      <p>Practically Perfect is an observation-based benchmark created after the valid period from observed flood-proxy locations. Those observations are expanded and smoothed to show an idealized placement of risk areas. It is not a forecast. It is typically available around 11:10 AM CT the following day.</p>
+
+      <h2>Using the map</h2>
+      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. Use the Archive button to change dates or open the original static graphics.</p>
+
+      <button class="primary-button dialog-close" type="button">Enter map</button>
+    </div>
+  </dialog>
+
+  <dialog id="product-dialog" class="site-dialog compact-dialog">
+    <div class="dialog-header">
+      <span id="product-dialog-title">Product details</span>
+      <button class="round-button dialog-close" type="button" aria-label="Close">×</button>
+    </div>
+    <div id="product-dialog-content" class="dialog-content"></div>
+  </dialog>
+
+  <dialog id="archive-dialog" class="site-dialog archive-dialog">
+    <div class="dialog-header">
+      <span>Forecast archive</span>
+      <button class="round-button dialog-close" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="dialog-content">
+      <p>Load an interactive forecast or open its original static graphic.</p>
+      <div class="archive-table-wrap">
         <table>
           <thead>
-            <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Valid Period</th>
-              <th scope="col">Forecast</th>
-              <th scope="col">Verification</th>
-              <th scope="col">Metadata</th>
-            </tr>
+            <tr><th>Date</th><th>Valid period</th><th>Interactive</th><th>Static</th></tr>
           </thead>
           <tbody id="archive-rows"></tbody>
         </table>
       </div>
-    </section>
-  </main>
+    </div>
+  </dialog>
 
-  <script>
-    async function loadStatus() {
-      try {
-        const response = await fetch("latest/status.json?cache=" + Date.now());
-        if (!response.ok) return;
+  <noscript>This interactive forecast requires JavaScript. Static graphics remain available under the archive directory.</noscript>
 
-        const status = await response.json();
-        if (!status.published) return;
-
-        const parts = [];
-        if (status.valid_period_label) parts.push("Valid " + status.valid_period_label);
-        if (status.site_updated_utc) parts.push("Updated: " + status.site_updated_utc);
-
-        document.getElementById("status").textContent = parts.join(" | ");
-        document.getElementById("latest-plot").src = "latest/latest.png?cache=" + Date.now();
-        document.getElementById("plot-card").style.display = "block";
-      } catch (err) {
-        // Keep placeholder text.
-      }
-    }
-
-    async function loadArchive() {
-      const archiveStatus = document.getElementById("archive-status");
-
-      try {
-        const response = await fetch("archive/index.json?cache=" + Date.now());
-        if (!response.ok) throw new Error("Archive index unavailable");
-
-        const archive = await response.json();
-        const entries = Array.isArray(archive) ? archive : archive.entries;
-        if (!Array.isArray(entries) || entries.length === 0) {
-          archiveStatus.textContent = "No archived forecasts are available yet.";
-          return;
-        }
-
-        const rows = document.getElementById("archive-rows");
-        entries.forEach((entry) => {
-          const row = document.createElement("tr");
-          const date = document.createElement("td");
-          const validPeriod = document.createElement("td");
-          const forecast = document.createElement("td");
-          const verification = document.createElement("td");
-          const metadata = document.createElement("td");
-          const plotLink = document.createElement("a");
-          const statusLink = document.createElement("a");
-
-          date.textContent = entry.date || "—";
-          validPeriod.textContent = entry.valid_period_label || "—";
-          const cacheVersion = encodeURIComponent(entry.site_updated_utc || entry.date || Date.now());
-          const plotHref = entry.plot_url || entry.plot_href;
-          const statusHref = entry.status_url || entry.status_href;
-          if (plotHref) {
-            plotLink.href = plotHref + (plotHref.includes("?") ? "&" : "?") + "cache=" + cacheVersion;
-            plotLink.textContent = "View graphic";
-            forecast.append(plotLink);
-          } else {
-            forecast.textContent = "Unavailable";
-          }
-
-          const verificationHref = entry.verification_plot_url || entry.verification_plot_href;
-          if (entry.verification_available && verificationHref) {
-            const verificationLink = document.createElement("a");
-            const verificationVersion = encodeURIComponent(entry.verification_updated_utc || cacheVersion);
-            verificationLink.href = verificationHref + (verificationHref.includes("?") ? "&" : "?") + "cache=" + verificationVersion;
-            verificationLink.textContent = entry.verification_embedded_in_forecast ? "View combined graphic" : "View graphic";
-            verification.append(verificationLink);
-          } else {
-            verification.textContent = "Pending";
-          }
-
-          if (statusHref) {
-            statusLink.href = statusHref + (statusHref.includes("?") ? "&" : "?") + "cache=" + cacheVersion;
-            statusLink.textContent = "View JSON";
-            metadata.append(statusLink);
-          } else {
-            metadata.textContent = "Unavailable";
-          }
-
-          row.append(date, validPeriod, forecast, verification, metadata);
-          rows.appendChild(row);
-        });
-
-        archiveStatus.hidden = true;
-        document.getElementById("archive-table-wrap").hidden = false;
-      } catch (err) {
-        archiveStatus.textContent = "Archived forecasts are temporarily unavailable.";
-      }
-    }
-
-    loadStatus();
-    loadArchive();
-  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
 </body>
 </html>
-
-<!-- rebuild 2026-06-30T05:00:15Z -->

@@ -18,6 +18,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 from realtime_mcs_trigger_plot import RuntimePaths, plot_realtime_ero_panels, radius_prob_col
+from generate_interactive_map_data import write_frame_map_data
 
 
 RADII = (40, 60, 75, 100)
@@ -108,6 +109,8 @@ def write_status(date: str, destination: Path) -> None:
         "latest_plot": "latest.png",
         "site_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "product_description": "Machine-learning radius products, WPC ERO, and Practically Perfect verification.",
+        "map_available": True,
+        "map_data": "map.json",
         "verification_available": True,
         "verification_plot": "latest.png",
         "verification_embedded_in_forecast": True,
@@ -123,6 +126,7 @@ def rebuild_archive_index() -> None:
             continue
         status = json.loads(status_path.read_text())
         plot_exists = (day_dir / "latest.png").exists()
+        map_exists = (day_dir / "map.json").exists()
         verification_exists = (day_dir / "verification.png").exists()
         verification_embedded = bool(status.get("verification_embedded_in_forecast", False)) or (
             "practically perfect verification" in str(status.get("product_description", "")).lower()
@@ -136,6 +140,9 @@ def rebuild_archive_index() -> None:
                 "site_updated_utc": status.get("site_updated_utc", ""),
                 "status_href": f"archive/{day_dir.name}/status.json",
                 "plot_href": f"archive/{day_dir.name}/latest.png" if plot_exists else None,
+                "map_available": bool(map_exists),
+                "map_href": f"archive/{day_dir.name}/map.json" if map_exists else None,
+                "map_updated_utc": status.get("map_updated_utc", status.get("site_updated_utc", "")),
                 "verification_available": bool(verification_exists or (verification_embedded and plot_exists)),
                 "verification_plot_href": (
                     f"archive/{day_dir.name}/verification.png" if verification_exists
@@ -155,24 +162,27 @@ def rebuild_archive_index() -> None:
 def generate_case(date: str, force: bool = False) -> None:
     day_dir = ARCHIVE_DIR / date
     output = day_dir / "latest.png"
+    map_output = day_dir / "map.json"
     status = day_dir / "status.json"
-    if output.exists() and status.exists() and not force:
+    if output.exists() and map_output.exists() and status.exists() and not force:
         print(f"[{date}] already archived; skipping", flush=True)
         return
 
     print(f"[{date}] loading v33 viewer caches", flush=True)
     frame = build_case_dataframe(date)
     day_dir.mkdir(parents=True, exist_ok=True)
-    generated = plot_realtime_ero_panels(
-        frame,
-        date=date,
-        rp=runtime_paths(day_dir),
-        radii=list(RADII),
-        include_wpc=True,
-        include_ufvs=False,
-        include_pp=True,
-    )
-    os.replace(generated, output)
+    if force or not output.exists():
+        generated = plot_realtime_ero_panels(
+            frame,
+            date=date,
+            rp=runtime_paths(day_dir),
+            radii=list(RADII),
+            include_wpc=True,
+            include_ufvs=False,
+            include_pp=True,
+        )
+        os.replace(generated, output)
+    write_frame_map_data(frame, date, map_output, "historical")
     write_status(date, status)
     print(f"[{date}] wrote {output}", flush=True)
 

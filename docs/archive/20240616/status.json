@@ -1,10 +1,12 @@
 {
   "date": "20240616",
   "latest_plot": "latest.png",
+  "map_available": true,
+  "map_data": "map.json",
   "plot_available": true,
   "product_description": "Machine-learning radius products, WPC ERO, and Practically Perfect verification.",
   "published": true,
-  "site_updated_utc": "2026-06-30T21:49:57Z",
+  "site_updated_utc": "2026-07-03T15:14:03Z",
   "valid_end_utc": "2024-06-17T12:00:00Z",
   "valid_period_label": "2024-06-16 12Z to 2024-06-17 12Z",
   "valid_start_utc": "2024-06-16T12:00:00Z",

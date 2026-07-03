@@ -85,11 +85,26 @@ if [[ -n "${PNG_SRC}" && -f "${PNG_SRC}" ]]; then
   echo "Public PNG source: ${PNG_SRC}"
   cp "${PNG_SRC}" docs/latest/latest.png
   cp "${PNG_SRC}" "docs/archive/${DATE_ARG}/latest.png"
+  rm -f "docs/archive/${DATE_ARG}/map.json" docs/latest/map.json
+  MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/matplotlib-cache}" python generate_interactive_map_data.py \
+    --date "$DATE_ARG" \
+    --source realtime \
+    --output "docs/archive/${DATE_ARG}/map.json"
+  cp "docs/archive/${DATE_ARG}/map.json" docs/latest/map.json
   write_public_status docs/latest/status.json true true ""
+  python - docs/latest/status.json <<'PY'
+import json
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+status = json.loads(path.read_text())
+status.update({"map_available": True, "map_data": "map.json", "map_updated_utc": status["site_updated_utc"]})
+path.write_text(json.dumps(status, indent=2, sort_keys=True) + "\n")
+PY
   cp docs/latest/status.json "docs/archive/${DATE_ARG}/status.json"
 else
   echo "WARNING: Public PNG was not produced: ${PUBLIC_PNG_SRC}"
-  rm -f docs/latest/latest.png "docs/archive/${DATE_ARG}/latest.png"
+  rm -f docs/latest/latest.png docs/latest/map.json "docs/archive/${DATE_ARG}/latest.png" "docs/archive/${DATE_ARG}/map.json"
   write_public_status docs/latest/status.json false false "Realtime script ran, but no public forecast graphic was produced."
   cp docs/latest/status.json "docs/archive/${DATE_ARG}/status.json"
 fi
@@ -113,6 +128,7 @@ if archive_root.exists():
             status = {}
         date = status.get("date") or day_dir.name
         plot_exists = (day_dir / "latest.png").exists()
+        map_exists = (day_dir / "map.json").exists()
         verification_exists = (day_dir / "verification.png").exists()
         verification_embedded = bool(status.get("verification_embedded_in_forecast", False)) or (
             "practically perfect verification" in str(status.get("product_description", "")).lower()
@@ -125,6 +141,9 @@ if archive_root.exists():
             "site_updated_utc": status.get("site_updated_utc", ""),
             "status_href": f"archive/{day_dir.name}/status.json",
             "plot_href": f"archive/{day_dir.name}/latest.png" if plot_exists else None,
+            "map_available": bool(map_exists),
+            "map_href": f"archive/{day_dir.name}/map.json" if map_exists else None,
+            "map_updated_utc": status.get("map_updated_utc", status.get("site_updated_utc", "")),
             "verification_available": bool(verification_exists or (verification_embedded and plot_exists)),
             "verification_plot_href": (
                 f"archive/{day_dir.name}/verification.png" if verification_exists
@@ -151,14 +170,24 @@ if [[ -f docs/latest/latest.png ]]; then
 else
   git rm -f --ignore-unmatch docs/latest/latest.png >/dev/null 2>&1 || true
 fi
+if [[ -f docs/latest/map.json ]]; then
+  git add -f docs/latest/map.json
+else
+  git rm -f --ignore-unmatch docs/latest/map.json >/dev/null 2>&1 || true
+fi
 git add -f "docs/archive/${DATE_ARG}/status.json"
 if [[ -f "docs/archive/${DATE_ARG}/latest.png" ]]; then
   git add -f "docs/archive/${DATE_ARG}/latest.png"
 else
   git rm -f --ignore-unmatch "docs/archive/${DATE_ARG}/latest.png" >/dev/null 2>&1 || true
 fi
+if [[ -f "docs/archive/${DATE_ARG}/map.json" ]]; then
+  git add -f "docs/archive/${DATE_ARG}/map.json"
+else
+  git rm -f --ignore-unmatch "docs/archive/${DATE_ARG}/map.json" >/dev/null 2>&1 || true
+fi
 
-PUBLISH_PATHS=(docs/latest/status.json docs/archive/index.json docs/latest/latest.png "docs/archive/${DATE_ARG}/status.json" "docs/archive/${DATE_ARG}/latest.png")
+PUBLISH_PATHS=(docs/latest/status.json docs/latest/map.json docs/archive/index.json docs/latest/latest.png "docs/archive/${DATE_ARG}/status.json" "docs/archive/${DATE_ARG}/latest.png" "docs/archive/${DATE_ARG}/map.json")
 if git diff --cached --quiet -- "${PUBLISH_PATHS[@]}"; then
   echo "No website changes to commit."
 else

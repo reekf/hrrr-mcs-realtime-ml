@@ -44,6 +44,10 @@ if [[ ! -s "$VERIFICATION_SRC" ]]; then
 fi
 
 cp "$VERIFICATION_SRC" "${ARCHIVE_DIR}/verification.png"
+MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/matplotlib-cache}" python generate_interactive_map_data.py \
+  --date "$DATE_ARG" \
+  --source realtime \
+  --output "${ARCHIVE_DIR}/map.json"
 
 python - "$DATE_ARG" <<'PY'
 import json
@@ -61,6 +65,9 @@ status.update({
     "verification_available": True,
     "verification_plot": "verification.png",
     "verification_updated_utc": updated,
+    "map_available": True,
+    "map_data": "map.json",
+    "map_updated_utc": updated,
 })
 status_path.write_text(json.dumps(status, indent=2, sort_keys=True) + "\n")
 
@@ -74,6 +81,7 @@ for candidate in sorted((p for p in archive_root.iterdir() if p.is_dir()), rever
     except Exception:
         candidate_status = {}
     forecast_exists = (candidate / "latest.png").exists()
+    map_exists = (candidate / "map.json").exists()
     verification_exists = (candidate / "verification.png").exists()
     verification_embedded = bool(candidate_status.get("verification_embedded_in_forecast", False)) or (
         "practically perfect verification" in str(candidate_status.get("product_description", "")).lower()
@@ -86,6 +94,9 @@ for candidate in sorted((p for p in archive_root.iterdir() if p.is_dir()), rever
         "site_updated_utc": candidate_status.get("site_updated_utc", ""),
         "status_href": f"archive/{candidate.name}/status.json",
         "plot_href": f"archive/{candidate.name}/latest.png" if forecast_exists else None,
+        "map_available": bool(map_exists),
+        "map_href": f"archive/{candidate.name}/map.json" if map_exists else None,
+        "map_updated_utc": candidate_status.get("map_updated_utc", candidate_status.get("site_updated_utc", "")),
         "verification_available": bool(verification_exists or (verification_embedded and forecast_exists)),
         "verification_plot_href": (
             f"archive/{candidate.name}/verification.png" if verification_exists
@@ -99,8 +110,8 @@ manifest = {"generated_utc": updated, "entries": entries}
 (archive_root / "index.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 PY
 
-git add -f "${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/status.json" docs/archive/index.json
-PUBLISH_PATHS=("${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/status.json" docs/archive/index.json)
+git add -f "${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/map.json" "${ARCHIVE_DIR}/status.json" docs/archive/index.json
+PUBLISH_PATHS=("${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/map.json" "${ARCHIVE_DIR}/status.json" docs/archive/index.json)
 if git diff --cached --quiet -- "${PUBLISH_PATHS[@]}"; then
   echo "No verification website changes to commit."
 elif [[ "$PUBLISH_GIT" != "1" ]]; then
