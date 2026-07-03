@@ -18,6 +18,26 @@
     <section class="card" id="plot-card" style="display:none;">
       <h2>Latest ML / WPC Plot</h2>
       <img id="latest-plot" alt="Latest realtime ML probability plot">
+
+      <div class="product-explainer">
+        <h3>How to interpret this experimental guidance</h3>
+        <p class="key-takeaway"><strong>Key takeaway:</strong> Test-set analysis indicates that the 60-km configuration provides the most balanced guidance, followed closely by the 75-km configuration.</p>
+
+        <p>This is an experimental forecast product. Across the test set, the ML guidance showed better average skill than the WPC Excessive Rainfall Outlook for Moderate-or-greater risks. These results describe average test-set performance and do not guarantee better performance for every event.</p>
+
+        <h4>What the ML predicts</h4>
+        <p>Each configuration predicts the probability that observed rainfall will exceed Flash Flood Guidance somewhere within a specified radius (<em>r</em>). Flash Flood Guidance estimates the amount of rainfall needed to produce flash flooding. The four configurations use radii of 40, 60, 75, and 100 km.</p>
+
+        <ul class="configuration-summary">
+          <li><strong>r = 60 km:</strong> Most balanced overall in the test-set analysis.</li>
+          <li><strong>r = 75 km:</strong> A close second, with somewhat broader and stronger risk areas.</li>
+          <li><strong>r = 40 km:</strong> Often too conservative in both risk-area size and severity.</li>
+          <li><strong>r = 100 km:</strong> Often too aggressive; risk areas can be too large, with high probabilities issued too frequently.</li>
+        </ul>
+
+        <h4>What “Practically Perfect” means</h4>
+        <p>Practically Perfect is an observation-based verification benchmark created after the valid period from observed flood-proxy locations. The observations are spatially expanded and smoothed to show an idealized placement of risk areas. It is not a forecast and is displayed only for verification.</p>
+      </div>
     </section>
 
     <section class="card">

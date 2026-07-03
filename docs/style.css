@@ -41,6 +41,45 @@ header p {
   border-radius: 8px;
 }
 
+.product-explainer {
+  margin-top: 22px;
+  padding: 18px 20px;
+  border: 1px solid #d7e2ef;
+  border-left: 5px solid #1b5fbf;
+  border-radius: 8px;
+  background: #f7faff;
+  line-height: 1.55;
+}
+
+.product-explainer h3 {
+  margin: 0 0 12px;
+}
+
+.product-explainer h4 {
+  margin: 18px 0 6px;
+}
+
+.product-explainer p {
+  margin: 8px 0;
+}
+
+.key-takeaway {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #e7f1ff;
+  color: #153f73;
+  font-size: 1.05rem;
+}
+
+.configuration-summary {
+  margin: 10px 0 0;
+  padding-left: 22px;
+}
+
+.configuration-summary li {
+  margin: 7px 0;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
