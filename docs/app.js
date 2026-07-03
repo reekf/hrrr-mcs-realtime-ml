@@ -60,6 +60,7 @@ const state = {
   data: null,
   selected: "ml_r60",
   contours: new Set(),
+  fillOpacity: 0.68,
   fillLayer: null,
   contourLayer: null,
 };
@@ -71,14 +72,42 @@ const map = L.map("map", {
   maxZoom: 9,
 }).setView([39.5, -92.5], 5);
 
+map.createPane("forecastPane");
+map.getPane("forecastPane").style.zIndex = 350;
+map.createPane("statePane");
+map.getPane("statePane").style.zIndex = 430;
+map.getPane("statePane").style.pointerEvents = "none";
+map.createPane("contourPane");
+map.getPane("contourPane").style.zIndex = 450;
+map.createPane("labelPane");
+map.getPane("labelPane").style.zIndex = 500;
+map.getPane("labelPane").style.pointerEvents = "none";
+
 L.control.zoom({ position: "bottomright" }).addTo(map);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
   subdomains: "abcd",
   maxZoom: 20,
   attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
 }).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", {
+  pane: "labelPane",
+  subdomains: "abcd",
+  maxZoom: 20,
+}).addTo(map);
 
-const canvasRenderer = L.canvas({ padding: 0.4, tolerance: 3 });
+fetch("https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json")
+  .then((response) => {
+    if (!response.ok) throw new Error(`State boundaries unavailable (${response.status})`);
+    return response.json();
+  })
+  .then((data) => L.geoJSON(data, {
+    pane: "statePane",
+    interactive: false,
+    style: { color: "#b9c5cc", weight: 1.15, opacity: 0.8, fill: false },
+  }).addTo(map))
+  .catch((error) => console.warn(error.message));
+
+const canvasRenderer = L.canvas({ pane: "forecastPane", padding: 0.4, tolerance: 3 });
 
 function riskColor(encodedValue) {
   if (encodedValue >= 700) return RISK_COLORS[70];
@@ -128,12 +157,13 @@ function renderFilledLayer() {
     const color = riskColor(values[index]);
     if (!color) continue;
     L.circleMarker([lat[index], lon[index]], {
+      pane: "forecastPane",
       renderer: canvasRenderer,
       radius,
       stroke: false,
       fill: true,
       fillColor: color,
-      fillOpacity: 0.78,
+      fillOpacity: state.fillOpacity,
       interactive: false,
     }).addTo(group);
   }
@@ -152,10 +182,18 @@ function renderContours() {
     for (const threshold of THRESHOLDS) {
       const lines = layerContours[String(threshold)] || [];
       for (const line of lines) {
+        L.polyline(line, {
+          pane: "contourPane",
+          color: "#080a0c",
+          weight: key === "pp" ? 6.4 : 5.8,
+          opacity: 0.9,
+          interactive: false,
+        }).addTo(group);
         const polyline = L.polyline(line, {
+          pane: "contourPane",
           color: RISK_COLORS[threshold],
-          weight: key === "pp" ? 2.8 : 2.1,
-          opacity: 0.95,
+          weight: key === "pp" ? 3.8 : 3.3,
+          opacity: 1,
           dashArray: PRODUCT_META[key]?.dash,
           interactive: true,
         });
@@ -344,6 +382,14 @@ document.getElementById("collapse-layers").addEventListener("click", (event) => 
   const content = document.getElementById("layer-panel-content");
   content.hidden = !content.hidden;
   event.currentTarget.textContent = content.hidden ? "+" : "−";
+});
+
+const opacityInput = document.getElementById("fill-opacity");
+const opacityOutput = document.getElementById("fill-opacity-value");
+opacityInput.addEventListener("input", () => {
+  state.fillOpacity = Number(opacityInput.value) / 100;
+  opacityOutput.value = `${opacityInput.value}%`;
+  renderFilledLayer();
 });
 
 map.on("zoomend", () => {

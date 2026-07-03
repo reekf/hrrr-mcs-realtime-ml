@@ -182,6 +182,39 @@ button { cursor: pointer; }
 
 .product-options, .contour-options { display: grid; gap: 5px; }
 
+.opacity-control {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.opacity-control label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.opacity-control div {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  align-items: center;
+  gap: 9px;
+}
+
+.opacity-control input {
+  width: 100%;
+  accent-color: #b9c5cc;
+}
+
+.opacity-control output {
+  color: var(--text);
+  font-size: 0.76rem;
+  text-align: right;
+}
+
 .product-row, .contour-row {
   display: grid;
   grid-template-columns: 1fr 30px;
