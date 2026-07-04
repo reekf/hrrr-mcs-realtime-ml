@@ -74,7 +74,7 @@ const LSR_META = {
 };
 const LSR_REFRESH_MS = 5 * 60 * 1000;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
-const SURFACE_RADIUS_METERS = 11000;
+const SURFACE_RADIUS_PIXELS = 4;
 const OBSERVATION_CLEARANCE_METERS = 32000;
 const WPC_LOCAL_RISK_DISTANCE_KM = 350;
 const CONUS_LONGITUDE_SCALE = Math.cos(40 * Math.PI / 180);
@@ -298,14 +298,15 @@ function build3dLayers() {
     id: `forecast-surface-${state.data.date}-${state.selected}`,
     data: surface,
     diskResolution: 8,
-    radius: SURFACE_RADIUS_METERS,
+    radius: SURFACE_RADIUS_PIXELS,
+    radiusUnits: "pixels",
     extruded: true,
-    filled: false,
-    wireframe: true,
+    filled: true,
+    wireframe: false,
     pickable: true,
     getPosition: (point) => point.position,
     getElevation: (point) => point.probability * SURFACE_HEIGHT_METERS_PER_PERCENT,
-    getLineColor: (point) => colorRgba(riskColor(point.encoded), Math.round(state.fillOpacity * 255)),
+    getFillColor: (point) => colorRgba(riskColor(point.encoded), Math.round(state.fillOpacity * 255)),
     transitions: { getElevation: 350 },
   })];
 
@@ -349,14 +350,15 @@ function build3dLayers() {
     id: "verification-observations-3d",
     data: observations,
     diskResolution: 10,
-    radius: 8000,
+    radius: 6,
+    radiusUnits: "pixels",
     extruded: true,
-    filled: false,
-    wireframe: true,
+    filled: true,
+    wireframe: false,
     pickable: true,
     getPosition: (item) => item.position,
     getElevation: referenceHeight,
-    getLineColor: (item) => colorRgba(item.meta.color),
+    getFillColor: (item) => colorRgba(item.meta.color),
   }));
 
   const reports = visible3dReports();
@@ -365,14 +367,15 @@ function build3dLayers() {
     id: "local-storm-reports-3d",
     data: reports,
     diskResolution: 12,
-    radius: 9000,
+    radius: 7,
+    radiusUnits: "pixels",
     extruded: true,
-    filled: false,
-    wireframe: true,
+    filled: true,
+    wireframe: false,
     pickable: true,
     getPosition: (report) => [report.lon, report.lat],
     getElevation: referenceHeight + 10000,
-    getLineColor: (report) => colorRgba(LSR_META[report.kind].color),
+    getFillColor: (report) => colorRgba(LSR_META[report.kind].color),
   }));
   return layers;
 }
