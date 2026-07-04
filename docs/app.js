@@ -159,6 +159,25 @@ function colorRgba(hex, alpha = 255) {
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255, alpha];
 }
 
+function continuousRiskColor(probability, alpha = 255) {
+  const stops = THRESHOLDS.map((threshold) => ({ threshold, color: colorRgba(RISK_COLORS[threshold]) }));
+  if (probability <= stops[0].threshold) return [...stops[0].color.slice(0, 3), alpha];
+  if (probability >= stops.at(-1).threshold) return [...stops.at(-1).color.slice(0, 3), alpha];
+  for (let index = 1; index < stops.length; index += 1) {
+    const upper = stops[index];
+    const lower = stops[index - 1];
+    if (probability > upper.threshold) continue;
+    const fraction = (probability - lower.threshold) / (upper.threshold - lower.threshold);
+    return [
+      Math.round(lower.color[0] + (upper.color[0] - lower.color[0]) * fraction),
+      Math.round(lower.color[1] + (upper.color[1] - lower.color[1]) * fraction),
+      Math.round(lower.color[2] + (upper.color[2] - lower.color[2]) * fraction),
+      alpha,
+    ];
+  }
+  return [...stops.at(-1).color.slice(0, 3), alpha];
+}
+
 function add3dStateLines() {
   const map3d = state.map3d;
   if (!map3d?.isStyleLoaded() || !stateBoundaryData) return;
@@ -306,7 +325,7 @@ function build3dLayers() {
     pickable: true,
     getPosition: (point) => point.position,
     getElevation: (point) => point.probability * SURFACE_HEIGHT_METERS_PER_PERCENT,
-    getFillColor: (point) => colorRgba(riskColor(point.encoded), Math.round(state.fillOpacity * 255)),
+    getFillColor: (point) => continuousRiskColor(point.probability, Math.round(state.fillOpacity * 255)),
     transitions: { getElevation: 350 },
   })];
 
