@@ -9,10 +9,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" crossorigin="">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="map" aria-label="Interactive ML flash-flood probability map"></div>
+  <div id="map-3d" aria-label="Fixed-angle three-dimensional ML flash-flood probability map" hidden></div>
 
   <header class="topbar">
     <div class="brand">
@@ -30,6 +32,10 @@
     </div>
 
     <nav class="top-actions" aria-label="Site actions">
+      <div class="view-switch" role="group" aria-label="Map view">
+        <button id="view-2d" class="view-button active" type="button" aria-pressed="true">2D</button>
+        <button id="view-3d" class="view-button" type="button" aria-pressed="false">3D</button>
+      </div>
       <a id="current-png-link" class="text-button" href="#" target="_blank" rel="noopener">Forecast PNG</a>
       <a id="current-verification-link" class="text-button" href="#" target="_blank" rel="noopener" hidden>Verification PNG</a>
       <button class="icon-button" id="archive-button" type="button" aria-label="Open archive">Archive</button>
@@ -91,6 +97,11 @@
     <span><i style="--swatch:#d94ad7"></i>&gt;70%</span>
   </div>
 
+  <div id="height-legend" class="height-legend" aria-label="Three-dimensional height legend" hidden>
+    <span class="height-glyph" aria-hidden="true"></span>
+    <span>Higher surface = higher probability</span>
+  </div>
+
   <div id="product-message" class="product-message" role="status"></div>
   <div id="loading" class="loading" role="status">Loading map data…</div>
 
@@ -115,7 +126,7 @@
       <p>Practically Perfect is an observation-based benchmark created after the valid period from observed flood-proxy locations. Those observations are expanded and smoothed to show an idealized placement of risk areas. It is not a forecast. It is typically available around 11:10 AM CT the following day.</p>
 
       <h2>Using the map</h2>
-      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. NWS local storm reports are supplied by the Iowa Environmental Mesonet; reports for flooding, flash flooding, and selected rainfall totals are preliminary and update every five minutes for the latest forecast. Use the Archive button to change dates or open the original static graphics.</p>
+      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. Switch between the standard 2D map and a fixed-angle 3D view where greater height represents greater probability. In 3D, ML and Practically Perfect use their continuous probabilities; WPC categorical areas are displayed as continuous surfaces within their official probability ranges. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. NWS local storm reports are supplied by the Iowa Environmental Mesonet; reports for flooding, flash flooding, and selected rainfall totals are preliminary and update every five minutes for the latest forecast. Use the Archive button to change dates or open the original static graphics.</p>
 
       <button class="primary-button dialog-close" type="button">Enter map</button>
     </div>
@@ -150,6 +161,8 @@
   <noscript>This interactive forecast requires JavaScript. Static graphics remain available under the archive directory.</noscript>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
+  <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js" crossorigin=""></script>
   <script src="app.js"></script>
 </body>
 </html>

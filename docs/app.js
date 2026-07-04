@@ -73,6 +73,11 @@ const LSR_META = {
   rain: { label: "Rain total", color: "#ffffff" },
 };
 const LSR_REFRESH_MS = 5 * 60 * 1000;
+const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
+const SURFACE_RADIUS_METERS = 11000;
+const OBSERVATION_CLEARANCE_METERS = 32000;
+const WPC_LOCAL_RISK_DISTANCE_KM = 350;
+const CONUS_LONGITUDE_SCALE = Math.cos(40 * Math.PI / 180);
 
 const state = {
   archive: [],
@@ -89,6 +94,11 @@ const state = {
   lsrLayer: null,
   lsrTimer: null,
   lsrRequest: 0,
+  viewMode: "2d",
+  map3d: null,
+  deckOverlay: null,
+  render3dFrame: null,
+  surface3dCache: new Map(),
 };
 
 const map = L.map("map", {
@@ -125,19 +135,344 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.p
   maxZoom: 20,
 }).addTo(map);
 
+let stateBoundaryData = null;
 fetch("https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json")
   .then((response) => {
     if (!response.ok) throw new Error(`State boundaries unavailable (${response.status})`);
     return response.json();
   })
-  .then((data) => L.geoJSON(data, {
-    pane: "statePane",
-    interactive: false,
-    style: { color: "#b9c5cc", weight: 1.15, opacity: 0.8, fill: false },
-  }).addTo(map))
+  .then((data) => {
+    stateBoundaryData = data;
+    L.geoJSON(data, {
+      pane: "statePane",
+      interactive: false,
+      style: { color: "#b9c5cc", weight: 1.15, opacity: 0.8, fill: false },
+    }).addTo(map);
+    add3dStateLines();
+  })
   .catch((error) => console.warn(error.message));
 
 const canvasRenderer = L.canvas({ pane: "forecastPane", padding: 0.4, tolerance: 3 });
+
+function colorRgba(hex, alpha = 255) {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255, alpha];
+}
+
+function add3dStateLines() {
+  const map3d = state.map3d;
+  if (!map3d?.isStyleLoaded() || !stateBoundaryData) return;
+  if (!map3d.getSource("state-boundaries")) {
+    map3d.addSource("state-boundaries", { type: "geojson", data: stateBoundaryData });
+  }
+  if (!map3d.getLayer("state-boundaries-top")) {
+    map3d.addLayer({
+      id: "state-boundaries-top",
+      type: "line",
+      source: "state-boundaries",
+      paint: {
+        "line-color": "#d5dde2",
+        "line-width": 1.25,
+        "line-opacity": 0.82,
+      },
+    });
+  }
+}
+
+function first3dLabelLayer() {
+  return state.map3d?.getStyle()?.layers?.find((layer) => layer.type === "symbol")?.id;
+}
+
+function createBoundaryIndex(lines) {
+  const cellSize = 1;
+  const buckets = new Map();
+  let count = 0;
+  for (const line of lines || []) {
+    for (const coordinate of line) {
+      const lat = Number(coordinate[0]);
+      const lon = Number(coordinate[1]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+      const x = lon * CONUS_LONGITUDE_SCALE;
+      const y = lat;
+      const key = `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push([x, y]);
+      count += 1;
+    }
+  }
+  return { buckets, cellSize, count };
+}
+
+function nearestBoundaryKm(index, lat, lon) {
+  if (!index?.count) return Infinity;
+  const x = lon * CONUS_LONGITUDE_SCALE;
+  const y = lat;
+  const baseX = Math.floor(x / index.cellSize);
+  const baseY = Math.floor(y / index.cellSize);
+  let bestSquared = Infinity;
+  for (let ring = 0; ring <= 16; ring += 1) {
+    for (let dx = -ring; dx <= ring; dx += 1) {
+      for (let dy = -ring; dy <= ring; dy += 1) {
+        if (ring && Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue;
+        const points = index.buckets.get(`${baseX + dx},${baseY + dy}`) || [];
+        for (const point of points) {
+          const distanceSquared = (point[0] - x) ** 2 + (point[1] - y) ** 2;
+          if (distanceSquared < bestSquared) bestSquared = distanceSquared;
+        }
+      }
+    }
+    if (Number.isFinite(bestSquared) && Math.sqrt(bestSquared) <= Math.max(0.1, ring - 1) * index.cellSize) break;
+  }
+  return Math.sqrt(bestSquared) * 111.2;
+}
+
+function wpcSurfaceValues() {
+  const cacheKey = `${state.data.date}:wpc-probabilities`;
+  if (state.surface3dCache.has(cacheKey)) return state.surface3dCache.get(cacheKey);
+  const encodedValues = state.data.layers.wpc.values;
+  const contours = state.data.contours?.wpc || {};
+  const present = [...new Set(encodedValues.filter((value) => value >= 50))].sort((a, b) => a - b);
+  const maximumCategory = present.at(-1) || 0;
+  const upperBound = { 50: 150, 150: 400, 400: 700, 700: 1000 };
+  const boundaryIndexes = Object.fromEntries(THRESHOLDS.map((threshold) => [threshold * 10, createBoundaryIndex(contours[String(threshold)] || [])]));
+  const probabilities = new Float32Array(encodedValues.length);
+
+  for (let index = 0; index < encodedValues.length; index += 1) {
+    const category = encodedValues[index];
+    if (category < 50) continue;
+    const upper = upperBound[category] || 1000;
+    const midpoint = (category + upper) / 20;
+    if (category === maximumCategory) {
+      probabilities[index] = midpoint;
+      continue;
+    }
+    const lat = state.data.grid.lat[index];
+    const lon = state.data.grid.lon[index];
+    const distanceOuter = nearestBoundaryKm(boundaryIndexes[category], lat, lon);
+    const distanceInner = nearestBoundaryKm(boundaryIndexes[upper], lat, lon);
+    if (!Number.isFinite(distanceOuter) || !Number.isFinite(distanceInner) || distanceInner > WPC_LOCAL_RISK_DISTANCE_KM) {
+      probabilities[index] = midpoint;
+      continue;
+    }
+    const fraction = distanceOuter / Math.max(0.001, distanceOuter + distanceInner);
+    probabilities[index] = (category + (upper - category) * fraction) / 10;
+  }
+  state.surface3dCache.set(cacheKey, probabilities);
+  return probabilities;
+}
+
+function surface3dData(key) {
+  const cacheKey = `${state.data.date}:${key}`;
+  if (state.surface3dCache.has(cacheKey)) return state.surface3dCache.get(cacheKey);
+  const encodedValues = state.data.layers[key].values;
+  const probabilities = key === "wpc" ? wpcSurfaceValues() : null;
+  const points = [];
+  for (let index = 0; index < encodedValues.length; index += 1) {
+    if (encodedValues[index] < 50) continue;
+    points.push({
+      position: [state.data.grid.lon[index], state.data.grid.lat[index]],
+      encoded: encodedValues[index],
+      probability: probabilities ? probabilities[index] : encodedValues[index] / 10,
+    });
+  }
+  state.surface3dCache.set(cacheKey, points);
+  return points;
+}
+
+function visible3dReports() {
+  const threshold = Number(document.getElementById("rain-threshold").value);
+  return state.lsrReports.filter((report) => state.lsrTypes.has(report.kind)
+    && (report.kind !== "rain" || (Number.isFinite(report.amount) && report.amount >= threshold)));
+}
+
+function build3dLayers() {
+  if (!state.data?.layers?.[state.selected] || !window.deck) return [];
+  const surface = surface3dData(state.selected);
+  let maximumProbability = 5;
+  for (const point of surface) maximumProbability = Math.max(maximumProbability, point.probability);
+  const referenceHeight = maximumProbability * SURFACE_HEIGHT_METERS_PER_PERCENT + OBSERVATION_CLEARANCE_METERS;
+  const beforeId = first3dLabelLayer();
+  const shared = beforeId ? { beforeId } : {};
+  const layers = [new deck.ColumnLayer({
+    ...shared,
+    id: `forecast-surface-${state.data.date}-${state.selected}`,
+    data: surface,
+    diskResolution: 8,
+    radius: SURFACE_RADIUS_METERS,
+    extruded: true,
+    stroked: false,
+    pickable: true,
+    getPosition: (point) => point.position,
+    getElevation: (point) => point.probability * SURFACE_HEIGHT_METERS_PER_PERCENT,
+    getFillColor: (point) => colorRgba(riskColor(point.encoded), Math.round(state.fillOpacity * 255)),
+    material: { ambient: 0.42, diffuse: 0.62, shininess: 18, specularColor: [55, 55, 55] },
+    transitions: { getElevation: 350 },
+  })];
+
+  for (const key of state.contours) {
+    const source = state.data.contours?.[key];
+    if (!source) continue;
+    for (const threshold of THRESHOLDS) {
+      const paths = (source[String(threshold)] || []).map((line) => ({
+        path: line.map(([lat, lon]) => [lon, lat, referenceHeight + threshold * 180]),
+        key,
+        threshold,
+      }));
+      if (!paths.length) continue;
+      layers.push(new deck.PathLayer({
+        ...shared,
+        id: `contour-3d-${key}-${threshold}`,
+        data: paths,
+        getPath: (item) => item.path,
+        getColor: colorRgba(RISK_COLORS[threshold]),
+        getWidth: key === "pp" ? 5200 : 4200,
+        widthUnits: "meters",
+        widthMinPixels: key === "pp" ? 3 : 2,
+        jointRounded: true,
+        capRounded: true,
+        getDashArray: PRODUCT_META[key]?.dash?.split(/\s+/).map(Number) || [0, 0],
+        dashJustified: true,
+        extensions: [new deck.PathStyleExtension({ dash: true })],
+        pickable: true,
+      }));
+    }
+  }
+
+  const observations = [];
+  for (const key of state.observations) {
+    const source = state.data.observations?.[key];
+    const meta = OBSERVATION_META[key] || { label: source?.label || key, color: "#fff" };
+    for (const [lat, lon] of source?.points || []) observations.push({ position: [lon, lat], meta });
+  }
+  if (observations.length) layers.push(new deck.ColumnLayer({
+    ...shared,
+    id: "verification-observations-3d",
+    data: observations,
+    diskResolution: 10,
+    radius: 8000,
+    extruded: true,
+    pickable: true,
+    getPosition: (item) => item.position,
+    getElevation: referenceHeight,
+    getFillColor: (item) => colorRgba(item.meta.color),
+  }));
+
+  const reports = visible3dReports();
+  if (reports.length) layers.push(new deck.ColumnLayer({
+    ...shared,
+    id: "local-storm-reports-3d",
+    data: reports,
+    diskResolution: 12,
+    radius: 9000,
+    extruded: true,
+    pickable: true,
+    getPosition: (report) => [report.lon, report.lat],
+    getElevation: referenceHeight + 10000,
+    getFillColor: (report) => colorRgba(LSR_META[report.kind].color),
+  }));
+  return layers;
+}
+
+function render3d() {
+  if (state.viewMode !== "3d" || !state.deckOverlay || !state.map3d?.isStyleLoaded()) return;
+  state.deckOverlay.setProps({
+    layers: build3dLayers(),
+    getTooltip: ({ object, layer }) => {
+      if (!object) return null;
+      if (object.probability) return `${PRODUCT_META[state.selected].short}: ${object.probability.toFixed(1)}%`;
+      if (object.threshold) return `${PRODUCT_META[object.key]?.short || object.key}: >${object.threshold}% contour`;
+      if (object.kind) return `${LSR_META[object.kind]?.label || object.type}${Number.isFinite(object.amount) ? ` · ${object.amount.toFixed(2)} in` : ""}`;
+      if (object.meta) return object.meta.label;
+      return null;
+    },
+  });
+  add3dStateLines();
+}
+
+function schedule3dRender() {
+  if (state.viewMode !== "3d") return;
+  cancelAnimationFrame(state.render3dFrame);
+  state.render3dFrame = requestAnimationFrame(render3d);
+}
+
+function initialize3dMap() {
+  if (state.map3d) return;
+  if (!window.maplibregl || !window.deck?.MapboxOverlay) throw new Error("The 3D map libraries did not load");
+  const center = map.getCenter();
+  state.map3d = new maplibregl.Map({
+    container: "map-3d",
+    style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+    center: [center.lng, center.lat],
+    zoom: map.getZoom(),
+    pitch: 20,
+    bearing: 0,
+    minPitch: 20,
+    maxPitch: 20,
+    minZoom: 3,
+    maxZoom: 9,
+    dragRotate: false,
+    touchPitch: false,
+    pitchWithRotate: false,
+    antialias: true,
+    attributionControl: true,
+  });
+  state.map3d.touchZoomRotate.disableRotation();
+  state.map3d.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+  state.deckOverlay = new deck.MapboxOverlay({ interleaved: true, layers: [] });
+  state.map3d.addControl(state.deckOverlay);
+  state.map3d.on("load", () => {
+    add3dStateLines();
+    render3d();
+  });
+  state.map3d.on("error", (event) => {
+    console.error("3D map error", event.error || event);
+    if (state.viewMode === "3d") {
+      document.getElementById("product-message").textContent = "The 3D basemap could not be loaded. The standard 2D view remains available.";
+    }
+  });
+}
+
+function setViewMode(mode) {
+  if (mode === state.viewMode) return;
+  const map2dElement = document.getElementById("map");
+  const map3dElement = document.getElementById("map-3d");
+  if (mode === "3d") {
+    map3dElement.hidden = false;
+    try {
+      initialize3dMap();
+    } catch (error) {
+      map3dElement.hidden = true;
+      document.getElementById("product-message").textContent = "This browser could not start the 3D map. The standard 2D view remains available.";
+      console.error(error);
+      return;
+    }
+    const center = map.getCenter();
+    state.map3d.jumpTo({ center: [center.lng, center.lat], zoom: map.getZoom(), pitch: 20, bearing: 0 });
+    state.viewMode = "3d";
+    map2dElement.hidden = true;
+    state.map3d.resize();
+    render3d();
+  } else {
+    const center = state.map3d.getCenter();
+    map.setView([center.lat, center.lng], state.map3d.getZoom(), { animate: false });
+    state.viewMode = "2d";
+    map3dElement.hidden = true;
+    map2dElement.hidden = false;
+    map.invalidateSize();
+    renderFilledLayer();
+    renderContours();
+    renderObservations();
+    renderLsrs();
+  }
+  document.getElementById("height-legend").hidden = mode !== "3d";
+  for (const candidate of ["2d", "3d"]) {
+    const button = document.getElementById(`view-${candidate}`);
+    const active = candidate === mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+  if (state.data?.date) history.replaceState(null, "", `?date=${state.data.date}${mode === "3d" ? "&view=3d" : ""}`);
+}
 
 function riskColor(encodedValue) {
   if (encodedValue >= 700) return RISK_COLORS[70];
@@ -181,6 +516,11 @@ function setMessage(key) {
 
 function renderFilledLayer() {
   if (!state.data || !state.data.layers[state.selected]) return;
+  if (state.viewMode === "3d") {
+    setMessage(state.selected);
+    schedule3dRender();
+    return;
+  }
   if (state.fillLayer) map.removeLayer(state.fillLayer);
 
   const values = state.data.layers[state.selected].values;
@@ -209,6 +549,10 @@ function renderFilledLayer() {
 }
 
 function renderContours() {
+  if (state.viewMode === "3d") {
+    schedule3dRender();
+    return;
+  }
   if (state.contourLayer) map.removeLayer(state.contourLayer);
   const group = L.layerGroup();
 
@@ -245,6 +589,10 @@ function renderContours() {
 }
 
 function renderObservations() {
+  if (state.viewMode === "3d") {
+    schedule3dRender();
+    return;
+  }
   if (state.observationLayer) map.removeLayer(state.observationLayer);
   const group = L.layerGroup();
   for (const key of state.observations) {
@@ -288,6 +636,10 @@ function lsrPopup(report) {
 }
 
 function renderLsrs() {
+  if (state.viewMode === "3d") {
+    schedule3dRender();
+    return;
+  }
   if (state.lsrLayer) map.removeLayer(state.lsrLayer);
   const threshold = Number(document.getElementById("rain-threshold").value);
   const group = L.layerGroup();
@@ -480,6 +832,7 @@ async function loadDate(date, fit = false) {
     const response = await fetch(`${mapPath(entry || { date })}?v=${encodeURIComponent(entry?.map_updated_utc || entry?.site_updated_utc || Date.now())}`);
     if (!response.ok) throw new Error(`Map data unavailable (${response.status})`);
     state.data = await response.json();
+    state.surface3dCache.clear();
     if (!state.data.layers[state.selected]) {
       state.selected = state.data.layers.ml_r60 ? "ml_r60" : Object.keys(state.data.layers)[0];
     }
@@ -494,7 +847,7 @@ async function loadDate(date, fit = false) {
     clearTimeout(state.lsrTimer);
     fetchLsrs(state.data.date, isLatest);
     if (fit) map.fitBounds([[30, -105], [50, -80.5]], { padding: [15, 15] });
-    history.replaceState(null, "", `?date=${state.data.date}`);
+    history.replaceState(null, "", `?date=${state.data.date}${state.viewMode === "3d" ? "&view=3d" : ""}`);
   } catch (error) {
     document.getElementById("product-message").textContent = `Interactive data are unavailable for ${date}. Use the PNG link or archive.`;
     console.error(error);
@@ -598,6 +951,9 @@ document.getElementById("collapse-layers").addEventListener("click", (event) => 
   event.currentTarget.textContent = content.hidden ? "+" : "−";
 });
 
+document.getElementById("view-2d").addEventListener("click", () => setViewMode("2d"));
+document.getElementById("view-3d").addEventListener("click", () => setViewMode("3d"));
+
 const opacityInput = document.getElementById("fill-opacity");
 const opacityOutput = document.getElementById("fill-opacity-value");
 opacityInput.addEventListener("input", () => {
@@ -631,12 +987,14 @@ async function init() {
     state.archive = Array.isArray(archive) ? archive : archive.entries || [];
     populateDates();
     populateArchive();
-    const requested = new URLSearchParams(location.search).get("date");
+    const parameters = new URLSearchParams(location.search);
+    const requested = parameters.get("date");
     const initial = state.archive.find((entry) => entry.date === requested && entry.map_available !== false)
       || state.archive.find((entry) => entry.map_available !== false)
       || state.archive[0];
     if (!initial) throw new Error("No forecasts are available");
     await loadDate(initial.date, true);
+    if (parameters.get("view") === "3d") setViewMode("3d");
   } catch (error) {
     document.getElementById("product-message").textContent = "Forecast data could not be loaded. Please try again shortly.";
     hideLoading();

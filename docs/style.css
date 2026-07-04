@@ -14,7 +14,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
-html, body, #map {
+html, body, #map, #map-3d {
   width: 100%;
   height: 100%;
   margin: 0;
@@ -33,6 +33,19 @@ button, select {
 button { cursor: pointer; }
 
 #map { background: #090b0d; }
+
+#map-3d {
+  position: fixed;
+  inset: 0;
+  background: #090b0d;
+}
+
+.maplibregl-ctrl-bottom-right { bottom: 72px; }
+.maplibregl-ctrl-attrib {
+  color: #82909a;
+  background: rgba(9, 11, 13, 0.82) !important;
+}
+.maplibregl-ctrl-attrib a { color: #a9d8ff; }
 
 .leaflet-control-zoom a {
   color: var(--text) !important;
@@ -123,6 +136,26 @@ button { cursor: pointer; }
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
+}
+
+.view-switch {
+  display: grid;
+  grid-template-columns: repeat(2, 39px);
+  min-height: 36px;
+}
+
+.view-button {
+  padding: 0;
+  color: var(--muted);
+  background: #0d1115;
+  border: 1px solid var(--line);
+}
+
+.view-button + .view-button { border-left: 0; }
+
+.view-button.active {
+  color: #090b0d;
+  background: #dce7ed;
 }
 
 .text-button, .icon-button, .round-button {
@@ -346,6 +379,31 @@ button { cursor: pointer; }
   font-size: 0.84rem;
 }
 
+.height-legend {
+  position: fixed;
+  z-index: 800;
+  right: 16px;
+  bottom: 151px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  color: #d7dee2;
+  background: rgba(9, 11, 13, 0.9);
+  border: 1px solid var(--line);
+  font-size: 0.72rem;
+}
+
+.height-glyph {
+  width: 24px;
+  height: 22px;
+  display: block;
+  border-left: 2px solid #dce7ed;
+  border-bottom: 2px solid #dce7ed;
+  clip-path: polygon(0 100%, 0 70%, 35% 70%, 35% 45%, 68% 45%, 68% 15%, 100% 15%, 100% 100%);
+  background: linear-gradient(135deg, #57c84d, #d94ad7);
+}
+
 .legend span { display: flex; align-items: center; gap: 5px; }
 
 .legend i {
@@ -484,6 +542,7 @@ noscript {
     max-height: 48vh;
   }
   .legend { right: 10px; bottom: 100px; flex-wrap: wrap; max-width: 190px; }
+  .height-legend { right: 10px; bottom: 174px; max-width: 190px; }
   .product-message { bottom: 8px; font-size: 0.78rem; }
 }
 
