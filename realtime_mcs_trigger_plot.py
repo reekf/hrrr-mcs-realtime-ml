@@ -43,6 +43,8 @@ import shutil
 import subprocess
 import warnings
 
+from localized_pmm import localized_probability_matched_mean
+
 # Keep realtime extraction conservative in an automation context. Some GRIB/HDF/BLAS
 # stacks are unstable when helper code spins up extra workers during import/extraction.
 for _k in [
@@ -1170,6 +1172,26 @@ def radius_cols_in_df(df: pd.DataFrame, radii: list[int] | None = None) -> list[
     return sorted(cols, key=lambda c: int(re.search(r"r(\d+)", c).group(1)))
 
 
+LOCAL_PMM_COL = "ML_Local_PMM_100km"
+LOCAL_PMM_RADIUS_KM = 100.0
+
+
+def add_local_pmm(df: pd.DataFrame, radii: list[int] | None = None) -> pd.DataFrame:
+    """Add the v33 localized PMM of the available radius configurations."""
+    out = df.copy()
+    member_cols = radius_cols_in_df(out, radii)
+    if not member_cols:
+        return out
+    members = out[member_cols].apply(pd.to_numeric, errors="coerce").to_numpy(float).T
+    out[LOCAL_PMM_COL] = localized_probability_matched_mean(
+        members,
+        pd.to_numeric(out["Lat"], errors="coerce").to_numpy(float),
+        pd.to_numeric(out["Lon"], errors="coerce").to_numpy(float),
+        radius_km=LOCAL_PMM_RADIUS_KM,
+    )
+    return out
+
+
 def print_probability_summary(df: pd.DataFrame, cols: list[str], label="probability summary") -> None:
     log(label)
     for c in cols:
@@ -1203,8 +1225,8 @@ def build_predict_verify_realtime_multi_radius(
 ) -> pd.DataFrame:
     """Build/predict each requested radius and merge them onto one grid.
 
-    This intentionally does NOT create PMM or radius-ensemble products. The
-    operational plot is individual radius members plus WPC ERO.
+    The localized PMM uses all available radius configurations with a 100-km
+    radius of influence.
     """
     d = date8(date)
     requested = [int(round(float(r))) for r in radii]
@@ -1257,6 +1279,7 @@ def build_predict_verify_realtime_multi_radius(
     # members that actually ran rather than requested-but-missing members.
     base.attrs["available_radii"] = available
     radius_cols = radius_cols_in_df(base, available)
+    base = add_local_pmm(base, available)
 
     if include_wpc:
         base = add_wpc_ero_to_realtime_from_iem(base, date=d, rp=rp, force_wpc=force_wpc)
@@ -1270,7 +1293,7 @@ def build_predict_verify_realtime_multi_radius(
             pp_expansion_radius_km=pp_expansion_radius_km,
             pp_smooth_radius_km=pp_smooth_radius_km,
         )
-    summary_cols = radius_cols + ([WPC_COL] if WPC_COL in base.columns else [])
+    summary_cols = radius_cols + ([LOCAL_PMM_COL] if LOCAL_PMM_COL in base.columns else []) + ([WPC_COL] if WPC_COL in base.columns else [])
     print_probability_summary(base, summary_cols, "Realtime radius-member probability summary")
     cache_path = multi_radius_cache_path(rp, d, available, cycle_label)
     base.to_parquet(cache_path, index=False)
@@ -1315,6 +1338,8 @@ def verify_existing_realtime_predictions(
     if base is None or not available:
         log(f"No existing prediction caches for {d}; internal verification not run.")
         return None
+
+    base = add_local_pmm(base, available)
 
     verified = add_ufvs_and_realtime_pp(
         base,
@@ -2622,11 +2647,7 @@ def build_plot_panels(
     include_ufvs: bool,
     include_pp: bool,
 ):
-    """Build the operational panel list: each radius member plus WPC.
-
-    No PMM, no ensemble mean, no ensemble max. Those products were removed from
-    the operational display.
-    """
+    """Build the operational panel list: radius members, local PMM, and WPC."""
     panels = []
     for r in radii:
         c = radius_prob_col(r)
@@ -2637,6 +2658,8 @@ def build_plot_panels(
         for c in radius_cols_in_df(df):
             r = int(re.search(r"r(\d+)", c).group(1))
             panels.append((f"ML r{r} km", c))
+    if LOCAL_PMM_COL in df.columns:
+        panels.append(("ML Local PMM (100-km influence)", LOCAL_PMM_COL))
     if include_wpc and WPC_COL in df.columns and pd.to_numeric(df[WPC_COL], errors="coerce").fillna(0).max() > 0:
         panels.append(("WPC ERO", WPC_COL))
     elif include_wpc and WPC_COL in df.columns:
@@ -2682,6 +2705,8 @@ def plot_realtime_ero_panels(
     sub = df[df["Date"].astype(str).str.slice(0, 8) == d].copy()
     if sub.empty:
         raise RuntimeError(f"No dataframe rows for date={d}")
+    if LOCAL_PMM_COL not in sub.columns:
+        sub = add_local_pmm(sub, radii)
     panels = build_plot_panels(sub, radii=radii, include_wpc=include_wpc, include_ufvs=include_ufvs, include_pp=include_pp)
     if not panels:
         raise RuntimeError("No panels to plot.")

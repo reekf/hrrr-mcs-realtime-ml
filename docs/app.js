@@ -36,6 +36,13 @@ const PRODUCT_META = {
     detail: "Predicts rainfall exceeding Flash Flood Guidance within 100 km. Test-set analysis shows that risk areas can be too large and that high probabilities can be issued too frequently.",
     dash: "12 5 3 5",
   },
+  ml_lpmm: {
+    short: "ML Local PMM",
+    title: "ML Local Probability-Matched Mean",
+    note: "The Local PMM is a solid middle ground that balances tradeoffs between the smaller- and larger-radius ML configurations.",
+    detail: "Combines r40, r60, r75, and r100 within a 100-km radius of influence. It preserves local extremes from the pooled ML probability distribution, unlike a conventional average that dampens the distribution and removes extreme values.",
+    dash: "10 3 2 3",
+  },
   wpc: {
     short: "WPC ERO",
     title: "WPC Excessive Rainfall Outlook",
@@ -52,7 +59,7 @@ const PRODUCT_META = {
   },
 };
 
-const PRODUCT_ORDER = ["ml_r40", "ml_r60", "ml_r75", "ml_r100", "wpc", "pp"];
+const PRODUCT_ORDER = ["ml_r40", "ml_r60", "ml_r75", "ml_r100", "ml_lpmm", "wpc", "pp"];
 const THRESHOLDS = [5, 15, 40, 70];
 const OBSERVATION_META = {
   stage4_ffg: { label: "Stage IV > FFG", color: "#00e5ff" },
@@ -153,6 +160,7 @@ function setMessage(key) {
   const radius = { ml_r40: "40 km (25 mi)", ml_r60: "60 km (37 mi)", ml_r75: "75 km (47 mi)", ml_r100: "100 km (62 mi)" }[key];
   let prediction = "";
   if (radius) prediction = ` It predicts the probability that observed rainfall will exceed Flash Flood Guidance within ${radius} of a point.`;
+  if (key === "ml_lpmm") prediction = " It combines all four ML configurations using a 100-km radius of influence while retaining local probability extremes.";
   if (key === "wpc") prediction = " It predicts the probability of rainfall exceeding Flash Flood Guidance within 40 km (25 mi) of a point.";
   if (key === "pp") prediction = " It shows an observation-based, idealized placement of risk after the valid period—not a forecast.";
   document.getElementById("product-message").textContent = `${PRODUCT_META[key]?.note || ""}${prediction}`;

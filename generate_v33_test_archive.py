@@ -3,7 +3,8 @@
 
 The source data are the v33 radius-sensitivity viewer prediction caches and its
 historical WPC/PP grid. The archive plot contains the four ML radius forecasts,
-WPC ERO, and the viewer's Practically Perfect Any flood proxy verification.
+the 100-km Local PMM, WPC ERO, and the viewer's Practically Perfect Any flood
+proxy verification.
 """
 
 from __future__ import annotations
@@ -108,9 +109,10 @@ def write_status(date: str, destination: Path) -> None:
         "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
         "latest_plot": "latest.png",
         "site_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "product_description": "Machine-learning radius products, WPC ERO, and Practically Perfect verification.",
+        "product_description": "Machine-learning radius products, 100-km Local PMM, WPC ERO, and Practically Perfect verification.",
         "map_available": True,
         "map_data": "map.json",
+        "map_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "verification_available": True,
         "verification_plot": "latest.png",
         "verification_embedded_in_forecast": True,
