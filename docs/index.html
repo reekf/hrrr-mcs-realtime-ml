@@ -79,12 +79,17 @@
       </div>
 
       <div class="opacity-control">
-        <label for="fill-opacity">Forecast transparency</label>
+        <label id="opacity-control-label" for="fill-opacity">Forecast opacity</label>
         <div>
-          <input id="fill-opacity" type="range" min="15" max="95" value="68" step="1">
+          <input id="fill-opacity" type="range" min="5" max="100" value="68" step="1">
           <output id="fill-opacity-value" for="fill-opacity">68%</output>
         </div>
       </div>
+
+      <label id="point-gap-control" class="point-gap-control" hidden>
+        <input id="point-gap-toggle" type="checkbox" checked>
+        <span>Separated 3D points</span>
+      </label>
 
       <p id="verification-availability" class="availability-note"></p>
     </div>
@@ -163,6 +168,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js" crossorigin=""></script>
-  <script src="app.js?v=20260704-point-spacing-4"></script>
+  <script src="app.js?v=20260704-point-controls-1"></script>
 </body>
 </html>

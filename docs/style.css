@@ -312,6 +312,18 @@ button { cursor: pointer; }
   text-align: right;
 }
 
+.point-gap-control {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+  color: #cfd6da;
+  font-size: 0.72rem;
+}
+
+.point-gap-control input { accent-color: #c4d3dc; }
+
 .product-row, .contour-row {
   display: grid;
   grid-template-columns: 1fr 30px;

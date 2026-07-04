@@ -74,7 +74,8 @@ const LSR_META = {
 };
 const LSR_REFRESH_MS = 5 * 60 * 1000;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
-const POINT_RADIUS_PIXELS = 0.043;
+const SEPARATED_POINT_RADIUS_PIXELS = 0.043;
+const COMPACT_POINT_RADIUS_PIXELS = 0.13;
 const OBSERVATION_CLEARANCE_METERS = 32000;
 const WPC_LOCAL_RISK_DISTANCE_KM = 350;
 const CONUS_LONGITUDE_SCALE = Math.cos(40 * Math.PI / 180);
@@ -99,6 +100,7 @@ const state = {
   deckOverlay: null,
   render3dFrame: null,
   surface3dCache: new Map(),
+  separated3dPoints: true,
 };
 
 const map = L.map("map", {
@@ -311,13 +313,15 @@ function build3dLayers() {
   for (const point of surface) maximumProbability = Math.max(maximumProbability, point.probability);
   const referenceHeight = maximumProbability * SURFACE_HEIGHT_METERS_PER_PERCENT + OBSERVATION_CLEARANCE_METERS;
   const beforeId = first3dLabelLayer();
+  const pointRadius = state.separated3dPoints ? SEPARATED_POINT_RADIUS_PIXELS : COMPACT_POINT_RADIUS_PIXELS;
+  const pointAlpha = Math.round(state.fillOpacity * 255);
   const shared = beforeId ? { beforeId } : {};
   const layers = [new deck.ColumnLayer({
     ...shared,
     id: `forecast-surface-${state.data.date}-${state.selected}`,
     data: surface,
     diskResolution: 8,
-    radius: POINT_RADIUS_PIXELS,
+    radius: pointRadius,
     radiusUnits: "pixels",
     extruded: true,
     filled: true,
@@ -325,7 +329,7 @@ function build3dLayers() {
     pickable: true,
     getPosition: (point) => point.position,
     getElevation: (point) => point.probability * SURFACE_HEIGHT_METERS_PER_PERCENT,
-    getFillColor: (point) => continuousRiskColor(point.probability, Math.round(state.fillOpacity * 255)),
+    getFillColor: (point) => continuousRiskColor(point.probability, pointAlpha),
     transitions: { getElevation: 350 },
   })];
 
@@ -369,7 +373,7 @@ function build3dLayers() {
     id: "verification-observations-3d",
     data: observations,
     diskResolution: 10,
-    radius: POINT_RADIUS_PIXELS,
+    radius: pointRadius,
     radiusUnits: "pixels",
     extruded: true,
     filled: true,
@@ -377,7 +381,7 @@ function build3dLayers() {
     pickable: true,
     getPosition: (item) => item.position,
     getElevation: referenceHeight,
-    getFillColor: (item) => colorRgba(item.meta.color),
+    getFillColor: (item) => colorRgba(item.meta.color, pointAlpha),
   }));
 
   const reports = visible3dReports();
@@ -386,7 +390,7 @@ function build3dLayers() {
     id: "local-storm-reports-3d",
     data: reports,
     diskResolution: 12,
-    radius: POINT_RADIUS_PIXELS,
+    radius: pointRadius,
     radiusUnits: "pixels",
     extruded: true,
     filled: true,
@@ -394,7 +398,7 @@ function build3dLayers() {
     pickable: true,
     getPosition: (report) => [report.lon, report.lat],
     getElevation: referenceHeight + 10000,
-    getFillColor: (report) => colorRgba(LSR_META[report.kind].color),
+    getFillColor: (report) => colorRgba(LSR_META[report.kind].color, pointAlpha),
   }));
   return layers;
 }
@@ -491,6 +495,8 @@ function setViewMode(mode) {
     renderLsrs();
   }
   document.getElementById("height-legend").hidden = mode !== "3d";
+  document.getElementById("point-gap-control").hidden = mode !== "3d";
+  document.getElementById("opacity-control-label").textContent = mode === "3d" ? "3D point opacity" : "Forecast opacity";
   for (const candidate of ["2d", "3d"]) {
     const button = document.getElementById(`view-${candidate}`);
     const active = candidate === mode;
@@ -979,6 +985,10 @@ document.getElementById("collapse-layers").addEventListener("click", (event) => 
 
 document.getElementById("view-2d").addEventListener("click", () => setViewMode("2d"));
 document.getElementById("view-3d").addEventListener("click", () => setViewMode("3d"));
+document.getElementById("point-gap-toggle").addEventListener("change", (event) => {
+  state.separated3dPoints = event.currentTarget.checked;
+  schedule3dRender();
+});
 
 const opacityInput = document.getElementById("fill-opacity");
 const opacityOutput = document.getElementById("fill-opacity-value");
