@@ -354,6 +354,18 @@ button { cursor: pointer; }
   background: var(--mping-color);
 }
 
+.expansion-ring-control {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: #cfd6da;
+  font-size: 0.72rem;
+}
+
+.expansion-ring-control input { accent-color: #c4d3dc; }
+
 .product-row, .contour-row {
   display: grid;
   grid-template-columns: 1fr 30px;

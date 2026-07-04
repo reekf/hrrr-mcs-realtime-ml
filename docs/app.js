@@ -78,6 +78,7 @@ const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
 const SEPARATED_POINT_RADIUS_PIXELS = 0.043;
 const COMPACT_POINT_RADIUS_PIXELS = 0.13;
 const OBSERVATION_CLEARANCE_METERS = 32000;
+const EXPANSION_RADIUS_METERS = 40000;
 const WPC_LOCAL_RISK_DISTANCE_KM = 350;
 const CONUS_LONGITUDE_SCALE = Math.cos(40 * Math.PI / 180);
 
@@ -105,6 +106,7 @@ const state = {
   render3dFrame: null,
   surface3dCache: new Map(),
   separated3dPoints: false,
+  showExpansionRings: false,
 };
 
 const map = L.map("map", {
@@ -450,6 +452,38 @@ function build3dLayers() {
     getElevation: referenceHeight + 10000,
     getFillColor: (report) => colorRgba(LSR_META[report.kind].color),
   }));
+  if (state.showExpansionRings) {
+    const ringHeight = referenceHeight + 22000;
+    const rings = observations.map((item) => ({
+      position: [item.position[0], item.position[1], ringHeight],
+      meta: item.meta,
+      expansionRing: true,
+    }));
+    for (const report of reports) {
+      if (report.provider === "mping") continue;
+      rings.push({
+        position: [report.lon, report.lat, ringHeight],
+        meta: LSR_META[report.kind],
+        expansionRing: true,
+      });
+    }
+    if (rings.length) layers.push(new deck.ScatterplotLayer({
+      ...shared,
+      id: "forty-km-expansion-rings-3d",
+      data: rings,
+      radiusUnits: "meters",
+      lineWidthUnits: "pixels",
+      stroked: true,
+      filled: true,
+      pickable: true,
+      getPosition: (item) => item.position,
+      getRadius: EXPANSION_RADIUS_METERS,
+      getLineColor: (item) => colorRgba(item.meta.color, 230),
+      getFillColor: (item) => colorRgba(item.meta.color, 10),
+      getLineWidth: 1.5,
+      lineWidthMinPixels: 1.25,
+    }));
+  }
   return layers;
 }
 
@@ -459,6 +493,7 @@ function render3d() {
     layers: build3dLayers(),
     getTooltip: ({ object, x, y }) => {
       if (!object) return null;
+      if (object.expansionRing) return `${object.meta.label} · 40-km expansion`;
       if (object.probability) {
         const city = nearestVisibleCity(object.position, x, y);
         const value = state.selected === "wpc"
@@ -688,6 +723,19 @@ function renderObservations() {
     if (!source) continue;
     const meta = OBSERVATION_META[key] || { label: source.label || key, color: "#fff" };
     for (const point of source.points || []) {
+      if (state.showExpansionRings) {
+        L.circle(point, {
+          pane: "observationPane",
+          radius: EXPANSION_RADIUS_METERS,
+          color: meta.color,
+          weight: 1.5,
+          opacity: 0.85,
+          fill: true,
+          fillColor: meta.color,
+          fillOpacity: 0.025,
+          interactive: false,
+        }).addTo(group);
+      }
       L.circleMarker(point, {
         pane: "observationPane",
         radius: 4.2,
@@ -736,6 +784,19 @@ function renderLsrs() {
     if (report.provider !== "mping" && !state.lsrTypes.has(report.kind)) continue;
     if (report.kind === "rain" && (!Number.isFinite(report.amount) || report.amount < threshold)) continue;
     const meta = LSR_META[report.kind];
+    if (state.showExpansionRings && report.provider !== "mping") {
+      L.circle([report.lat, report.lon], {
+        pane: "lsrPane",
+        radius: EXPANSION_RADIUS_METERS,
+        color: meta.color,
+        weight: 1.5,
+        opacity: 0.85,
+        fill: true,
+        fillColor: meta.color,
+        fillOpacity: 0.025,
+        interactive: false,
+      }).addTo(group);
+    }
     L.circleMarker([report.lat, report.lon], {
       pane: "lsrPane",
       radius: report.kind === "rain" ? 5 : 6,
@@ -1125,6 +1186,14 @@ document.getElementById("point-gap-toggle").addEventListener("change", (event) =
 document.getElementById("mping-flood-toggle").addEventListener("change", (event) => {
   state.mpingVisible = event.currentTarget.checked;
   renderLsrs();
+});
+document.getElementById("expansion-ring-toggle").addEventListener("change", (event) => {
+  state.showExpansionRings = event.currentTarget.checked;
+  if (state.viewMode === "3d") schedule3dRender();
+  else {
+    renderObservations();
+    renderLsrs();
+  }
 });
 
 const opacityInput = document.getElementById("fill-opacity");
