@@ -74,7 +74,7 @@ const LSR_META = {
 };
 const LSR_REFRESH_MS = 5 * 60 * 1000;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
-const SURFACE_RADIUS_PIXELS = 0.4;
+const POINT_RADIUS_PIXELS = 0.13;
 const OBSERVATION_CLEARANCE_METERS = 32000;
 const WPC_LOCAL_RISK_DISTANCE_KM = 350;
 const CONUS_LONGITUDE_SCALE = Math.cos(40 * Math.PI / 180);
@@ -298,7 +298,7 @@ function build3dLayers() {
     id: `forecast-surface-${state.data.date}-${state.selected}`,
     data: surface,
     diskResolution: 8,
-    radius: SURFACE_RADIUS_PIXELS,
+    radius: POINT_RADIUS_PIXELS,
     radiusUnits: "pixels",
     extruded: true,
     filled: true,
@@ -350,7 +350,7 @@ function build3dLayers() {
     id: "verification-observations-3d",
     data: observations,
     diskResolution: 10,
-    radius: 6,
+    radius: POINT_RADIUS_PIXELS,
     radiusUnits: "pixels",
     extruded: true,
     filled: true,
@@ -367,7 +367,7 @@ function build3dLayers() {
     id: "local-storm-reports-3d",
     data: reports,
     diskResolution: 12,
-    radius: 7,
+    radius: POINT_RADIUS_PIXELS,
     radiusUnits: "pixels",
     extruded: true,
     filled: true,
