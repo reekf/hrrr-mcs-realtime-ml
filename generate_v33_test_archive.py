@@ -3,7 +3,7 @@
 
 The source data are the v33 radius-sensitivity viewer prediction caches and its
 historical WPC/PP grid. The archive plot contains the four ML radius forecasts,
-the 100-km Local PMM, WPC ERO, and the viewer's Practically Perfect Any flood
+the 300-km Local PMM, WPC ERO, and the viewer's Practically Perfect Any flood
 proxy verification.
 """
 
@@ -18,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 
-from realtime_mcs_trigger_plot import RuntimePaths, plot_realtime_ero_panels, radius_prob_col
+from realtime_mcs_trigger_plot import RuntimePaths, add_local_pmm, plot_realtime_ero_panels, radius_prob_col
 from generate_interactive_map_data import write_frame_map_data
 
 
@@ -109,7 +109,7 @@ def write_status(date: str, destination: Path) -> None:
         "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
         "latest_plot": "latest.png",
         "site_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "product_description": "Machine-learning radius products, 100-km Local PMM, WPC ERO, and Practically Perfect verification.",
+        "product_description": "Machine-learning radius products, 300-km Local PMM, WPC ERO, and Practically Perfect verification.",
         "map_available": True,
         "map_data": "map.json",
         "map_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -171,7 +171,7 @@ def generate_case(date: str, force: bool = False) -> None:
         return
 
     print(f"[{date}] loading v33 viewer caches", flush=True)
-    frame = build_case_dataframe(date)
+    frame = add_local_pmm(build_case_dataframe(date), list(RADII))
     day_dir.mkdir(parents=True, exist_ok=True)
     if force or not output.exists():
         generated = plot_realtime_ero_panels(

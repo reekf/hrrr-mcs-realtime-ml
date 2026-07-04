@@ -23,7 +23,7 @@ def localized_probability_matched_mean(
     member_stack,
     lat,
     lon,
-    radius_km: float = 100.0,
+    radius_km: float = 300.0,
 ) -> np.ndarray:
     """Return a local PMM field using the v33 viewer's rank-matching method.
 

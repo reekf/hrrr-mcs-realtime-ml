@@ -43,7 +43,7 @@ LAYER_SPECS = {
     "ml_r60": ("ML r60 km", "ML_r60_Prob", "forecast"),
     "ml_r75": ("ML r75 km", "ML_r75_Prob", "forecast"),
     "ml_r100": ("ML r100 km", "ML_r100_Prob", "forecast"),
-    "ml_lpmm": ("ML Local PMM (100 km)", "ML_Local_PMM_100km", "forecast"),
+    "ml_lpmm": ("ML Local PMM (300 km)", "ML_Local_PMM_300km", "forecast"),
     "wpc": ("WPC ERO", "WPC_ERO_Risk", "reference"),
     "pp": ("Practically Perfect", "PP_Any flood proxy", "verification"),
 }
@@ -225,12 +225,12 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
         raise RuntimeError(f"Map dataframe missing required columns: {missing}")
     frame = _sort_grid(frame)
     member_columns = [f"ML_r{radius}_Prob" for radius in RADII if f"ML_r{radius}_Prob" in frame.columns]
-    if member_columns and "ML_Local_PMM_100km" not in frame.columns:
-        frame["ML_Local_PMM_100km"] = localized_probability_matched_mean(
+    if member_columns and "ML_Local_PMM_300km" not in frame.columns:
+        frame["ML_Local_PMM_300km"] = localized_probability_matched_mean(
             frame[member_columns].apply(pd.to_numeric, errors="coerce").to_numpy(float).T,
             pd.to_numeric(frame["Lat"], errors="coerce").to_numpy(float),
             pd.to_numeric(frame["Lon"], errors="coerce").to_numpy(float),
-            radius_km=100.0,
+            radius_km=300.0,
         )
     lat = pd.to_numeric(frame["Lat"], errors="coerce").to_numpy(float)
     lon = pd.to_numeric(frame["Lon"], errors="coerce").to_numpy(float)

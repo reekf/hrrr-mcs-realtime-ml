@@ -1172,8 +1172,8 @@ def radius_cols_in_df(df: pd.DataFrame, radii: list[int] | None = None) -> list[
     return sorted(cols, key=lambda c: int(re.search(r"r(\d+)", c).group(1)))
 
 
-LOCAL_PMM_COL = "ML_Local_PMM_100km"
-LOCAL_PMM_RADIUS_KM = 100.0
+LOCAL_PMM_COL = "ML_Local_PMM_300km"
+LOCAL_PMM_RADIUS_KM = 300.0
 
 
 def add_local_pmm(df: pd.DataFrame, radii: list[int] | None = None) -> pd.DataFrame:
@@ -1225,7 +1225,7 @@ def build_predict_verify_realtime_multi_radius(
 ) -> pd.DataFrame:
     """Build/predict each requested radius and merge them onto one grid.
 
-    The localized PMM uses all available radius configurations with a 100-km
+    The localized PMM uses all available radius configurations with a 300-km
     radius of influence.
     """
     d = date8(date)
@@ -2659,7 +2659,7 @@ def build_plot_panels(
             r = int(re.search(r"r(\d+)", c).group(1))
             panels.append((f"ML r{r} km", c))
     if LOCAL_PMM_COL in df.columns:
-        panels.append(("ML Local PMM (100-km influence)", LOCAL_PMM_COL))
+        panels.append(("ML Local PMM (300-km influence)", LOCAL_PMM_COL))
     if include_wpc and WPC_COL in df.columns and pd.to_numeric(df[WPC_COL], errors="coerce").fillna(0).max() > 0:
         panels.append(("WPC ERO", WPC_COL))
     elif include_wpc and WPC_COL in df.columns:
