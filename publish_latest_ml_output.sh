@@ -109,6 +109,15 @@ else
   cp docs/latest/status.json "docs/archive/${DATE_ARG}/status.json"
 fi
 
+MPING_TOKEN_FILE="${MPING_API_TOKEN_FILE:-${HOME}/.config/realtime-ml/mping-token}"
+if [[ -n "${MPING_API_TOKEN:-}" || -s "$MPING_TOKEN_FILE" ]]; then
+  if ! python fetch_mping_reports.py --date "$DATE_ARG" --output "docs/archive/${DATE_ARG}/mping.json"; then
+    echo "WARNING: mPING report refresh failed; preserving any existing public mPING file." >&2
+  fi
+else
+  echo "No mPING API token is configured; skipping mPING report refresh."
+fi
+
 # Build archive manifest from all public archived status files.
 python - <<'PY'
 import json
@@ -186,8 +195,14 @@ if [[ -f "docs/archive/${DATE_ARG}/map.json" ]]; then
 else
   git rm -f --ignore-unmatch "docs/archive/${DATE_ARG}/map.json" >/dev/null 2>&1 || true
 fi
+if [[ -f "docs/archive/${DATE_ARG}/mping.json" ]]; then
+  git add -f "docs/archive/${DATE_ARG}/mping.json"
+fi
 
 PUBLISH_PATHS=(docs/latest/status.json docs/latest/map.json docs/archive/index.json docs/latest/latest.png "docs/archive/${DATE_ARG}/status.json" "docs/archive/${DATE_ARG}/latest.png" "docs/archive/${DATE_ARG}/map.json")
+if [[ -f "docs/archive/${DATE_ARG}/mping.json" ]]; then
+  PUBLISH_PATHS+=("docs/archive/${DATE_ARG}/mping.json")
+fi
 if git diff --cached --quiet -- "${PUBLISH_PATHS[@]}"; then
   echo "No website changes to commit."
 else

@@ -71,6 +71,7 @@ const LSR_META = {
   flash_flood: { label: "Flash flood", color: "#ff4fd8" },
   flood: { label: "Flood", color: "#38d9ff" },
   rain: { label: "Rain total", color: "#ffffff" },
+  mping_flood: { label: "mPING flood impact", color: "#ff9f43" },
 };
 const LSR_REFRESH_MS = 5 * 60 * 1000;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
@@ -95,12 +96,15 @@ const state = {
   lsrLayer: null,
   lsrTimer: null,
   lsrRequest: 0,
+  mpingReports: [],
+  mpingVisible: true,
+  mpingRequest: 0,
   viewMode: "2d",
   map3d: null,
   deckOverlay: null,
   render3dFrame: null,
   surface3dCache: new Map(),
-  separated3dPoints: true,
+  separated3dPoints: false,
 };
 
 const map = L.map("map", {
@@ -302,8 +306,9 @@ function surface3dData(key) {
 
 function visible3dReports() {
   const threshold = Number(document.getElementById("rain-threshold").value);
-  return state.lsrReports.filter((report) => state.lsrTypes.has(report.kind)
+  const localReports = state.lsrReports.filter((report) => state.lsrTypes.has(report.kind)
     && (report.kind !== "rain" || (Number.isFinite(report.amount) && report.amount >= threshold)));
+  return state.mpingVisible ? localReports.concat(state.mpingReports) : localReports;
 }
 
 function build3dLayers() {
@@ -314,7 +319,6 @@ function build3dLayers() {
   const referenceHeight = maximumProbability * SURFACE_HEIGHT_METERS_PER_PERCENT + OBSERVATION_CLEARANCE_METERS;
   const beforeId = first3dLabelLayer();
   const pointRadius = state.separated3dPoints ? SEPARATED_POINT_RADIUS_PIXELS : COMPACT_POINT_RADIUS_PIXELS;
-  const pointAlpha = Math.round(state.fillOpacity * 255);
   const shared = beforeId ? { beforeId } : {};
   const layers = [new deck.ColumnLayer({
     ...shared,
@@ -326,10 +330,11 @@ function build3dLayers() {
     extruded: true,
     filled: true,
     wireframe: false,
+    opacity: state.fillOpacity,
     pickable: true,
     getPosition: (point) => point.position,
     getElevation: (point) => point.probability * SURFACE_HEIGHT_METERS_PER_PERCENT,
-    getFillColor: (point) => continuousRiskColor(point.probability, pointAlpha),
+    getFillColor: (point) => continuousRiskColor(point.probability),
     transitions: { getElevation: 350 },
   })];
 
@@ -378,10 +383,11 @@ function build3dLayers() {
     extruded: true,
     filled: true,
     wireframe: false,
+    opacity: state.fillOpacity,
     pickable: true,
     getPosition: (item) => item.position,
     getElevation: referenceHeight,
-    getFillColor: (item) => colorRgba(item.meta.color, pointAlpha),
+    getFillColor: (item) => colorRgba(item.meta.color),
   }));
 
   const reports = visible3dReports();
@@ -395,10 +401,11 @@ function build3dLayers() {
     extruded: true,
     filled: true,
     wireframe: false,
+    opacity: state.fillOpacity,
     pickable: true,
     getPosition: (report) => [report.lon, report.lat],
     getElevation: referenceHeight + 10000,
-    getFillColor: (report) => colorRgba(LSR_META[report.kind].color, pointAlpha),
+    getFillColor: (report) => colorRgba(LSR_META[report.kind].color),
   }));
   return layers;
 }
@@ -656,7 +663,7 @@ function lsrPopup(report) {
   const lines = [
     report.valid ? new Date(report.valid).toLocaleString() : "",
     [report.city, report.county, report.state].filter(Boolean).join(", "),
-    report.source ? `Source: ${report.source}` : "",
+    report.provider === "mping" ? "Source: mPING citizen report" : (report.source ? `Source: ${report.source}` : ""),
     report.remark || "",
   ].filter(Boolean);
   for (const text of lines) {
@@ -675,8 +682,9 @@ function renderLsrs() {
   if (state.lsrLayer) map.removeLayer(state.lsrLayer);
   const threshold = Number(document.getElementById("rain-threshold").value);
   const group = L.layerGroup();
-  for (const report of state.lsrReports) {
-    if (!state.lsrTypes.has(report.kind)) continue;
+  const reports = state.mpingVisible ? state.lsrReports.concat(state.mpingReports) : state.lsrReports;
+  for (const report of reports) {
+    if (report.provider !== "mping" && !state.lsrTypes.has(report.kind)) continue;
     if (report.kind === "rain" && (!Number.isFinite(report.amount) || report.amount < threshold)) continue;
     const meta = LSR_META[report.kind];
     L.circleMarker([report.lat, report.lon], {
@@ -689,6 +697,13 @@ function renderLsrs() {
     }).bindPopup(lsrPopup(report), { maxWidth: 330 }).addTo(group);
   }
   state.lsrLayer = group.addTo(map);
+}
+
+function forecastWindow(date) {
+  const start = new Date(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T12:00:00Z`);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return { start, end };
 }
 
 function parseLsrFeature(feature) {
@@ -722,12 +737,11 @@ function parseLsrFeature(feature) {
 
 async function fetchLsrs(date, scheduleRefresh = false) {
   const request = ++state.lsrRequest;
-  const start = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T12:00Z`;
-  const endDate = new Date(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T12:00:00Z`);
-  endDate.setUTCDate(endDate.getUTCDate() + 1);
+  const window = forecastWindow(date);
+  const start = window.start.toISOString().slice(0, 16) + "Z";
   const params = new URLSearchParams({
     west: "-105.1", east: "-80.4", south: "30", north: "50.1",
-    sts: start, ets: endDate.toISOString().slice(0, 16) + "Z",
+    sts: start, ets: window.end.toISOString().slice(0, 16) + "Z",
   });
   const status = document.getElementById("lsr-status");
   state.lsrReports = [];
@@ -738,7 +752,12 @@ async function fetchLsrs(date, scheduleRefresh = false) {
     if (!response.ok) throw new Error(`IEM LSR request failed (${response.status})`);
     const data = await response.json();
     if (request !== state.lsrRequest) return;
-    state.lsrReports = (data.features || []).map(parseLsrFeature).filter(Boolean);
+    state.lsrReports = (data.features || []).map(parseLsrFeature).filter((report) => {
+      if (!report) return false;
+      if (report.kind !== "rain") return true;
+      const valid = Date.parse(report.valid);
+      return Number.isFinite(valid) && valid >= window.start.getTime() && valid < window.end.getTime();
+    });
     renderLsrs();
     const counts = Object.fromEntries(Object.keys(LSR_META).map((key) => [key, state.lsrReports.filter((report) => report.kind === key).length]));
     status.textContent = `Preliminary: ${counts.flash_flood} flash flood, ${counts.flood} flood, ${counts.rain} rain reports. Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
@@ -751,6 +770,41 @@ async function fetchLsrs(date, scheduleRefresh = false) {
   }
   clearTimeout(state.lsrTimer);
   if (scheduleRefresh) state.lsrTimer = setTimeout(() => fetchLsrs(date, true), LSR_REFRESH_MS);
+}
+
+async function fetchMping(date) {
+  const request = ++state.mpingRequest;
+  const status = document.getElementById("mping-status");
+  state.mpingReports = [];
+  renderLsrs();
+  status.textContent = "Loading mPING flood reports…";
+  try {
+    const response = await fetch(`archive/${date}/mping.json?v=${Date.now()}`, { cache: "no-store" });
+    if (response.status === 404) {
+      status.textContent = "mPING flood reports are not available for this valid period.";
+      return;
+    }
+    if (!response.ok) throw new Error(`mPING report file unavailable (${response.status})`);
+    const data = await response.json();
+    if (request !== state.mpingRequest) return;
+    state.mpingReports = (data.reports || []).map((report) => ({
+      kind: "mping_flood",
+      provider: "mping",
+      type: report.description || "Flood impact",
+      lat: Number(report.lat),
+      lon: Number(report.lon),
+      valid: report.valid || "",
+      remark: report.description || "",
+    })).filter((report) => Number.isFinite(report.lat) && Number.isFinite(report.lon));
+    renderLsrs();
+    status.textContent = `${state.mpingReports.length} mPING flood impact report${state.mpingReports.length === 1 ? "" : "s"} during this valid period.`;
+  } catch (error) {
+    if (request !== state.mpingRequest) return;
+    state.mpingReports = [];
+    renderLsrs();
+    status.textContent = "mPING flood reports are temporarily unavailable.";
+    console.error(error);
+  }
 }
 
 function showProductInfo(key) {
@@ -878,6 +932,7 @@ async function loadDate(date, fit = false) {
     const isLatest = String(state.archive[0]?.date) === String(state.data.date);
     clearTimeout(state.lsrTimer);
     fetchLsrs(state.data.date, isLatest);
+    fetchMping(state.data.date);
     if (fit) map.fitBounds([[30, -105], [50, -80.5]], { padding: [15, 15] });
     history.replaceState(null, "", `?date=${state.data.date}${state.viewMode === "3d" ? "&view=3d" : ""}`);
   } catch (error) {
@@ -988,6 +1043,10 @@ document.getElementById("view-3d").addEventListener("click", () => setViewMode("
 document.getElementById("point-gap-toggle").addEventListener("change", (event) => {
   state.separated3dPoints = event.currentTarget.checked;
   schedule3dRender();
+});
+document.getElementById("mping-flood-toggle").addEventListener("change", (event) => {
+  state.mpingVisible = event.currentTarget.checked;
+  renderLsrs();
 });
 
 const opacityInput = document.getElementById("fill-opacity");

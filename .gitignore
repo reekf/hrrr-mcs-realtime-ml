@@ -35,3 +35,4 @@ core.*
 
 # Automation wrapper
 !publish_latest_ml_output.sh
+!fetch_mping_reports.py

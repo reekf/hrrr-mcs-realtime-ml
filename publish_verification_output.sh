@@ -49,6 +49,15 @@ MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/matplotlib-cache}" python generate_interactiv
   --source realtime \
   --output "${ARCHIVE_DIR}/map.json"
 
+MPING_TOKEN_FILE="${MPING_API_TOKEN_FILE:-${HOME}/.config/realtime-ml/mping-token}"
+if [[ -n "${MPING_API_TOKEN:-}" || -s "$MPING_TOKEN_FILE" ]]; then
+  if ! python fetch_mping_reports.py --date "$DATE_ARG" --output "${ARCHIVE_DIR}/mping.json"; then
+    echo "WARNING: mPING report refresh failed; preserving any existing public mPING file." >&2
+  fi
+else
+  echo "No mPING API token is configured; skipping mPING report refresh."
+fi
+
 python - "$DATE_ARG" <<'PY'
 import json
 import sys
@@ -111,7 +120,13 @@ manifest = {"generated_utc": updated, "entries": entries}
 PY
 
 git add -f "${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/map.json" "${ARCHIVE_DIR}/status.json" docs/archive/index.json
+if [[ -f "${ARCHIVE_DIR}/mping.json" ]]; then
+  git add -f "${ARCHIVE_DIR}/mping.json"
+fi
 PUBLISH_PATHS=("${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/map.json" "${ARCHIVE_DIR}/status.json" docs/archive/index.json)
+if [[ -f "${ARCHIVE_DIR}/mping.json" ]]; then
+  PUBLISH_PATHS+=("${ARCHIVE_DIR}/mping.json")
+fi
 if git diff --cached --quiet -- "${PUBLISH_PATHS[@]}"; then
   echo "No verification website changes to commit."
 elif [[ "$PUBLISH_GIT" != "1" ]]; then
