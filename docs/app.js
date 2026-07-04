@@ -300,12 +300,12 @@ function build3dLayers() {
     diskResolution: 8,
     radius: SURFACE_RADIUS_METERS,
     extruded: true,
-    stroked: false,
+    filled: false,
+    wireframe: true,
     pickable: true,
     getPosition: (point) => point.position,
     getElevation: (point) => point.probability * SURFACE_HEIGHT_METERS_PER_PERCENT,
-    getFillColor: (point) => colorRgba(riskColor(point.encoded), Math.round(state.fillOpacity * 255)),
-    material: { ambient: 0.42, diffuse: 0.62, shininess: 18, specularColor: [55, 55, 55] },
+    getLineColor: (point) => colorRgba(riskColor(point.encoded), Math.round(state.fillOpacity * 255)),
     transitions: { getElevation: 350 },
   })];
 
@@ -351,10 +351,12 @@ function build3dLayers() {
     diskResolution: 10,
     radius: 8000,
     extruded: true,
+    filled: false,
+    wireframe: true,
     pickable: true,
     getPosition: (item) => item.position,
     getElevation: referenceHeight,
-    getFillColor: (item) => colorRgba(item.meta.color),
+    getLineColor: (item) => colorRgba(item.meta.color),
   }));
 
   const reports = visible3dReports();
@@ -365,10 +367,12 @@ function build3dLayers() {
     diskResolution: 12,
     radius: 9000,
     extruded: true,
+    filled: false,
+    wireframe: true,
     pickable: true,
     getPosition: (report) => [report.lon, report.lat],
     getElevation: referenceHeight + 10000,
-    getFillColor: (report) => colorRgba(LSR_META[report.kind].color),
+    getLineColor: (report) => colorRgba(LSR_META[report.kind].color),
   }));
   return layers;
 }
