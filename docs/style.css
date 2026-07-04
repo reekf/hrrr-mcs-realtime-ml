@@ -203,6 +203,49 @@ button { cursor: pointer; }
   background: var(--observation-color);
 }
 
+.lsr-options { display: grid; gap: 5px; }
+
+.lsr-options label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.lsr-options input { accent-color: #c4d3dc; }
+
+.lsr-options i {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #050607;
+  border-radius: 50%;
+  background: var(--lsr-color);
+}
+
+.rain-threshold {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.rain-threshold select {
+  min-height: 29px;
+  padding: 3px 6px;
+  color: var(--text);
+  background: #101419;
+  border: 1px solid #252c32;
+  font: inherit;
+}
+
+.lsr-popup { line-height: 1.35; }
+.lsr-popup strong { display: block; margin-bottom: 4px; }
+
 .opacity-control {
   margin-top: 15px;
   padding-top: 12px;

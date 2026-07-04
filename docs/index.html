@@ -53,6 +53,25 @@
         <div id="observation-options" class="observation-options"></div>
       </div>
 
+      <div id="lsr-section">
+        <div class="section-label">Local storm reports</div>
+        <div class="lsr-options">
+          <label><input type="checkbox" value="flash_flood" checked> <i style="--lsr-color:#ff4fd8"></i>Flash flood</label>
+          <label><input type="checkbox" value="flood" checked> <i style="--lsr-color:#38d9ff"></i>Flood</label>
+          <label><input type="checkbox" value="rain"> <i style="--lsr-color:#ffffff"></i>Rain totals</label>
+        </div>
+        <label class="rain-threshold" for="rain-threshold">
+          Minimum rain total
+          <select id="rain-threshold">
+            <option value="1">1 inch</option>
+            <option value="2" selected>2 inches</option>
+            <option value="3">3 inches</option>
+            <option value="5">5 inches</option>
+          </select>
+        </label>
+        <p id="lsr-status" class="availability-note">Loading NWS local storm reports via Iowa Environmental Mesonet…</p>
+      </div>
+
       <div class="opacity-control">
         <label for="fill-opacity">Forecast transparency</label>
         <div>
@@ -96,7 +115,7 @@
       <p>Practically Perfect is an observation-based benchmark created after the valid period from observed flood-proxy locations. Those observations are expanded and smoothed to show an idealized placement of risk areas. It is not a forecast. It is typically available around 11:10 AM CT the following day.</p>
 
       <h2>Using the map</h2>
-      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. Use the Archive button to change dates or open the original static graphics.</p>
+      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. NWS local storm reports are supplied by the Iowa Environmental Mesonet; reports for flooding, flash flooding, and selected rainfall totals are preliminary and update every five minutes for the latest forecast. Use the Archive button to change dates or open the original static graphics.</p>
 
       <button class="primary-button dialog-close" type="button">Enter map</button>
     </div>

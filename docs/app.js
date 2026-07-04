@@ -67,6 +67,12 @@ const OBSERVATION_META = {
   usgs: { label: "USGS", color: "#58a6ff" },
   flash_lsr: { label: "Flash-flood reports", color: "#ffffff" },
 };
+const LSR_META = {
+  flash_flood: { label: "Flash flood", color: "#ff4fd8" },
+  flood: { label: "Flood", color: "#38d9ff" },
+  rain: { label: "Rain total", color: "#ffffff" },
+};
+const LSR_REFRESH_MS = 5 * 60 * 1000;
 
 const state = {
   archive: [],
@@ -78,6 +84,11 @@ const state = {
   fillLayer: null,
   contourLayer: null,
   observationLayer: null,
+  lsrReports: [],
+  lsrTypes: new Set(["flash_flood", "flood"]),
+  lsrLayer: null,
+  lsrTimer: null,
+  lsrRequest: 0,
 };
 
 const map = L.map("map", {
@@ -99,6 +110,8 @@ map.getPane("labelPane").style.zIndex = 500;
 map.getPane("labelPane").style.pointerEvents = "none";
 map.createPane("observationPane");
 map.getPane("observationPane").style.zIndex = 475;
+map.createPane("lsrPane");
+map.getPane("lsrPane").style.zIndex = 485;
 
 L.control.zoom({ position: "bottomright" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
@@ -252,6 +265,110 @@ function renderObservations() {
   state.observationLayer = group.addTo(map);
 }
 
+function lsrPopup(report) {
+  const container = document.createElement("div");
+  container.className = "lsr-popup";
+  const heading = document.createElement("strong");
+  const formattedAmount = Number.isFinite(report.amount) ? Number(report.amount.toFixed(2)).toString() : "";
+  const amount = report.kind === "rain" && formattedAmount ? ` · ${formattedAmount} in` : "";
+  heading.textContent = `${LSR_META[report.kind]?.label || report.type}${amount}`;
+  container.append(heading);
+  const lines = [
+    report.valid ? new Date(report.valid).toLocaleString() : "",
+    [report.city, report.county, report.state].filter(Boolean).join(", "),
+    report.source ? `Source: ${report.source}` : "",
+    report.remark || "",
+  ].filter(Boolean);
+  for (const text of lines) {
+    const line = document.createElement("div");
+    line.textContent = text;
+    container.append(line);
+  }
+  return container;
+}
+
+function renderLsrs() {
+  if (state.lsrLayer) map.removeLayer(state.lsrLayer);
+  const threshold = Number(document.getElementById("rain-threshold").value);
+  const group = L.layerGroup();
+  for (const report of state.lsrReports) {
+    if (!state.lsrTypes.has(report.kind)) continue;
+    if (report.kind === "rain" && (!Number.isFinite(report.amount) || report.amount < threshold)) continue;
+    const meta = LSR_META[report.kind];
+    L.circleMarker([report.lat, report.lon], {
+      pane: "lsrPane",
+      radius: report.kind === "rain" ? 5 : 6,
+      color: "#050607",
+      weight: 2,
+      fillColor: meta.color,
+      fillOpacity: 1,
+    }).bindPopup(lsrPopup(report), { maxWidth: 330 }).addTo(group);
+  }
+  state.lsrLayer = group.addTo(map);
+}
+
+function parseLsrFeature(feature) {
+  const properties = feature?.properties || {};
+  const coordinates = feature?.geometry?.coordinates || [];
+  const type = String(properties.typetext || "").toUpperCase();
+  const kind = type === "FLASH FLOOD" ? "flash_flood"
+    : type === "FLOOD" ? "flood"
+      : ["RAIN", "HEAVY RAIN"].includes(type) ? "rain" : null;
+  const lon = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+  if (!kind || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const rawAmount = properties.magf ?? properties.magnitude;
+  const numericAmount = rawAmount === null || rawAmount === "" ? NaN : Number(rawAmount);
+  const unit = String(properties.unit || "").toLowerCase();
+  const amount = Number.isFinite(numericAmount) && unit.includes("mm") ? numericAmount / 25.4 : numericAmount;
+  return {
+    kind,
+    type,
+    lat,
+    lon,
+    amount: Number.isFinite(amount) ? amount : null,
+    valid: properties.valid || "",
+    city: properties.city || "",
+    county: properties.county || "",
+    state: properties.state || properties.st || "",
+    source: properties.source || "",
+    remark: properties.remark || "",
+  };
+}
+
+async function fetchLsrs(date, scheduleRefresh = false) {
+  const request = ++state.lsrRequest;
+  const start = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T12:00Z`;
+  const endDate = new Date(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T12:00:00Z`);
+  endDate.setUTCDate(endDate.getUTCDate() + 1);
+  const params = new URLSearchParams({
+    west: "-105.1", east: "-80.4", south: "30", north: "50.1",
+    sts: start, ets: endDate.toISOString().slice(0, 16) + "Z",
+  });
+  const status = document.getElementById("lsr-status");
+  state.lsrReports = [];
+  renderLsrs();
+  status.textContent = "Loading NWS local storm reports via Iowa Environmental Mesonet…";
+  try {
+    const response = await fetch(`https://mesonet.agron.iastate.edu/geojson/lsr.geojson?${params}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`IEM LSR request failed (${response.status})`);
+    const data = await response.json();
+    if (request !== state.lsrRequest) return;
+    state.lsrReports = (data.features || []).map(parseLsrFeature).filter(Boolean);
+    renderLsrs();
+    const counts = Object.fromEntries(Object.keys(LSR_META).map((key) => [key, state.lsrReports.filter((report) => report.kind === key).length]));
+    status.textContent = `Preliminary: ${counts.flash_flood} flash flood, ${counts.flood} flood, ${counts.rain} rain reports. Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
+  } catch (error) {
+    if (request !== state.lsrRequest) return;
+    state.lsrReports = [];
+    renderLsrs();
+    status.textContent = "Local storm reports are temporarily unavailable.";
+    console.error(error);
+  }
+  clearTimeout(state.lsrTimer);
+  if (scheduleRefresh) state.lsrTimer = setTimeout(() => fetchLsrs(date, true), LSR_REFRESH_MS);
+}
+
 function showProductInfo(key) {
   const meta = PRODUCT_META[key];
   if (!meta) return;
@@ -373,6 +490,9 @@ async function loadDate(date, fit = false) {
     renderContours();
     renderObservations();
     updateDateUI(entry);
+    const isLatest = String(state.archive[0]?.date) === String(state.data.date);
+    clearTimeout(state.lsrTimer);
+    fetchLsrs(state.data.date, isLatest);
     if (fit) map.fitBounds([[30, -105], [50, -80.5]], { padding: [15, 15] });
     history.replaceState(null, "", `?date=${state.data.date}`);
   } catch (error) {
@@ -486,10 +606,20 @@ opacityInput.addEventListener("input", () => {
   renderFilledLayer();
 });
 
+document.querySelectorAll(".lsr-options input").forEach((checkbox) => {
+  checkbox.addEventListener("change", () => {
+    if (checkbox.checked) state.lsrTypes.add(checkbox.value);
+    else state.lsrTypes.delete(checkbox.value);
+    renderLsrs();
+  });
+});
+document.getElementById("rain-threshold").addEventListener("change", renderLsrs);
+
 map.on("zoomend", () => {
   renderFilledLayer();
   renderContours();
   renderObservations();
+  renderLsrs();
 });
 
 async function init() {
