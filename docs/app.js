@@ -74,7 +74,6 @@ const LSR_META = {
 };
 const LSR_REFRESH_MS = 5 * 60 * 1000;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
-const SURFACE_RADIUS_PIXELS = 4;
 const OBSERVATION_CLEARANCE_METERS = 32000;
 const WPC_LOCAL_RISK_DISTANCE_KM = 350;
 const CONUS_LONGITUDE_SCALE = Math.cos(40 * Math.PI / 180);
@@ -285,6 +284,11 @@ function visible3dReports() {
     && (report.kind !== "rain" || (Number.isFinite(report.amount) && report.amount >= threshold)));
 }
 
+function surfaceRadiusPixels() {
+  const zoom = state.map3d?.getZoom() ?? 5;
+  return Math.max(0.55, Math.min(3, 0.55 + (zoom - 3) * 0.5));
+}
+
 function build3dLayers() {
   if (!state.data?.layers?.[state.selected] || !window.deck) return [];
   const surface = surface3dData(state.selected);
@@ -298,7 +302,7 @@ function build3dLayers() {
     id: `forecast-surface-${state.data.date}-${state.selected}`,
     data: surface,
     diskResolution: 8,
-    radius: SURFACE_RADIUS_PIXELS,
+    radius: surfaceRadiusPixels(),
     radiusUnits: "pixels",
     extruded: true,
     filled: true,
@@ -431,6 +435,7 @@ function initialize3dMap() {
     add3dStateLines();
     render3d();
   });
+  state.map3d.on("zoomend", schedule3dRender);
   state.map3d.on("error", (event) => {
     console.error("3D map error", event.error || event);
     if (state.viewMode === "3d") {
