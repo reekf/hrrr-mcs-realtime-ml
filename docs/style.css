@@ -138,6 +138,8 @@ button { cursor: pointer; }
   gap: 8px;
 }
 
+.mobile-actions-toggle { display: none; }
+
 .view-switch {
   display: grid;
   grid-template-columns: repeat(2, 39px);
@@ -573,14 +575,35 @@ noscript {
   }
   .date-controls label { display: none; }
   #valid-period { font-size: 0.66rem; }
-  .top-actions .text-button { display: none; }
+  .top-actions > :not(.mobile-actions-toggle) { display: none; }
+  .top-actions .mobile-actions-toggle { display: inline-grid; }
+  .top-actions.mobile-open {
+    position: fixed;
+    z-index: 1100;
+    top: 8px;
+    right: 8px;
+    width: min(260px, calc(100% - 16px));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding: 8px;
+    background: rgba(9, 11, 13, 0.98);
+    border: 1px solid var(--line);
+  }
+  .top-actions.mobile-open > * { display: flex; }
+  .top-actions.mobile-open .view-switch { display: grid; }
+  .top-actions.mobile-open .round-button { display: grid; }
+  .top-actions.mobile-open .mobile-actions-toggle { order: -1; }
   .layer-panel {
     top: auto;
     left: 10px;
     bottom: 52px;
     width: min(286px, calc(100% - 20px));
     max-height: 48vh;
+    padding: 10px 12px;
   }
+  .layer-panel .panel-heading { margin-bottom: 0; }
+  .layer-panel .panel-heading:has(+ #layer-panel-content:not([hidden])) { margin-bottom: 10px; }
   .legend { right: 10px; bottom: 100px; flex-wrap: wrap; max-width: 190px; }
   .height-legend { right: 10px; bottom: 174px; max-width: 190px; }
   .product-message { bottom: 8px; font-size: 0.78rem; }

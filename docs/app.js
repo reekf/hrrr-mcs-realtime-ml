@@ -266,9 +266,8 @@ function wpcSurfaceValues() {
     const category = encodedValues[index];
     if (category < 50) continue;
     const upper = upperBound[category] || 1000;
-    const midpoint = (category + upper) / 20;
     if (category === maximumCategory) {
-      probabilities[index] = midpoint;
+      probabilities[index] = category / 10;
       continue;
     }
     const lat = state.data.grid.lat[index];
@@ -276,7 +275,7 @@ function wpcSurfaceValues() {
     const distanceOuter = nearestBoundaryKm(boundaryIndexes[category], lat, lon);
     const distanceInner = nearestBoundaryKm(boundaryIndexes[upper], lat, lon);
     if (!Number.isFinite(distanceOuter) || !Number.isFinite(distanceInner) || distanceInner > WPC_LOCAL_RISK_DISTANCE_KM) {
-      probabilities[index] = midpoint;
+      probabilities[index] = category / 10;
       continue;
     }
     const fraction = distanceOuter / Math.max(0.001, distanceOuter + distanceInner);
@@ -298,10 +297,54 @@ function surface3dData(key) {
       position: [state.data.grid.lon[index], state.data.grid.lat[index]],
       encoded: encodedValues[index],
       probability: probabilities ? probabilities[index] : encodedValues[index] / 10,
+      wpcRange: key === "wpc" ? wpcRiskRange(encodedValues[index]) : null,
     });
   }
   state.surface3dCache.set(cacheKey, points);
   return points;
+}
+
+function wpcRiskRange(encodedValue) {
+  if (encodedValue >= 700) return "70–100%";
+  if (encodedValue >= 400) return "40–70%";
+  if (encodedValue >= 150) return "15–40%";
+  if (encodedValue >= 50) return "5–15%";
+  return "Below 5%";
+}
+
+function nearestVisibleCity(position, x, y) {
+  if (!state.map3d || !position || !Number.isFinite(x) || !Number.isFinite(y)) return "";
+  const placeLayers = (state.map3d.getStyle()?.layers || [])
+    .filter((layer) => layer.type === "symbol"
+      && layer["source-layer"] === "place"
+      && /place_(city|capital|town|village|hamlet)/.test(layer.id))
+    .map((layer) => layer.id);
+  if (!placeLayers.length) return "";
+  let features = state.map3d.queryRenderedFeatures(
+    [[x - 220, y - 220], [x + 220, y + 220]],
+    { layers: placeLayers },
+  );
+  if (!features.some((feature) => feature.properties?.name_en || feature.properties?.name)) {
+    features = state.map3d.querySourceFeatures("carto", { sourceLayer: "place" })
+      .filter((feature) => ["city", "town", "village", "hamlet"].includes(
+        String(feature.properties?.class || feature.properties?.type || "").toLowerCase(),
+      ));
+  }
+  const origin = state.map3d.project(position);
+  let nearest = null;
+  let nearestDistance = Infinity;
+  for (const feature of features) {
+    const coordinates = feature.geometry?.coordinates;
+    const name = feature.properties?.name_en || feature.properties?.name;
+    if (!Array.isArray(coordinates) || !name) continue;
+    const projected = state.map3d.project(coordinates);
+    const distance = Math.hypot(projected.x - origin.x, projected.y - origin.y);
+    if (distance < nearestDistance) {
+      nearest = String(name);
+      nearestDistance = distance;
+    }
+  }
+  return nearest || "";
 }
 
 function visible3dReports() {
@@ -414,9 +457,15 @@ function render3d() {
   if (state.viewMode !== "3d" || !state.deckOverlay || !state.map3d?.isStyleLoaded()) return;
   state.deckOverlay.setProps({
     layers: build3dLayers(),
-    getTooltip: ({ object, layer }) => {
+    getTooltip: ({ object, x, y }) => {
       if (!object) return null;
-      if (object.probability) return `${PRODUCT_META[state.selected].short}: ${object.probability.toFixed(1)}%`;
+      if (object.probability) {
+        const city = nearestVisibleCity(object.position, x, y);
+        const value = state.selected === "wpc"
+          ? `${PRODUCT_META.wpc.short}: ${object.wpcRange} category`
+          : `${PRODUCT_META[state.selected].short}: ${object.probability.toFixed(1)}%`;
+        return city ? `${value}\nNearest city: ${city}` : value;
+      }
       if (object.threshold) return `${PRODUCT_META[object.key]?.short || object.key}: >${object.threshold}% contour`;
       if (object.kind) return `${LSR_META[object.kind]?.label || object.type}${Number.isFinite(object.amount) ? ` · ${object.amount.toFixed(2)} in` : ""}`;
       if (object.meta) return object.meta.label;
@@ -1032,10 +1081,39 @@ function setupDialogs() {
   }
 }
 
+function setupResponsiveControls() {
+  const mobile = window.matchMedia("(max-width: 900px)");
+  const layerContent = document.getElementById("layer-panel-content");
+  const layerToggle = document.getElementById("collapse-layers");
+  const actions = document.querySelector(".top-actions");
+  const actionsToggle = document.getElementById("mobile-actions-toggle");
+
+  if (mobile.matches) {
+    layerContent.hidden = true;
+    layerToggle.textContent = "+";
+    layerToggle.setAttribute("aria-label", "Expand layer controls");
+  }
+  actionsToggle.addEventListener("click", () => {
+    const open = actions.classList.toggle("mobile-open");
+    actionsToggle.setAttribute("aria-expanded", String(open));
+    actionsToggle.textContent = open ? "Close" : "Menu";
+    actionsToggle.setAttribute("aria-label", open ? "Close map actions" : "Open map actions");
+  });
+  actions.querySelectorAll("a, button:not(#mobile-actions-toggle)").forEach((control) => {
+    control.addEventListener("click", () => {
+      if (!mobile.matches) return;
+      actions.classList.remove("mobile-open");
+      actionsToggle.setAttribute("aria-expanded", "false");
+      actionsToggle.textContent = "Menu";
+    });
+  });
+}
+
 document.getElementById("collapse-layers").addEventListener("click", (event) => {
   const content = document.getElementById("layer-panel-content");
   content.hidden = !content.hidden;
   event.currentTarget.textContent = content.hidden ? "+" : "−";
+  event.currentTarget.setAttribute("aria-label", content.hidden ? "Expand layer controls" : "Collapse layer controls");
 });
 
 document.getElementById("view-2d").addEventListener("click", () => setViewMode("2d"));
@@ -1075,6 +1153,7 @@ map.on("zoomend", () => {
 
 async function init() {
   setupDialogs();
+  setupResponsiveControls();
   try {
     const response = await fetch(`archive/index.json?v=${Date.now()}`);
     if (!response.ok) throw new Error("Archive index unavailable");
