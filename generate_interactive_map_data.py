@@ -20,9 +20,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from localized_pmm import localized_probability_matched_mean
-
-
 PROJECT_DIR = Path("/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj")
 REALTIME_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "verified"
 REALTIME_WPC_DIR = PROJECT_DIR / "realtime_wpc_ero_cache_v33"
@@ -43,7 +40,7 @@ LAYER_SPECS = {
     "ml_r60": ("ML r60 km", "ML_r60_Prob", "forecast"),
     "ml_r75": ("ML r75 km", "ML_r75_Prob", "forecast"),
     "ml_r100": ("ML r100 km", "ML_r100_Prob", "forecast"),
-    "ml_lpmm": ("ML Local PMM (300 km)", "ML_Local_PMM_300km", "forecast"),
+    "ml_mean": ("ML Ensemble Mean", "ML_Ensemble_Mean", "forecast"),
     "wpc": ("WPC ERO", "WPC_ERO_Risk", "reference"),
     "pp": ("Practically Perfect", "PP_Any flood proxy", "verification"),
 }
@@ -225,13 +222,12 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
         raise RuntimeError(f"Map dataframe missing required columns: {missing}")
     frame = _sort_grid(frame)
     member_columns = [f"ML_r{radius}_Prob" for radius in RADII if f"ML_r{radius}_Prob" in frame.columns]
-    if member_columns and "ML_Local_PMM_300km" not in frame.columns:
-        frame["ML_Local_PMM_300km"] = localized_probability_matched_mean(
-            frame[member_columns].apply(pd.to_numeric, errors="coerce").to_numpy(float).T,
-            pd.to_numeric(frame["Lat"], errors="coerce").to_numpy(float),
-            pd.to_numeric(frame["Lon"], errors="coerce").to_numpy(float),
-            radius_km=300.0,
-        )
+    if member_columns:
+        # Always derive this from the members so old caches containing a Local
+        # PMM cannot leak the retired product back onto the website.
+        frame["ML_Ensemble_Mean"] = frame[member_columns].apply(
+            pd.to_numeric, errors="coerce"
+        ).mean(axis=1, skipna=True)
     lat = pd.to_numeric(frame["Lat"], errors="coerce").to_numpy(float)
     lon = pd.to_numeric(frame["Lon"], errors="coerce").to_numpy(float)
     if not np.isfinite(lat).all() or not np.isfinite(lon).all():
