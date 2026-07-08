@@ -321,6 +321,26 @@ button { cursor: pointer; }
 .lsr-popup { line-height: 1.35; }
 .lsr-popup strong { display: block; margin-bottom: 4px; }
 
+.flood-alert-options { display: grid; gap: 5px; }
+
+.flood-alert-options label {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.flood-alert-options input { accent-color: #c4d3dc; }
+
+.flood-alert-options i {
+  width: 17px;
+  height: 10px;
+  border: 2px solid var(--alert-color);
+  background: color-mix(in srgb, var(--alert-color) 16%, transparent);
+}
+
 .opacity-control {
   margin-top: 10px;
 }
@@ -479,6 +499,25 @@ button { cursor: pointer; }
   border: 1px solid #252c32;
   font-size: 0.68rem;
   line-height: 1.35;
+}
+
+.predictor-radius {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.predictor-radius select {
+  min-height: 29px;
+  padding: 3px 24px 3px 7px;
+  color: var(--text);
+  background: #101419;
+  border: 1px solid #252c32;
+  font: inherit;
 }
 
 .predictor-choice input {

@@ -71,6 +71,15 @@
       <details id="predictor-section" class="layer-section">
         <summary>ML predictor diagnostics</summary>
         <div class="layer-section-content">
+          <label class="predictor-radius" for="predictor-radius">
+            Target radius
+            <select id="predictor-radius">
+              <option value="40">40 km</option>
+              <option value="60" selected>60 km</option>
+              <option value="75">75 km</option>
+              <option value="100">100 km</option>
+            </select>
+          </label>
           <div id="predictor-options" class="predictor-options"></div>
           <p id="predictor-status" class="availability-note"></p>
         </div>
@@ -108,11 +117,22 @@
         <summary>Reflectivity</summary>
         <div class="layer-section-content">
           <label class="radar-choice">
-            <input id="radar-loop-toggle" type="checkbox">
+            <input id="radar-loop-toggle" type="checkbox" checked>
             <i aria-hidden="true"></i>
             Current radar loop
           </label>
-          <p id="radar-status" class="availability-note">Radar overlay is off.</p>
+          <p id="radar-status" class="availability-note">Loading current radar loop…</p>
+        </div>
+      </details>
+
+      <details id="flood-alert-section" class="layer-section">
+        <summary>NWS flood alerts</summary>
+        <div class="layer-section-content">
+          <div class="flood-alert-options">
+            <label><input type="checkbox" value="watch" checked> <i style="--alert-color:#f0df35"></i>Flood watches</label>
+            <label><input type="checkbox" value="warning" checked> <i style="--alert-color:#ff4f4f"></i>Flood warnings</label>
+          </div>
+          <p id="flood-alert-status" class="availability-note">Loading active NWS flood alerts…</p>
         </div>
       </details>
 
@@ -149,7 +169,7 @@
     </div>
   </aside>
 
-  <div class="legend" aria-label="Probability legend">
+  <div id="probability-legend" class="legend" aria-label="Probability legend">
     <span><i style="--swatch:#57c84d"></i>&gt;5%</span>
     <span><i style="--swatch:#f0df35"></i>&gt;15%</span>
     <span><i style="--swatch:#e14b3f"></i>&gt;40%</span>
@@ -228,6 +248,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js" crossorigin=""></script>
-  <script src="app.js?v=20260708-predictors-radar-2"></script>
+  <script src="app.js?v=20260708-alerts-multiradius-3"></script>
 </body>
 </html>

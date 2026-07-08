@@ -6,6 +6,7 @@ const RISK_COLORS = {
   40: "#e14b3f",
   70: "#d94ad7",
 };
+const MAP_DATA_VERSION = "4";
 
 const PRODUCT_META = {
   ml_r40: {
@@ -79,6 +80,8 @@ const RADAR_FRAME_MS = 700;
 const RADAR_REFRESH_MS = 10 * 60 * 1000;
 const RADAR_OPACITY = 0.58;
 const RADAR_CROSSFADE_MS = 260;
+const NWS_ALERTS_URL = "https://api.weather.gov/alerts/active?status=actual&message_type=alert";
+const FLOOD_ALERT_REFRESH_MS = 5 * 60 * 1000;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
 const SEPARATED_POINT_RADIUS_PIXELS = 0.043;
 const COMPACT_POINT_RADIUS_PIXELS = 0.13;
@@ -112,7 +115,14 @@ const state = {
   radarRefreshTimer: null,
   radarRequest: 0,
   selectedPredictor: null,
+  selectedPredictorRadius: 60,
   predictorLayer: null,
+  floodAlerts: [],
+  floodAlertTypes: new Set(["watch", "warning"]),
+  floodAlertLayer: null,
+  floodAlertTimer: null,
+  floodAlertRequest: 0,
+  floodZoneCache: new Map(),
   mpingReports: [],
   mpingVisible: true,
   mpingRequest: 0,
@@ -152,6 +162,8 @@ map.createPane("observationPane");
 map.getPane("observationPane").style.zIndex = 475;
 map.createPane("lsrPane");
 map.getPane("lsrPane").style.zIndex = 485;
+map.createPane("floodAlertPane");
+map.getPane("floodAlertPane").style.zIndex = 470;
 
 L.control.zoom({ position: "bottomright" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
@@ -577,6 +589,10 @@ function initialize3dMap() {
 
 function setViewMode(mode) {
   if (mode === state.viewMode) return;
+  if (mode === "3d" && state.selectedPredictor) {
+    state.selectedPredictor = null;
+    buildLayerControls();
+  }
   const map2dElement = document.getElementById("map");
   const map3dElement = document.getElementById("map-3d");
   if (mode === "3d") {
@@ -804,13 +820,19 @@ function setMessage(key) {
 }
 
 function renderFilledLayer() {
+  if (state.fillLayer) {
+    map.removeLayer(state.fillLayer);
+    state.fillLayer = null;
+  }
+  const probabilityLegend = document.getElementById("probability-legend");
+  probabilityLegend.hidden = Boolean(state.selectedPredictor);
+  if (state.selectedPredictor) return;
   if (!state.data || !state.data.layers[state.selected]) return;
   if (state.viewMode === "3d") {
     setMessage(state.selected);
     schedule3dRender();
     return;
   }
-  if (state.fillLayer) map.removeLayer(state.fillLayer);
 
   const values = state.data.layers[state.selected].values;
   const lat = state.data.grid.lat;
@@ -843,9 +865,14 @@ function renderPredictorLayer() {
     state.predictorLayer = null;
   }
   const legend = document.getElementById("predictor-legend");
-  const predictor = state.data?.predictors?.[state.selectedPredictor];
+  const predictor = state.data?.predictors?.[`r${state.selectedPredictorRadius}`]?.[state.selectedPredictor];
   legend.hidden = !predictor || state.viewMode !== "2d";
-  if (!predictor || state.viewMode !== "2d") return;
+  renderFilledLayer();
+  renderContours();
+  if (!predictor || state.viewMode !== "2d") {
+    if (!state.selectedPredictor) setMessage(state.selected);
+    return;
+  }
 
   const group = L.layerGroup();
   const radius = Math.max(2.4, Math.min(4.4, 2.4 + (map.getZoom() - 4) * 0.35));
@@ -864,6 +891,7 @@ function renderPredictorLayer() {
   document.getElementById("predictor-legend-title").textContent = predictor.label;
   document.getElementById("predictor-legend-min").textContent = `${predictor.scale_min} ${predictor.units}`;
   document.getElementById("predictor-legend-max").textContent = `${predictor.scale_max} ${predictor.units}`;
+  document.getElementById("product-message").textContent = `${state.selectedPredictorRadius}-km model predictor #${predictor.rank}. ${predictor.direction} Mean |SHAP|: ${predictor.mean_abs_shap.toFixed(3)}.`;
 }
 
 function renderContours() {
@@ -872,6 +900,8 @@ function renderContours() {
     return;
   }
   if (state.contourLayer) map.removeLayer(state.contourLayer);
+  state.contourLayer = null;
+  if (state.selectedPredictor) return;
   const group = L.layerGroup();
 
   for (const key of state.contours) {
@@ -1077,6 +1107,110 @@ async function fetchLsrs(date, scheduleRefresh = false) {
   if (scheduleRefresh) state.lsrTimer = setTimeout(() => fetchLsrs(date, true), LSR_REFRESH_MS);
 }
 
+function floodAlertKind(event) {
+  const name = String(event || "");
+  if (/Flood Watch$/i.test(name)) return "watch";
+  if (/Flood Warning$/i.test(name)) return "warning";
+  return null;
+}
+
+function floodAlertPopup(properties) {
+  const container = document.createElement("div");
+  container.className = "lsr-popup";
+  const heading = document.createElement("strong");
+  heading.textContent = properties.event || "NWS flood alert";
+  const headline = document.createElement("div");
+  headline.textContent = properties.headline || properties.areaDesc || "";
+  const expires = document.createElement("div");
+  const expiresAt = Date.parse(properties.expires);
+  expires.textContent = Number.isFinite(expiresAt) ? `Expires ${new Date(expiresAt).toLocaleString()}` : "";
+  container.append(heading, headline, expires);
+  return container;
+}
+
+function renderFloodAlerts() {
+  if (state.floodAlertLayer) map.removeLayer(state.floodAlertLayer);
+  const features = state.floodAlerts.filter((feature) => state.floodAlertTypes.has(feature.properties.kind));
+  state.floodAlertLayer = L.geoJSON({ type: "FeatureCollection", features }, {
+    pane: "floodAlertPane",
+    style: (feature) => {
+      const warning = feature.properties.kind === "warning";
+      return {
+        color: warning ? "#ff4f4f" : "#f0df35",
+        weight: warning ? 2.4 : 2,
+        opacity: 0.95,
+        dashArray: warning ? null : "7 4",
+        fillColor: warning ? "#ff4f4f" : "#f0df35",
+        fillOpacity: warning ? 0.10 : 0.06,
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      layer.bindPopup(floodAlertPopup(feature.properties), { maxWidth: 360 });
+      layer.bindTooltip(feature.properties.event || "NWS flood alert", { sticky: true });
+    },
+  }).addTo(map);
+}
+
+async function fetchFloodZoneGeometry(url) {
+  if (!state.floodZoneCache.has(url)) {
+    state.floodZoneCache.set(url, fetch(url, {
+      cache: "force-cache",
+      headers: { Accept: "application/geo+json" },
+    }).then((response) => {
+      if (!response.ok) throw new Error(`NWS zone request failed (${response.status})`);
+      return response.json();
+    }).then((zone) => zone.geometry || null).catch(() => null));
+  }
+  return state.floodZoneCache.get(url);
+}
+
+async function alertPolygonFeatures(alert) {
+  const properties = alert?.properties || {};
+  const kind = floodAlertKind(properties.event);
+  if (!kind) return [];
+  const shared = {
+    kind,
+    event: properties.event || "",
+    headline: properties.headline || "",
+    areaDesc: properties.areaDesc || "",
+    expires: properties.expires || "",
+  };
+  if (alert.geometry) return [{ type: "Feature", geometry: alert.geometry, properties: shared }];
+  const zones = await Promise.all((properties.affectedZones || []).map(fetchFloodZoneGeometry));
+  return zones.filter(Boolean).map((geometry) => ({ type: "Feature", geometry, properties: shared }));
+}
+
+async function fetchFloodAlerts(scheduleRefresh = false) {
+  const request = ++state.floodAlertRequest;
+  const status = document.getElementById("flood-alert-status");
+  status.textContent = "Loading active NWS flood alerts…";
+  try {
+    const response = await fetch(NWS_ALERTS_URL, {
+      cache: "no-store",
+      headers: { Accept: "application/geo+json" },
+    });
+    if (!response.ok) throw new Error(`NWS alerts request failed (${response.status})`);
+    const collection = await response.json();
+    const floodAlerts = (collection.features || []).filter((feature) => floodAlertKind(feature.properties?.event));
+    const groups = await Promise.all(floodAlerts.map(alertPolygonFeatures));
+    if (request !== state.floodAlertRequest) return;
+    state.floodAlerts = groups.flat();
+    renderFloodAlerts();
+    const watchCount = floodAlerts.filter((feature) => floodAlertKind(feature.properties?.event) === "watch").length;
+    const warningCount = floodAlerts.length - watchCount;
+    const missing = groups.filter((features) => features.length === 0).length;
+    status.textContent = `${watchCount} active flood watch${watchCount === 1 ? "" : "es"}, ${warningCount} warning${warningCount === 1 ? "" : "s"}.${missing > 0 ? ` ${missing} alert${missing === 1 ? "" : "s"} had no polygon.` : ""}`;
+  } catch (error) {
+    if (request !== state.floodAlertRequest) return;
+    state.floodAlerts = [];
+    renderFloodAlerts();
+    status.textContent = "NWS flood alerts are temporarily unavailable.";
+    console.error(error);
+  }
+  clearTimeout(state.floodAlertTimer);
+  if (scheduleRefresh) state.floodAlertTimer = setTimeout(() => fetchFloodAlerts(true), FLOOD_ALERT_REFRESH_MS);
+}
+
 async function fetchMping(date) {
   const request = ++state.mpingRequest;
   const status = document.getElementById("mping-status");
@@ -1173,7 +1307,7 @@ function buildLayerControls() {
     contourContainer.append(contourRow);
   }
 
-  const predictors = Object.entries(state.data?.predictors || {})
+  const predictors = Object.entries(state.data?.predictors?.[`r${state.selectedPredictorRadius}`] || {})
     .sort(([, left], [, right]) => left.rank - right.rank);
   const predictorStatus = document.getElementById("predictor-status");
   if (!predictors.length) {
@@ -1204,6 +1338,7 @@ function buildLayerControls() {
       radio.checked = state.selectedPredictor === key;
       radio.addEventListener("change", () => {
         state.selectedPredictor = key;
+        if (state.viewMode !== "2d") setViewMode("2d");
         renderPredictorLayer();
       });
       const text = document.createElement("span");
@@ -1215,7 +1350,7 @@ function buildLayerControls() {
       label.append(radio, text);
       predictorContainer.append(label);
     }
-    predictorStatus.textContent = "Global importance and direction are from 50,000 sampled 2024–2025 test-grid points for the v33 100-km model.";
+    predictorStatus.textContent = `Global importance and direction are from 50,000 sampled 2024–2025 test-grid points for the v33 ${state.selectedPredictorRadius}-km model.`;
   }
 
   const observationSection = document.getElementById("observation-section");
@@ -1267,7 +1402,8 @@ async function loadDate(date, fit = false) {
   const entry = state.archive.find((item) => String(item.date) === String(date));
   showLoading(`Loading ${date}…`);
   try {
-    const response = await fetch(`${mapPath(entry || { date })}?v=${encodeURIComponent(entry?.map_updated_utc || entry?.site_updated_utc || Date.now())}`);
+    const mapVersion = `${entry?.map_updated_utc || entry?.site_updated_utc || Date.now()}-${MAP_DATA_VERSION}`;
+    const response = await fetch(`${mapPath(entry || { date })}?v=${encodeURIComponent(mapVersion)}`);
     if (!response.ok) throw new Error(`Map data unavailable (${response.status})`);
     state.data = await response.json();
     state.surface3dCache.clear();
@@ -1276,7 +1412,9 @@ async function loadDate(date, fit = false) {
     }
     state.contours = new Set([...state.contours].filter((key) => state.data.layers[key]));
     state.observations = new Set([...state.observations].filter((key) => state.data.observations?.[key]));
-    if (state.selectedPredictor && !state.data.predictors?.[state.selectedPredictor]) state.selectedPredictor = null;
+    if (state.selectedPredictor && !state.data.predictors?.[`r${state.selectedPredictorRadius}`]?.[state.selectedPredictor]) {
+      state.selectedPredictor = null;
+    }
     buildLayerControls();
     renderFilledLayer();
     renderPredictorLayer();
@@ -1442,6 +1580,19 @@ document.getElementById("expansion-ring-toggle").addEventListener("change", (eve
 document.getElementById("radar-loop-toggle").addEventListener("change", (event) => {
   setRadarEnabled(event.currentTarget.checked);
 });
+document.getElementById("predictor-radius").addEventListener("change", (event) => {
+  state.selectedPredictorRadius = Number(event.currentTarget.value);
+  state.selectedPredictor = null;
+  buildLayerControls();
+  renderPredictorLayer();
+});
+document.querySelectorAll(".flood-alert-options input").forEach((checkbox) => {
+  checkbox.addEventListener("change", () => {
+    if (checkbox.checked) state.floodAlertTypes.add(checkbox.value);
+    else state.floodAlertTypes.delete(checkbox.value);
+    renderFloodAlerts();
+  });
+});
 
 const opacityInput = document.getElementById("fill-opacity");
 const opacityOutput = document.getElementById("fill-opacity-value");
@@ -1486,6 +1637,8 @@ async function init() {
     if (!initial) throw new Error("No forecasts are available");
     await loadDate(initial.date, true);
     if (parameters.get("view") === "3d") setViewMode("3d");
+    setRadarEnabled(document.getElementById("radar-loop-toggle").checked);
+    fetchFloodAlerts(true);
   } catch (error) {
     document.getElementById("product-message").textContent = "Forecast data could not be loaded. Please try again shortly.";
     hideLoading();

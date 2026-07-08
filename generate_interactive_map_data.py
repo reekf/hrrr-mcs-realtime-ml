@@ -29,48 +29,36 @@ OBSERVATION_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "ufvs_raw
 REALTIME_FEATURE_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "features"
 RADII = (40, 60, 75, 100)
 THRESHOLDS = (0.05, 0.15, 0.40, 0.70)
-TOP_PREDICTORS = (
-    {
-        "key": "qpf_ffg_ratio_max",
-        "column": "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R100km_Max",
-        "label": "Max 6-h QPF / 6-h FFG ratio",
-        "units": "ratio",
-        "mean_abs_shap": 0.814045,
-        "direction": "Higher values increase flash-flood probability.",
-    },
-    {
-        "key": "qpf_ffg_ratio_spread",
-        "column": "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R100km_Std",
-        "label": "Spread of 6-h QPF / 6-h FFG ratio",
-        "units": "ratio",
-        "mean_abs_shap": 0.273313,
-        "direction": "Higher values generally increase flash-flood probability.",
-    },
-    {
-        "key": "ffg_mean_spread",
-        "column": "Guidance_FFG_1h3h6h12h24h_mm_Mean_R100km_Std",
-        "label": "Spread of mean FFG",
-        "units": "mm",
-        "mean_abs_shap": 0.217604,
-        "direction": "Higher values generally increase flash-flood probability.",
-    },
-    {
-        "key": "ffg_minimum",
-        "column": "Guidance_FFG_1h3h6h12h24h_mm_Min_R100km_Min",
-        "label": "Minimum FFG",
-        "units": "mm",
-        "mean_abs_shap": 0.183194,
-        "direction": "Lower values increase flash-flood probability; higher values decrease it.",
-    },
-    {
-        "key": "qpf_24h_spread_max",
-        "column": "Forecast_APCP_RunningTotals_0to6_0to12_0to18_0to24h_mm_Std_R100km_Max",
-        "label": "Max spread of 24-h running-total QPF",
-        "units": "mm",
-        "mean_abs_shap": 0.172194,
-        "direction": "Higher values generally increase flash-flood probability.",
-    },
-)
+TOP_PREDICTORS = {
+    40: (
+        ("qpf_ffg_ratio_spread", "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R40km_Std", "Spread of 6-h QPF / 6-h FFG ratio", "ratio", 0.851431, "Higher values generally increase flash-flood probability."),
+        ("qpf_ffg_ratio_max", "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R40km_Max", "Max 6-h QPF / 6-h FFG ratio", "ratio", 0.484859, "Higher values increase flash-flood probability."),
+        ("ffg_minimum_mean", "Guidance_FFG_1h3h6h12h24h_mm_Min_R40km_Mean", "Mean neighborhood minimum FFG", "mm", 0.152549, "Lower values increase flash-flood probability; higher values decrease it."),
+        ("mcs_maintenance_min", "MCS_Maintenance_Prob_RAPCalc_0_6_12_18_24h_Mean_R40km_Min", "Minimum MCS maintenance probability", "probability", 0.148210, "Higher values generally increase flash-flood probability."),
+        ("ffg_minimum", "Guidance_FFG_1h3h6h12h24h_mm_Min_R40km_Min", "Minimum FFG", "mm", 0.143200, "Lower values increase flash-flood probability; higher values decrease it."),
+    ),
+    60: (
+        ("qpf_ffg_ratio_spread", "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R60km_Std", "Spread of 6-h QPF / 6-h FFG ratio", "ratio", 0.510582, "Higher values generally increase flash-flood probability."),
+        ("qpf_ffg_ratio_max", "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R60km_Max", "Max 6-h QPF / 6-h FFG ratio", "ratio", 0.415524, "Higher values increase flash-flood probability."),
+        ("qpf_ffg_duration_spread", "Forecast_APCP_to_Guidance_FFG_Ratio_Across_6h12h24h_Mean_R60km_Std", "Spread of mean QPF / FFG ratio", "ratio", 0.207766, "Higher values generally increase flash-flood probability."),
+        ("ffg_mean_spread", "Guidance_FFG_1h3h6h12h24h_mm_Mean_R60km_Std", "Spread of mean FFG", "mm", 0.167175, "Higher values generally increase flash-flood probability."),
+        ("ffg_minimum_mean", "Guidance_FFG_1h3h6h12h24h_mm_Min_R60km_Mean", "Mean neighborhood minimum FFG", "mm", 0.133088, "Lower values increase flash-flood probability; higher values decrease it."),
+    ),
+    75: (
+        ("qpf_ffg_ratio_max", "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R75km_Max", "Max 6-h QPF / 6-h FFG ratio", "ratio", 0.757887, "Higher values increase flash-flood probability."),
+        ("qpf_ffg_ratio_spread", "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R75km_Std", "Spread of 6-h QPF / 6-h FFG ratio", "ratio", 0.415814, "Higher values generally increase flash-flood probability."),
+        ("qpf_24h_spread_max", "Forecast_APCP_RunningTotals_0to6_0to12_0to18_0to24h_mm_Std_R75km_Max", "Max spread of 24-h running-total QPF", "mm", 0.235574, "Higher values generally increase flash-flood probability."),
+        ("ffg_minimum_mean", "Guidance_FFG_1h3h6h12h24h_mm_Min_R75km_Mean", "Mean neighborhood minimum FFG", "mm", 0.193857, "Lower values increase flash-flood probability; higher values decrease it."),
+        ("ffg_spread_spread", "Guidance_FFG_1h3h6h12h24h_mm_Std_R75km_Std", "Neighborhood variability of FFG spread", "mm", 0.177722, "Higher values generally increase flash-flood probability."),
+    ),
+    100: (
+        ("qpf_ffg_ratio_max", "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R100km_Max", "Max 6-h QPF / 6-h FFG ratio", "ratio", 0.814045, "Higher values increase flash-flood probability."),
+        ("qpf_ffg_ratio_spread", "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R100km_Std", "Spread of 6-h QPF / 6-h FFG ratio", "ratio", 0.273313, "Higher values generally increase flash-flood probability."),
+        ("ffg_mean_spread", "Guidance_FFG_1h3h6h12h24h_mm_Mean_R100km_Std", "Spread of mean FFG", "mm", 0.217604, "Higher values generally increase flash-flood probability."),
+        ("ffg_minimum", "Guidance_FFG_1h3h6h12h24h_mm_Min_R100km_Min", "Minimum FFG", "mm", 0.183194, "Lower values increase flash-flood probability; higher values decrease it."),
+        ("qpf_24h_spread_max", "Forecast_APCP_RunningTotals_0to6_0to12_0to18_0to24h_mm_Std_R100km_Max", "Max spread of 24-h running-total QPF", "mm", 0.172194, "Higher values generally increase flash-flood probability."),
+    ),
+}
 OBSERVATION_SPECS = {
     "stage4_ffg": ("Stage IV > FFG", "ST4gFFG"),
     "stage4_ari": ("Stage IV ARI", "ST4gARI"),
@@ -209,41 +197,41 @@ def probability_millipercent(values: pd.Series) -> list[int]:
 
 
 def load_top_predictors(date: str, base: pd.DataFrame) -> dict:
-    path = REALTIME_FEATURE_DIR / f"realtime_features_v33_r100km_{date}.parquet"
-    if not path.exists():
-        return {}
-    columns = ["Date", "Lat", "Lon"] + [item["column"] for item in TOP_PREDICTORS]
-    features = pd.read_parquet(path, columns=columns)
-    aligned = _merge_aligned(base[["Date", "Lat", "Lon"]], features, columns[3:])
-    maximum_importance = max(item["mean_abs_shap"] for item in TOP_PREDICTORS)
     payload = {}
-    for rank, item in enumerate(TOP_PREDICTORS, start=1):
-        column = item["column"]
-        if column not in aligned:
+    for radius, specs in TOP_PREDICTORS.items():
+        path = REALTIME_FEATURE_DIR / f"realtime_features_v33_r{radius}km_{date}.parquet"
+        if not path.exists():
             continue
-        numeric = pd.to_numeric(aligned[column], errors="coerce").to_numpy(float)
-        finite = numeric[np.isfinite(numeric)]
-        if finite.size == 0:
-            continue
-        low, high = np.nanpercentile(finite, [2, 98])
-        if not np.isfinite(low) or not np.isfinite(high) or high <= low:
-            low, high = float(np.nanmin(finite)), float(np.nanmax(finite))
-        span = high - low
-        encoded = np.zeros(len(numeric), dtype=np.uint16)
-        if span > 0:
-            encoded = np.rint(np.clip((numeric - low) / span, 0.0, 1.0) * 1000.0)
-            encoded = np.nan_to_num(encoded, nan=0.0).astype(np.uint16)
-        payload[item["key"]] = {
-            "rank": rank,
-            "label": item["label"],
-            "units": item["units"],
-            "direction": item["direction"],
-            "mean_abs_shap": round(item["mean_abs_shap"], 6),
-            "relative_importance_percent": round(item["mean_abs_shap"] / maximum_importance * 100.0, 1),
-            "scale_min": round(float(low), 4),
-            "scale_max": round(float(high), 4),
-            "values": encoded.tolist(),
-        }
+        columns = ["Date", "Lat", "Lon"] + [spec[1] for spec in specs]
+        features = pd.read_parquet(path, columns=columns)
+        aligned = _merge_aligned(base[["Date", "Lat", "Lon"]], features, columns[3:])
+        maximum_importance = max(spec[4] for spec in specs)
+        radius_payload = {}
+        for rank, (key, column, label, units, importance, direction) in enumerate(specs, start=1):
+            numeric = pd.to_numeric(aligned[column], errors="coerce").to_numpy(float)
+            finite = numeric[np.isfinite(numeric)]
+            if finite.size == 0:
+                continue
+            low, high = np.nanpercentile(finite, [2, 98])
+            if not np.isfinite(low) or not np.isfinite(high) or high <= low:
+                low, high = float(np.nanmin(finite)), float(np.nanmax(finite))
+            span = high - low
+            encoded = np.zeros(len(numeric), dtype=np.uint16)
+            if span > 0:
+                encoded = np.rint(np.clip((numeric - low) / span, 0.0, 1.0) * 1000.0)
+                encoded = np.nan_to_num(encoded, nan=0.0).astype(np.uint16)
+            radius_payload[key] = {
+                "rank": rank,
+                "label": label,
+                "units": units,
+                "direction": direction,
+                "mean_abs_shap": round(importance, 6),
+                "relative_importance_percent": round(importance / maximum_importance * 100.0, 1),
+                "scale_min": round(float(low), 4),
+                "scale_max": round(float(high), 4),
+                "values": encoded.tolist(),
+            }
+        payload[f"r{radius}"] = radius_payload
     return payload
 
 
@@ -331,7 +319,7 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
     start = datetime.strptime(date + "12", "%Y%m%d%H").replace(tzinfo=timezone.utc)
     end = start + timedelta(days=1)
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "date": date,
         "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
