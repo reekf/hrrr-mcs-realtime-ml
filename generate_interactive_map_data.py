@@ -26,8 +26,51 @@ REALTIME_WPC_DIR = PROJECT_DIR / "realtime_wpc_ero_cache_v33"
 HISTORICAL_GRID = PROJECT_DIR / "df_pp_viewer_with_wpc_ero_day1.parquet"
 HISTORICAL_PREDICTIONS = PROJECT_DIR / "v33_singletarget_radius_sensitivity_viewer_prediction_cache"
 OBSERVATION_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "ufvs_raw"
+REALTIME_FEATURE_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "features"
 RADII = (40, 60, 75, 100)
 THRESHOLDS = (0.05, 0.15, 0.40, 0.70)
+TOP_PREDICTORS = (
+    {
+        "key": "qpf_ffg_ratio_max",
+        "column": "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R100km_Max",
+        "label": "Max 6-h QPF / 6-h FFG ratio",
+        "units": "ratio",
+        "mean_abs_shap": 0.814045,
+        "direction": "Higher values increase flash-flood probability.",
+    },
+    {
+        "key": "qpf_ffg_ratio_spread",
+        "column": "Forecast_APCP_Max_6h_Window_0to24h_to_Guidance_FFG_06h_Ratio_R100km_Std",
+        "label": "Spread of 6-h QPF / 6-h FFG ratio",
+        "units": "ratio",
+        "mean_abs_shap": 0.273313,
+        "direction": "Higher values generally increase flash-flood probability.",
+    },
+    {
+        "key": "ffg_mean_spread",
+        "column": "Guidance_FFG_1h3h6h12h24h_mm_Mean_R100km_Std",
+        "label": "Spread of mean FFG",
+        "units": "mm",
+        "mean_abs_shap": 0.217604,
+        "direction": "Higher values generally increase flash-flood probability.",
+    },
+    {
+        "key": "ffg_minimum",
+        "column": "Guidance_FFG_1h3h6h12h24h_mm_Min_R100km_Min",
+        "label": "Minimum FFG",
+        "units": "mm",
+        "mean_abs_shap": 0.183194,
+        "direction": "Lower values increase flash-flood probability; higher values decrease it.",
+    },
+    {
+        "key": "qpf_24h_spread_max",
+        "column": "Forecast_APCP_RunningTotals_0to6_0to12_0to18_0to24h_mm_Std_R100km_Max",
+        "label": "Max spread of 24-h running-total QPF",
+        "units": "mm",
+        "mean_abs_shap": 0.172194,
+        "direction": "Higher values generally increase flash-flood probability.",
+    },
+)
 OBSERVATION_SPECS = {
     "stage4_ffg": ("Stage IV > FFG", "ST4gFFG"),
     "stage4_ari": ("Stage IV ARI", "ST4gARI"),
@@ -165,6 +208,45 @@ def probability_millipercent(values: pd.Series) -> list[int]:
     return np.rint(numeric * 1000.0).astype(np.uint16).tolist()
 
 
+def load_top_predictors(date: str, base: pd.DataFrame) -> dict:
+    path = REALTIME_FEATURE_DIR / f"realtime_features_v33_r100km_{date}.parquet"
+    if not path.exists():
+        return {}
+    columns = ["Date", "Lat", "Lon"] + [item["column"] for item in TOP_PREDICTORS]
+    features = pd.read_parquet(path, columns=columns)
+    aligned = _merge_aligned(base[["Date", "Lat", "Lon"]], features, columns[3:])
+    maximum_importance = max(item["mean_abs_shap"] for item in TOP_PREDICTORS)
+    payload = {}
+    for rank, item in enumerate(TOP_PREDICTORS, start=1):
+        column = item["column"]
+        if column not in aligned:
+            continue
+        numeric = pd.to_numeric(aligned[column], errors="coerce").to_numpy(float)
+        finite = numeric[np.isfinite(numeric)]
+        if finite.size == 0:
+            continue
+        low, high = np.nanpercentile(finite, [2, 98])
+        if not np.isfinite(low) or not np.isfinite(high) or high <= low:
+            low, high = float(np.nanmin(finite)), float(np.nanmax(finite))
+        span = high - low
+        encoded = np.zeros(len(numeric), dtype=np.uint16)
+        if span > 0:
+            encoded = np.rint(np.clip((numeric - low) / span, 0.0, 1.0) * 1000.0)
+            encoded = np.nan_to_num(encoded, nan=0.0).astype(np.uint16)
+        payload[item["key"]] = {
+            "rank": rank,
+            "label": item["label"],
+            "units": item["units"],
+            "direction": item["direction"],
+            "mean_abs_shap": round(item["mean_abs_shap"], 6),
+            "relative_importance_percent": round(item["mean_abs_shap"] / maximum_importance * 100.0, 1),
+            "scale_min": round(float(low), 4),
+            "scale_max": round(float(high), 4),
+            "values": encoded.tolist(),
+        }
+    return payload
+
+
 def contour_segments(lon: np.ndarray, lat: np.ndarray, values: np.ndarray) -> dict[str, list[list[list[float]]]]:
     values = np.nan_to_num(np.asarray(values, dtype=float), nan=0.0, posinf=1.0, neginf=0.0)
     result: dict[str, list[list[list[float]]]] = {}
@@ -249,7 +331,7 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
     start = datetime.strptime(date + "12", "%Y%m%d%H").replace(tzinfo=timezone.utc)
     end = start + timedelta(days=1)
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "date": date,
         "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -263,6 +345,7 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
         "layers": layers,
         "contours": contours,
         "observations": load_observations(date) if "pp" in layers else {},
+        "predictors": load_top_predictors(date, frame) if source == "realtime" else {},
     }
 
 

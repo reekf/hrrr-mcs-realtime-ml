@@ -50,71 +50,100 @@
 
   <aside class="layer-panel" aria-label="Map layers">
     <div class="panel-heading">
-      <span>Filled product</span>
+      <span>Map layers</span>
       <button id="collapse-layers" class="panel-toggle" type="button" aria-label="Collapse layer controls">−</button>
     </div>
     <div id="layer-panel-content">
-      <div id="product-options" class="product-options"></div>
-
-      <div class="section-label">Contour overlays</div>
-      <div id="contour-options" class="contour-options"></div>
-
-      <div id="observation-section" hidden>
-        <div class="section-label">Flood proxy observations</div>
-        <div id="observation-options" class="observation-options"></div>
-      </div>
-
-      <div id="lsr-section">
-        <div class="section-label">Local storm reports</div>
-        <div class="lsr-options">
-          <label><input type="checkbox" value="flash_flood" checked> <i style="--lsr-color:#ff4fd8"></i>Flash flood</label>
-          <label><input type="checkbox" value="flood" checked> <i style="--lsr-color:#38d9ff"></i>Flood</label>
-          <label><input type="checkbox" value="rain"> <i style="--lsr-color:#ffffff"></i>Rain totals</label>
+      <details class="layer-section" open>
+        <summary>Excessive Rainfall Outlooks</summary>
+        <div class="layer-section-content">
+          <div id="product-options" class="product-options"></div>
         </div>
-        <label class="rain-threshold" for="rain-threshold">
-          Minimum rain total
-          <select id="rain-threshold">
-            <option value="1">1 inch</option>
-            <option value="2" selected>2 inches</option>
-            <option value="3">3 inches</option>
-            <option value="5">5 inches</option>
-          </select>
-        </label>
-        <p id="lsr-status" class="availability-note">Loading NWS local storm reports via Iowa Environmental Mesonet…</p>
-      </div>
+      </details>
 
-      <label class="expansion-ring-control">
-        <input id="expansion-ring-toggle" type="checkbox">
-        <span>40-km expansion rings</span>
-      </label>
-
-      <div id="radar-section">
-        <div class="section-label">Reflectivity</div>
-        <label class="radar-choice">
-          <input id="radar-loop-toggle" type="checkbox">
-          <i aria-hidden="true"></i>
-          Current radar loop
-        </label>
-        <p id="radar-status" class="availability-note">Radar overlay is off.</p>
-      </div>
-
-      <div id="mping-section">
-        <div class="section-label">mPING reports</div>
-        <label class="mping-choice">
-          <input id="mping-flood-toggle" type="checkbox" checked>
-          <i style="--mping-color:#ff9f43"></i>
-          Flood impacts
-        </label>
-        <p id="mping-status" class="availability-note">Checking for mPING flood reports…</p>
-      </div>
-
-      <div class="opacity-control">
-        <label id="opacity-control-label" for="fill-opacity">Forecast opacity</label>
-        <div>
-          <input id="fill-opacity" type="range" min="5" max="100" value="68" step="1">
-          <output id="fill-opacity-value" for="fill-opacity">68%</output>
+      <details class="layer-section">
+        <summary>Contour overlays</summary>
+        <div class="layer-section-content">
+          <div id="contour-options" class="contour-options"></div>
         </div>
-      </div>
+      </details>
+
+      <details id="predictor-section" class="layer-section">
+        <summary>ML predictor diagnostics</summary>
+        <div class="layer-section-content">
+          <div id="predictor-options" class="predictor-options"></div>
+          <p id="predictor-status" class="availability-note"></p>
+        </div>
+      </details>
+
+      <details id="observation-section" class="layer-section" hidden>
+        <summary>Flood proxy observations</summary>
+        <div class="layer-section-content">
+          <div id="observation-options" class="observation-options"></div>
+        </div>
+      </details>
+
+      <details id="lsr-section" class="layer-section">
+        <summary>Local storm reports</summary>
+        <div class="layer-section-content">
+          <div class="lsr-options">
+            <label><input type="checkbox" value="flash_flood" checked> <i style="--lsr-color:#ff4fd8"></i>Flash flood</label>
+            <label><input type="checkbox" value="flood" checked> <i style="--lsr-color:#38d9ff"></i>Flood</label>
+            <label><input type="checkbox" value="rain"> <i style="--lsr-color:#ffffff"></i>Rain totals</label>
+          </div>
+          <label class="rain-threshold" for="rain-threshold">
+            Minimum rain total
+            <select id="rain-threshold">
+              <option value="1">1 inch</option>
+              <option value="2" selected>2 inches</option>
+              <option value="3">3 inches</option>
+              <option value="5">5 inches</option>
+            </select>
+          </label>
+          <p id="lsr-status" class="availability-note">Loading NWS local storm reports via Iowa Environmental Mesonet…</p>
+        </div>
+      </details>
+
+      <details id="radar-section" class="layer-section">
+        <summary>Reflectivity</summary>
+        <div class="layer-section-content">
+          <label class="radar-choice">
+            <input id="radar-loop-toggle" type="checkbox">
+            <i aria-hidden="true"></i>
+            Current radar loop
+          </label>
+          <p id="radar-status" class="availability-note">Radar overlay is off.</p>
+        </div>
+      </details>
+
+      <details id="mping-section" class="layer-section">
+        <summary>mPING reports</summary>
+        <div class="layer-section-content">
+          <label class="mping-choice">
+            <input id="mping-flood-toggle" type="checkbox" checked>
+            <i style="--mping-color:#ff9f43"></i>
+            Flood impacts
+          </label>
+          <p id="mping-status" class="availability-note">Checking for mPING flood reports…</p>
+        </div>
+      </details>
+
+      <details class="layer-section">
+        <summary>Display settings</summary>
+        <div class="layer-section-content">
+          <label class="expansion-ring-control">
+            <input id="expansion-ring-toggle" type="checkbox">
+            <span>40-km expansion rings</span>
+          </label>
+          <div class="opacity-control">
+            <label id="opacity-control-label" for="fill-opacity">Forecast opacity</label>
+            <div>
+              <input id="fill-opacity" type="range" min="5" max="100" value="68" step="1">
+              <output id="fill-opacity-value" for="fill-opacity">68%</output>
+            </div>
+          </div>
+        </div>
+      </details>
 
       <p id="verification-availability" class="availability-note"></p>
     </div>
@@ -125,6 +154,12 @@
     <span><i style="--swatch:#f0df35"></i>&gt;15%</span>
     <span><i style="--swatch:#e14b3f"></i>&gt;40%</span>
     <span><i style="--swatch:#d94ad7"></i>&gt;70%</span>
+  </div>
+
+  <div id="predictor-legend" class="predictor-legend" aria-label="Predictor value legend" hidden>
+    <strong id="predictor-legend-title"></strong>
+    <span class="predictor-gradient" aria-hidden="true"></span>
+    <div><span id="predictor-legend-min"></span><span id="predictor-legend-max"></span></div>
   </div>
 
   <div id="height-legend" class="height-legend" aria-label="Three-dimensional height legend" hidden>
@@ -193,6 +228,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js" crossorigin=""></script>
-  <script src="app.js?v=20260708-radar-overlay-1"></script>
+  <script src="app.js?v=20260708-predictors-radar-2"></script>
 </body>
 </html>

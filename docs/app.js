@@ -78,6 +78,7 @@ const RADAR_API_URL = "https://api.rainviewer.com/public/weather-maps.json";
 const RADAR_FRAME_MS = 700;
 const RADAR_REFRESH_MS = 10 * 60 * 1000;
 const RADAR_OPACITY = 0.58;
+const RADAR_CROSSFADE_MS = 260;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
 const SEPARATED_POINT_RADIUS_PIXELS = 0.043;
 const COMPACT_POINT_RADIUS_PIXELS = 0.13;
@@ -106,9 +107,12 @@ const state = {
   radarHost: "",
   radarFrameIndex: 0,
   radarLayer: null,
+  radarLayers: [],
   radarTimer: null,
   radarRefreshTimer: null,
   radarRequest: 0,
+  selectedPredictor: null,
+  predictorLayer: null,
   mpingReports: [],
   mpingVisible: true,
   mpingRequest: 0,
@@ -133,6 +137,9 @@ map.getPane("forecastPane").style.zIndex = 350;
 map.createPane("radarPane");
 map.getPane("radarPane").style.zIndex = 365;
 map.getPane("radarPane").style.pointerEvents = "none";
+map.createPane("predictorPane");
+map.getPane("predictorPane").style.zIndex = 375;
+map.getPane("predictorPane").style.pointerEvents = "none";
 map.createPane("statePane");
 map.getPane("statePane").style.zIndex = 430;
 map.getPane("statePane").style.pointerEvents = "none";
@@ -602,9 +609,11 @@ function setViewMode(mode) {
     renderContours();
     renderObservations();
     renderLsrs();
-    if (state.radarEnabled && state.radarFrames.length) startRadarAnimation();
+    renderPredictorLayer();
+    if (state.radarEnabled && state.radarFrames.length) preloadRadarLayers();
   }
   document.getElementById("height-legend").hidden = mode !== "3d";
+  document.getElementById("predictor-legend").hidden = mode !== "2d" || !state.selectedPredictor;
   document.getElementById("point-gap-control").hidden = mode !== "3d";
   if (mode === "3d" && state.radarEnabled) document.getElementById("radar-status").textContent = "Radar loop is available in 2D view.";
   document.getElementById("opacity-control-label").textContent = mode === "3d" ? "3D point opacity" : "Forecast opacity";
@@ -633,6 +642,27 @@ function riskLabel(encodedValue) {
   return "<5%";
 }
 
+function predictorColor(encodedValue) {
+  const stops = [
+    [0, [35, 59, 139]],
+    [350, [60, 180, 197]],
+    [700, [240, 223, 115]],
+    [1000, [216, 74, 63]],
+  ];
+  const value = Math.max(0, Math.min(1000, Number(encodedValue) || 0));
+  for (let index = 1; index < stops.length; index += 1) {
+    if (value > stops[index][0]) continue;
+    const [lowValue, lowColor] = stops[index - 1];
+    const [highValue, highColor] = stops[index];
+    const fraction = (value - lowValue) / (highValue - lowValue);
+    const rgb = lowColor.map((channel, channelIndex) => (
+      Math.round(channel + (highColor[channelIndex] - channel) * fraction)
+    ));
+    return `rgb(${rgb.join(",")})`;
+  }
+  return "rgb(216,74,63)";
+}
+
 function mapPath(entry) {
   return entry.map_href || `archive/${entry.date}/map.json`;
 }
@@ -657,10 +687,9 @@ function radarTileUrl(frame) {
 }
 
 function clearRadarLayer() {
-  if (state.radarLayer) {
-    map.removeLayer(state.radarLayer);
-    state.radarLayer = null;
-  }
+  for (const layer of state.radarLayers) map.removeLayer(layer);
+  state.radarLayers = [];
+  state.radarLayer = null;
 }
 
 function stopRadarLoop() {
@@ -672,28 +701,52 @@ function stopRadarLoop() {
 }
 
 function showRadarFrame() {
-  if (!state.radarEnabled || state.viewMode !== "2d" || state.radarFrames.length === 0) return;
+  if (!state.radarEnabled || state.viewMode !== "2d" || state.radarLayers.length === 0) return;
   const frame = state.radarFrames[state.radarFrameIndex % state.radarFrames.length];
-  const nextLayer = L.tileLayer(radarTileUrl(frame), {
-    pane: "radarPane",
-    opacity: RADAR_OPACITY,
-    maxZoom: 9,
-    maxNativeZoom: 7,
-    tileSize: 256,
-    zIndex: 365,
-    attribution: "Radar &copy; RainViewer",
-  });
-  nextLayer.addTo(map);
-  clearRadarLayer();
+  const nextLayer = state.radarLayers[state.radarFrameIndex % state.radarLayers.length];
+  const previousLayer = state.radarLayer;
+  nextLayer.bringToFront();
+  nextLayer.setOpacity(RADAR_OPACITY);
   state.radarLayer = nextLayer;
+  if (previousLayer && previousLayer !== nextLayer) {
+    setTimeout(() => {
+      if (previousLayer !== state.radarLayer) previousLayer.setOpacity(0);
+    }, RADAR_CROSSFADE_MS);
+  }
   document.getElementById("radar-status").textContent = `Radar loop: ${formatRadarFrameTime(frame)}.`;
   state.radarFrameIndex = (state.radarFrameIndex + 1) % state.radarFrames.length;
 }
 
 function startRadarAnimation() {
   clearInterval(state.radarTimer);
+  if (!state.radarLayers.length) return;
   showRadarFrame();
   state.radarTimer = setInterval(showRadarFrame, RADAR_FRAME_MS);
+}
+
+function preloadRadarLayers() {
+  clearRadarLayer();
+  let loaded = 0;
+  state.radarLayers = state.radarFrames.map((frame) => {
+    const layer = L.tileLayer(radarTileUrl(frame), {
+      pane: "radarPane",
+      opacity: 0,
+      maxZoom: 9,
+      maxNativeZoom: 7,
+      tileSize: 256,
+      className: "radar-frame-layer",
+      attribution: "Radar &copy; RainViewer",
+    });
+    layer.once("load", () => {
+      loaded += 1;
+      if (loaded === state.radarLayers.length && state.radarEnabled && state.viewMode === "2d") {
+        document.getElementById("radar-status").textContent = "Radar loop loaded.";
+        startRadarAnimation();
+      }
+    });
+    layer.addTo(map);
+    return layer;
+  });
 }
 
 async function fetchRadarFrames(scheduleRefresh = false) {
@@ -714,7 +767,7 @@ async function fetchRadarFrames(scheduleRefresh = false) {
     state.radarHost = payload.host;
     state.radarFrames = frames.slice(-12);
     state.radarFrameIndex = 0;
-    if (state.viewMode === "2d") startRadarAnimation();
+    if (state.viewMode === "2d") preloadRadarLayers();
     else status.textContent = "Radar loop is available in 2D view.";
   } catch (error) {
     if (request !== state.radarRequest) return;
@@ -782,6 +835,35 @@ function renderFilledLayer() {
 
   state.fillLayer = group.addTo(map);
   setMessage(state.selected);
+}
+
+function renderPredictorLayer() {
+  if (state.predictorLayer) {
+    map.removeLayer(state.predictorLayer);
+    state.predictorLayer = null;
+  }
+  const legend = document.getElementById("predictor-legend");
+  const predictor = state.data?.predictors?.[state.selectedPredictor];
+  legend.hidden = !predictor || state.viewMode !== "2d";
+  if (!predictor || state.viewMode !== "2d") return;
+
+  const group = L.layerGroup();
+  const radius = Math.max(2.4, Math.min(4.4, 2.4 + (map.getZoom() - 4) * 0.35));
+  for (let index = 0; index < predictor.values.length; index += 1) {
+    L.circleMarker([state.data.grid.lat[index], state.data.grid.lon[index]], {
+      pane: "predictorPane",
+      radius,
+      stroke: false,
+      fill: true,
+      fillColor: predictorColor(predictor.values[index]),
+      fillOpacity: 0.72,
+      interactive: false,
+    }).addTo(group);
+  }
+  state.predictorLayer = group.addTo(map);
+  document.getElementById("predictor-legend-title").textContent = predictor.label;
+  document.getElementById("predictor-legend-min").textContent = `${predictor.scale_min} ${predictor.units}`;
+  document.getElementById("predictor-legend-max").textContent = `${predictor.scale_max} ${predictor.units}`;
 }
 
 function renderContours() {
@@ -1041,8 +1123,10 @@ function showProductInfo(key) {
 function buildLayerControls() {
   const productContainer = document.getElementById("product-options");
   const contourContainer = document.getElementById("contour-options");
+  const predictorContainer = document.getElementById("predictor-options");
   productContainer.replaceChildren();
   contourContainer.replaceChildren();
+  predictorContainer.replaceChildren();
 
   for (const key of PRODUCT_ORDER) {
     const available = Boolean(state.data?.layers?.[key]);
@@ -1087,6 +1171,51 @@ function buildLayerControls() {
     contourInfo.addEventListener("click", () => showProductInfo(key));
     contourRow.append(contourLabel, contourInfo);
     contourContainer.append(contourRow);
+  }
+
+  const predictors = Object.entries(state.data?.predictors || {})
+    .sort(([, left], [, right]) => left.rank - right.rank);
+  const predictorStatus = document.getElementById("predictor-status");
+  if (!predictors.length) {
+    state.selectedPredictor = null;
+    predictorStatus.textContent = "Top-predictor fields are unavailable for this archived date.";
+  } else {
+    const offLabel = document.createElement("label");
+    offLabel.className = "predictor-choice";
+    const offRadio = document.createElement("input");
+    offRadio.type = "radio";
+    offRadio.name = "predictor-layer";
+    offRadio.checked = !state.selectedPredictor;
+    offRadio.addEventListener("change", () => {
+      state.selectedPredictor = null;
+      renderPredictorLayer();
+    });
+    const offText = document.createElement("span");
+    offText.textContent = "No predictor overlay";
+    offLabel.append(offRadio, offText);
+    predictorContainer.append(offLabel);
+
+    for (const [key, predictor] of predictors) {
+      const label = document.createElement("label");
+      label.className = "predictor-choice";
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "predictor-layer";
+      radio.checked = state.selectedPredictor === key;
+      radio.addEventListener("change", () => {
+        state.selectedPredictor = key;
+        renderPredictorLayer();
+      });
+      const text = document.createElement("span");
+      const title = document.createElement("strong");
+      title.textContent = `#${predictor.rank} ${predictor.label}`;
+      const details = document.createElement("small");
+      details.textContent = `Mean |SHAP| ${predictor.mean_abs_shap.toFixed(3)} · ${predictor.relative_importance_percent}% of #1. ${predictor.direction}`;
+      text.append(title, details);
+      label.append(radio, text);
+      predictorContainer.append(label);
+    }
+    predictorStatus.textContent = "Global importance and direction are from 50,000 sampled 2024–2025 test-grid points for the v33 100-km model.";
   }
 
   const observationSection = document.getElementById("observation-section");
@@ -1147,8 +1276,10 @@ async function loadDate(date, fit = false) {
     }
     state.contours = new Set([...state.contours].filter((key) => state.data.layers[key]));
     state.observations = new Set([...state.observations].filter((key) => state.data.observations?.[key]));
+    if (state.selectedPredictor && !state.data.predictors?.[state.selectedPredictor]) state.selectedPredictor = null;
     buildLayerControls();
     renderFilledLayer();
+    renderPredictorLayer();
     renderContours();
     renderObservations();
     updateDateUI(entry);
@@ -1331,6 +1462,7 @@ document.getElementById("rain-threshold").addEventListener("change", renderLsrs)
 
 map.on("zoomend", () => {
   renderFilledLayer();
+  renderPredictorLayer();
   renderContours();
   renderObservations();
   renderLsrs();
