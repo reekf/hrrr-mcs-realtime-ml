@@ -354,6 +354,24 @@ button { cursor: pointer; }
   background: var(--mping-color);
 }
 
+.radar-choice {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.radar-choice input { accent-color: #c4d3dc; }
+
+.radar-choice i {
+  width: 18px;
+  height: 10px;
+  border: 1px solid #050607;
+  background: linear-gradient(90deg, transparent, #4fd8ff 28%, #63dd58 53%, #f0df35 75%, #e14b3f);
+}
+
 .expansion-ring-control {
   min-height: 32px;
   display: flex;

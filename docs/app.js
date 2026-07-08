@@ -74,6 +74,10 @@ const LSR_META = {
   mping_flood: { label: "mPING flood impact", color: "#ff9f43" },
 };
 const LSR_REFRESH_MS = 5 * 60 * 1000;
+const RADAR_API_URL = "https://api.rainviewer.com/public/weather-maps.json";
+const RADAR_FRAME_MS = 700;
+const RADAR_REFRESH_MS = 10 * 60 * 1000;
+const RADAR_OPACITY = 0.58;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
 const SEPARATED_POINT_RADIUS_PIXELS = 0.043;
 const COMPACT_POINT_RADIUS_PIXELS = 0.13;
@@ -97,6 +101,14 @@ const state = {
   lsrLayer: null,
   lsrTimer: null,
   lsrRequest: 0,
+  radarEnabled: false,
+  radarFrames: [],
+  radarHost: "",
+  radarFrameIndex: 0,
+  radarLayer: null,
+  radarTimer: null,
+  radarRefreshTimer: null,
+  radarRequest: 0,
   mpingReports: [],
   mpingVisible: true,
   mpingRequest: 0,
@@ -118,6 +130,9 @@ const map = L.map("map", {
 
 map.createPane("forecastPane");
 map.getPane("forecastPane").style.zIndex = 350;
+map.createPane("radarPane");
+map.getPane("radarPane").style.zIndex = 365;
+map.getPane("radarPane").style.pointerEvents = "none";
 map.createPane("statePane");
 map.getPane("statePane").style.zIndex = 430;
 map.getPane("statePane").style.pointerEvents = "none";
@@ -571,6 +586,9 @@ function setViewMode(mode) {
     state.map3d.jumpTo({ center: [center.lng, center.lat], zoom: map.getZoom(), pitch: 20, bearing: 0 });
     state.viewMode = "3d";
     map2dElement.hidden = true;
+    clearInterval(state.radarTimer);
+    state.radarTimer = null;
+    clearRadarLayer();
     state.map3d.resize();
     render3d();
   } else {
@@ -584,9 +602,11 @@ function setViewMode(mode) {
     renderContours();
     renderObservations();
     renderLsrs();
+    if (state.radarEnabled && state.radarFrames.length) startRadarAnimation();
   }
   document.getElementById("height-legend").hidden = mode !== "3d";
   document.getElementById("point-gap-control").hidden = mode !== "3d";
+  if (mode === "3d" && state.radarEnabled) document.getElementById("radar-status").textContent = "Radar loop is available in 2D view.";
   document.getElementById("opacity-control-label").textContent = mode === "3d" ? "3D point opacity" : "Forecast opacity";
   for (const candidate of ["2d", "3d"]) {
     const button = document.getElementById(`view-${candidate}`);
@@ -625,6 +645,99 @@ function showLoading(message = "Loading map data…") {
 
 function hideLoading() {
   document.getElementById("loading").hidden = true;
+}
+
+function formatRadarFrameTime(frame) {
+  if (!frame?.time) return "";
+  return new Date(frame.time * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function radarTileUrl(frame) {
+  return `${state.radarHost}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`;
+}
+
+function clearRadarLayer() {
+  if (state.radarLayer) {
+    map.removeLayer(state.radarLayer);
+    state.radarLayer = null;
+  }
+}
+
+function stopRadarLoop() {
+  clearInterval(state.radarTimer);
+  state.radarTimer = null;
+  clearTimeout(state.radarRefreshTimer);
+  state.radarRefreshTimer = null;
+  clearRadarLayer();
+}
+
+function showRadarFrame() {
+  if (!state.radarEnabled || state.viewMode !== "2d" || state.radarFrames.length === 0) return;
+  const frame = state.radarFrames[state.radarFrameIndex % state.radarFrames.length];
+  const nextLayer = L.tileLayer(radarTileUrl(frame), {
+    pane: "radarPane",
+    opacity: RADAR_OPACITY,
+    maxZoom: 9,
+    maxNativeZoom: 7,
+    tileSize: 256,
+    zIndex: 365,
+    attribution: "Radar &copy; RainViewer",
+  });
+  nextLayer.addTo(map);
+  clearRadarLayer();
+  state.radarLayer = nextLayer;
+  document.getElementById("radar-status").textContent = `Radar loop: ${formatRadarFrameTime(frame)}.`;
+  state.radarFrameIndex = (state.radarFrameIndex + 1) % state.radarFrames.length;
+}
+
+function startRadarAnimation() {
+  clearInterval(state.radarTimer);
+  showRadarFrame();
+  state.radarTimer = setInterval(showRadarFrame, RADAR_FRAME_MS);
+}
+
+async function fetchRadarFrames(scheduleRefresh = false) {
+  if (!state.radarEnabled) return;
+  const request = ++state.radarRequest;
+  const status = document.getElementById("radar-status");
+  status.textContent = "Loading current radar loop...";
+  try {
+    const response = await fetch(`${RADAR_API_URL}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`RainViewer request failed (${response.status})`);
+    const payload = await response.json();
+    if (request !== state.radarRequest || !state.radarEnabled) return;
+    const frames = [
+      ...(payload?.radar?.past || []),
+      ...(payload?.radar?.nowcast || []),
+    ].filter((frame) => frame?.path && frame?.time);
+    if (!payload?.host || frames.length === 0) throw new Error("RainViewer returned no radar frames");
+    state.radarHost = payload.host;
+    state.radarFrames = frames.slice(-12);
+    state.radarFrameIndex = 0;
+    if (state.viewMode === "2d") startRadarAnimation();
+    else status.textContent = "Radar loop is available in 2D view.";
+  } catch (error) {
+    if (request !== state.radarRequest) return;
+    stopRadarLoop();
+    status.textContent = "Radar loop is temporarily unavailable.";
+    console.warn(error.message);
+  } finally {
+    if (scheduleRefresh && state.radarEnabled) {
+      clearTimeout(state.radarRefreshTimer);
+      state.radarRefreshTimer = setTimeout(() => fetchRadarFrames(true), RADAR_REFRESH_MS);
+    }
+  }
+}
+
+function setRadarEnabled(enabled) {
+  state.radarEnabled = enabled;
+  if (!enabled) {
+    state.radarRequest += 1;
+    stopRadarLoop();
+    document.getElementById("radar-status").textContent = "Radar overlay is off.";
+    return;
+  }
+  fetchRadarFrames(true);
 }
 
 function setMessage(key) {
@@ -1194,6 +1307,9 @@ document.getElementById("expansion-ring-toggle").addEventListener("change", (eve
     renderObservations();
     renderLsrs();
   }
+});
+document.getElementById("radar-loop-toggle").addEventListener("change", (event) => {
+  setRadarEnabled(event.currentTarget.checked);
 });
 
 const opacityInput = document.getElementById("fill-opacity");

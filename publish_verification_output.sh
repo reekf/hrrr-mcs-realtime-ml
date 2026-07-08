@@ -18,7 +18,13 @@ cd "$REPO_DIR"
 echo "Publishing ML verification for forecast date ${DATE_ARG}"
 if [[ "$PUBLISH_GIT" == "1" ]]; then
   git switch main
-  git pull --ff-only origin main
+  if ! git pull --ff-only origin main; then
+    echo "WARNING: git pull failed; continuing with local checkout." >&2
+    if [[ "${REQUIRE_GIT_SYNC:-0}" == "1" ]]; then
+      echo "ERROR: REQUIRE_GIT_SYNC=1 and git pull failed." >&2
+      exit 1
+    fi
+  fi
 fi
 
 if [[ ! -f "${ARCHIVE_DIR}/latest.png" || ! -f "${ARCHIVE_DIR}/status.json" ]]; then

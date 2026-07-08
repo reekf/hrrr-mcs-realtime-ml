@@ -7,6 +7,8 @@ OUT_DIR="${PROJECT_DIR}/v33_realtime_radiusstats_forecasts/mcs_triggered_figures
 
 DATE_ARG="${1:-$(date -u +%Y%m%d)}"
 RADII="${RADII:-40 60 75 100}"
+PUBLISH_GIT="${PUBLISH_GIT:-1}"
+REQUIRE_GIT_SYNC="${REQUIRE_GIT_SYNC:-0}"
 PUBLIC_PNG_NAME="realtime_ml_public_${DATE_ARG}_valid12to12_radii_wpc.png"
 PUBLIC_PNG_SRC="${OUT_DIR}/${PUBLIC_PNG_NAME}"
 
@@ -20,9 +22,19 @@ echo "Repo: ${REPO_DIR}"
 echo "Output dir: ${OUT_DIR}"
 echo "======================================================================"
 
-# Pages deploys from main/docs.
-git switch main
-git pull --ff-only origin main
+# Pages deploys from main/docs. A transient remote/TLS failure should not stop
+# local forecast generation; commit/push will still fail if publishing is
+# requested and the network remains broken.
+if [[ "$PUBLISH_GIT" == "1" ]]; then
+  git switch main
+  if ! git pull --ff-only origin main; then
+    echo "WARNING: git pull failed; continuing with local checkout." >&2
+    if [[ "$REQUIRE_GIT_SYNC" == "1" ]]; then
+      echo "ERROR: REQUIRE_GIT_SYNC=1 and git pull failed." >&2
+      exit 1
+    fi
+  fi
+fi
 
 # Prevent stale contour-era graphics from being copied if the plotter fails.
 rm -f "${PUBLIC_PNG_SRC}"
@@ -206,8 +218,12 @@ fi
 if git diff --cached --quiet -- "${PUBLISH_PATHS[@]}"; then
   echo "No website changes to commit."
 else
-  git commit -m "Publish realtime ML forecast for ${DATE_ARG}" -- "${PUBLISH_PATHS[@]}"
-  git push origin main
+  if [[ "$PUBLISH_GIT" != "1" ]]; then
+    echo "PUBLISH_GIT=${PUBLISH_GIT}; leaving website changes staged without committing or pushing."
+  else
+    git commit -m "Publish realtime ML forecast for ${DATE_ARG}" -- "${PUBLISH_PATHS[@]}"
+    git push origin main
+  fi
 fi
 
 echo
