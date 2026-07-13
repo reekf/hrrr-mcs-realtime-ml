@@ -28,6 +28,14 @@ HISTORICAL_PREDICTIONS = PROJECT_DIR / "v33_singletarget_radius_sensitivity_view
 OBSERVATION_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "ufvs_raw"
 REALTIME_FEATURE_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "features"
 RADII = (40, 60, 75, 100)
+R60KM_V2_PREDICTION = HISTORICAL_PREDICTIONS / "v33_singletarget_radius_sensitivity_predictions_r60kmV2_expanded40union.parquet"
+MODEL_MEMBER_COLUMNS = (
+    "ML_r40_Prob",
+    "ML_r60_Prob",
+    "ML_r60kmV2_Prob",
+    "ML_r75_Prob",
+    "ML_r100_Prob",
+)
 THRESHOLDS = (0.05, 0.15, 0.40, 0.70)
 TOP_PREDICTORS = {
     40: (
@@ -69,6 +77,7 @@ OBSERVATION_SPECS = {
 LAYER_SPECS = {
     "ml_r40": ("ML r40 km", "ML_r40_Prob", "forecast"),
     "ml_r60": ("ML r60 km", "ML_r60_Prob", "forecast"),
+    "ml_r60v2": ("ML r60kmV2 density-weighted", "ML_r60kmV2_Prob", "forecast"),
     "ml_r75": ("ML r75 km", "ML_r75_Prob", "forecast"),
     "ml_r100": ("ML r100 km", "ML_r100_Prob", "forecast"),
     "ml_mean": ("ML Ensemble Mean", "ML_Ensemble_Mean", "forecast"),
@@ -128,6 +137,14 @@ def load_historical(date: str) -> pd.DataFrame:
         pred = _read_date(path, date, ["Date", "Lat", "Lon", "ML_Forecast_Prob"])
         pred = pred.rename(columns={"ML_Forecast_Prob": f"ML_r{radius}_Prob"})
         base = _merge_aligned(base, pred, [f"ML_r{radius}_Prob"])
+    r60v2 = _read_date(
+        R60KM_V2_PREDICTION,
+        date,
+        ["Date", "Lat", "Lon", "ML_Forecast_Prob"],
+    ).rename(columns={"ML_Forecast_Prob": "ML_r60kmV2_Prob"})
+    if r60v2.empty:
+        raise RuntimeError(f"No historical r60kmV2 prediction rows for {date}")
+    base = _merge_aligned(base, r60v2, ["ML_r60kmV2_Prob"])
     return base
 
 
@@ -291,7 +308,7 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
     if missing:
         raise RuntimeError(f"Map dataframe missing required columns: {missing}")
     frame = _sort_grid(frame)
-    member_columns = [f"ML_r{radius}_Prob" for radius in RADII if f"ML_r{radius}_Prob" in frame.columns]
+    member_columns = [column for column in MODEL_MEMBER_COLUMNS if column in frame.columns]
     if member_columns:
         # Always derive this from the members so old caches containing a Local
         # PMM cannot leak the retired product back onto the website.
@@ -319,7 +336,7 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
     start = datetime.strptime(date + "12", "%Y%m%d%H").replace(tzinfo=timezone.utc)
     end = start + timedelta(days=1)
     return {
-        "schema_version": 4,
+        "schema_version": 5,
         "date": date,
         "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),

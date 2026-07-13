@@ -211,7 +211,7 @@
       <p>Practically Perfect is an observation-based benchmark created after the valid period from observed flood-proxy locations. Those observations are expanded and smoothed to show an idealized placement of risk areas. It is not a forecast. It is typically available around 11:10 AM CT the following day.</p>
 
       <h2>Using the map</h2>
-      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. Switch between the standard 2D map and a fixed-angle 3D view where greater height represents greater probability. In 3D, ML and Practically Perfect use their continuous probabilities; WPC categorical areas are displayed as continuous surfaces within their official probability ranges. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. NWS local storm reports are supplied by the Iowa Environmental Mesonet; reports for flooding, flash flooding, and selected rainfall totals are preliminary and update every five minutes for the latest forecast. mPING flood impacts are citizen-submitted reports and should also be treated as preliminary. Use the Archive button to change dates or open the original static graphics.</p>
+      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. The r60kmV2 member uses the same 60-km forecast neighborhoods as r60 but applies density-weighted training loss to emphasize clustered MRMS-over-FFG exceedances and flood reports. Switch between the standard 2D map and a fixed-angle 3D view where greater height represents greater probability. In 3D, ML and Practically Perfect use their continuous probabilities; WPC categorical areas are displayed as continuous surfaces within their official probability ranges. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. NWS local storm reports are supplied by the Iowa Environmental Mesonet; reports for flooding, flash flooding, and selected rainfall totals are preliminary and update every five minutes for the latest forecast. mPING flood impacts are citizen-submitted reports and should also be treated as preliminary. Use the Archive button to change dates or open the original static graphics.</p>
 
       <button class="primary-button dialog-close" type="button">Enter map</button>
     </div>
@@ -248,6 +248,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js" crossorigin=""></script>
-  <script src="app.js?v=20260708-alerts-multiradius-3"></script>
+  <script src="app.js?v=20260712-r60kmv2-1"></script>
 </body>
 </html>

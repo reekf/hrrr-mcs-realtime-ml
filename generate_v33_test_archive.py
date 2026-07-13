@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Generate forecast-only website archive images for every v33 test case.
+"""Generate website archive images and maps for every v33 historical test case.
 
 The source data are the v33 radius-sensitivity viewer prediction caches and its
-historical WPC/PP grid. The archive plot contains the four ML radius forecasts,
-the 300-km Local PMM, WPC ERO, and the viewer's Practically Perfect Any flood
-proxy verification.
+historical WPC/PP grid. The archive contains the four original ML radius
+forecasts, the distinct density-weighted r60kmV2 member, their ensemble mean,
+WPC ERO, and the viewer's Practically Perfect Any flood-proxy verification.
 """
 
 from __future__ import annotations
@@ -18,8 +18,14 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 
-from realtime_mcs_trigger_plot import RuntimePaths, add_local_pmm, plot_realtime_ero_panels, radius_prob_col
-from generate_interactive_map_data import write_frame_map_data
+from realtime_mcs_trigger_plot import (
+    RuntimePaths,
+    add_ensemble_mean,
+    plot_realtime_ero_panels,
+    predict_realtime_r60km_v2_case,
+    radius_prob_col,
+)
+from generate_interactive_map_data import _merge_aligned, load_realtime, write_frame_map_data
 
 
 RADII = (40, 60, 75, 100)
@@ -34,13 +40,20 @@ def prediction_path(radius: int) -> Path:
     return PREDICTION_DIR / f"v33_singletarget_radius_sensitivity_predictions_r{radius}km.parquet"
 
 
+R60KM_V2_PREDICTION = PREDICTION_DIR / "v33_singletarget_radius_sensitivity_predictions_r60kmV2_expanded40union.parquet"
+
+
 def read_case(path: Path, date: str, columns: list[str]) -> pd.DataFrame:
     return pd.read_parquet(path, columns=columns, filters=[("Date", "==", date)])
 
 
 def available_dates() -> list[str]:
-    table = pq.read_table(prediction_path(RADII[0]), columns=["Date"])
-    return sorted({str(value)[:8] for value in table.column("Date").to_pylist()})
+    paths = [prediction_path(radius) for radius in RADII] + [R60KM_V2_PREDICTION]
+    date_sets = []
+    for path in paths:
+        table = pq.read_table(path, columns=["Date"])
+        date_sets.append({str(value)[:8] for value in table.column("Date").to_pylist()})
+    return sorted(set.intersection(*date_sets))
 
 
 def build_case_dataframe(date: str) -> pd.DataFrame:
@@ -63,6 +76,18 @@ def build_case_dataframe(date: str) -> pd.DataFrame:
             if len(frame) != len(base) or not keys.equals(expected_keys):
                 raise RuntimeError(f"v33 prediction grids do not align for {date}, r{radius}")
             base[radius_prob_col(radius)] = frame[radius_prob_col(radius)].to_numpy()
+
+    r60v2 = read_case(
+        R60KM_V2_PREDICTION,
+        date,
+        ["Date", "Lat", "Lon", "ML_Forecast_Prob"],
+    ).rename(columns={"ML_Forecast_Prob": "ML_r60kmV2_Prob"})
+    if r60v2.empty:
+        raise RuntimeError(f"No v33 r60kmV2 prediction rows for {date}")
+    r60v2 = r60v2.sort_values(["Lat", "Lon"]).reset_index(drop=True)
+    if len(r60v2) != len(base) or not r60v2[["Date", "Lat", "Lon"]].equals(expected_keys):
+        raise RuntimeError(f"v33 prediction grids do not align for {date}, r60kmV2")
+    base["ML_r60kmV2_Prob"] = r60v2["ML_r60kmV2_Prob"].to_numpy()
 
     wpc = read_case(
         WPC_GRID,
@@ -109,7 +134,7 @@ def write_status(date: str, destination: Path) -> None:
         "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
         "latest_plot": "latest.png",
         "site_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "product_description": "Machine-learning radius products, 300-km Local PMM, WPC ERO, and Practically Perfect verification.",
+        "product_description": "Machine-learning radius products including density-weighted r60kmV2, ensemble mean, WPC ERO, and Practically Perfect verification.",
         "map_available": True,
         "map_data": "map.json",
         "map_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -161,6 +186,64 @@ def rebuild_archive_index() -> None:
     (ARCHIVE_DIR / "index.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
 
+def realtime_archive_dates() -> list[str]:
+    historical = set(available_dates())
+    feature_dir = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "features"
+    out = []
+    for day_dir in ARCHIVE_DIR.iterdir():
+        if not day_dir.is_dir() or day_dir.name in historical:
+            continue
+        feature_path = feature_dir / f"realtime_features_v33_r60km_{day_dir.name}.parquet"
+        if feature_path.exists():
+            out.append(day_dir.name)
+    return sorted(out)
+
+
+def generate_realtime_case(date: str, force: bool = False) -> None:
+    """Add r60kmV2 to an already-generated operational website date."""
+    day_dir = ARCHIVE_DIR / date
+    output = day_dir / "latest.png"
+    map_output = day_dir / "map.json"
+    status_path = day_dir / "status.json"
+    print(f"[{date}] adding r60kmV2 to operational archive", flush=True)
+    rp = runtime_paths(day_dir)
+    v2 = predict_realtime_r60km_v2_case(
+        date,
+        rp=rp,
+        force_predict=force,
+        force_features=False,
+        allow_feature_nan_fill_zero=True,
+    )
+    frame = load_realtime(date)
+    v2 = v2.rename(columns={"ML_Forecast_Prob": "ML_r60kmV2_Prob"})
+    frame = _merge_aligned(frame, v2, ["ML_r60kmV2_Prob"])
+    frame = add_ensemble_mean(frame, list(RADII))
+    generated = plot_realtime_ero_panels(
+        frame,
+        date=date,
+        rp=rp,
+        radii=list(RADII),
+        include_wpc=True,
+        include_ufvs=False,
+        include_pp=False,
+    )
+    os.replace(generated, output)
+    write_frame_map_data(frame, date, map_output, "realtime")
+    status = json.loads(status_path.read_text()) if status_path.exists() else {}
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    status.update({
+        "published": True,
+        "plot_available": True,
+        "map_available": True,
+        "map_data": "map.json",
+        "map_updated_utc": now,
+        "site_updated_utc": now,
+        "product_description": "Machine-learning radius products including density-weighted r60kmV2, ensemble mean, and WPC ERO.",
+    })
+    status_path.write_text(json.dumps(status, indent=2, sort_keys=True) + "\n")
+    print(f"[{date}] updated operational PNG/map/status", flush=True)
+
+
 def generate_case(date: str, force: bool = False) -> None:
     day_dir = ARCHIVE_DIR / date
     output = day_dir / "latest.png"
@@ -171,7 +254,7 @@ def generate_case(date: str, force: bool = False) -> None:
         return
 
     print(f"[{date}] loading v33 viewer caches", flush=True)
-    frame = add_local_pmm(build_case_dataframe(date), list(RADII))
+    frame = add_ensemble_mean(build_case_dataframe(date), list(RADII))
     day_dir.mkdir(parents=True, exist_ok=True)
     if force or not output.exists():
         generated = plot_realtime_ero_panels(
@@ -193,15 +276,22 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", action="append", help="Generate only this YYYYMMDD date; repeatable.")
     parser.add_argument("--force", action="store_true", help="Replace existing archive images/status files.")
+    parser.add_argument("--realtime-only", action="store_true", help="Backfill r60kmV2 only for operational archive dates that have existing R60 feature caches.")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    dates = sorted(args.date) if args.date else available_dates()
-    print(f"Generating {len(dates)} v33 test cases sequentially", flush=True)
-    for date in dates:
-        generate_case(str(date)[:8], force=args.force)
+    if args.realtime_only:
+        dates = sorted(args.date) if args.date else realtime_archive_dates()
+        print(f"Backfilling {len(dates)} operational archive cases sequentially", flush=True)
+        for date in dates:
+            generate_realtime_case(str(date)[:8], force=args.force)
+    else:
+        dates = sorted(args.date) if args.date else available_dates()
+        print(f"Generating {len(dates)} v33 test cases sequentially", flush=True)
+        for date in dates:
+            generate_case(str(date)[:8], force=args.force)
     rebuild_archive_index()
     print(f"Updated {ARCHIVE_DIR / 'index.json'}", flush=True)
     return 0

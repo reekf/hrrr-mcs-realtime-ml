@@ -115,6 +115,11 @@ DEFAULT_PROJECT_DIRS = [
 
 RUN_VERSION_TAG = "v33"
 DEFAULT_RADII_KM = [40, 60, 75, 100]
+R60KM_V2_LABEL = "r60kmV2"
+R60KM_V2_RADIUS_KM = 60
+R60KM_V2_PROB_COL = "ML_r60kmV2_Prob"
+R60KM_V2_EXPERIMENT_TAG = "v33_r60kmV2_expanded40uniontarget_r60features_apcp13p7cv_domain"
+R60KM_V2_MANIFEST_NAME = "active_artifacts_v33_r60kmV2_expanded40uniontarget_r60features_radiusstats_logloss_apcp13p7cv_domain.json"
 DEFAULT_EXTENT = [-105.0, -80.5, 30.0, 50.0]
 EARTH_RADIUS_KM = 6371.0
 PREDICT_CHUNK_SIZE = 250_000
@@ -516,6 +521,35 @@ def find_artifacts_for_radius(project_dir: Path, radius_km: int | float, origina
     }
 
 
+def find_r60km_v2_artifacts(project_dir: Path, original_root: Path, local_root: Path) -> dict:
+    """Load the distinct r60kmV2 artifact set without colliding with regular r60."""
+    model_cache_dir = project_dir / "prob_flood_models"
+    manifest_path = model_cache_dir / R60KM_V2_MANIFEST_NAME
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Missing {R60KM_V2_LABEL} artifact manifest: {manifest_path}")
+    manifest = read_json(manifest_path)
+    paths = {
+        "model_path": manifest.get("current_model_alias") or manifest.get("model_path"),
+        "scaler_path": manifest.get("current_scaler_alias") or manifest.get("scaler_path"),
+        "features_path": manifest.get("current_feature_names_alias") or manifest.get("feature_names_path"),
+    }
+    for key, value in list(paths.items()):
+        paths[key] = path_replace_root(value, original_root, local_root)
+    missing = [key for key, value in paths.items() if not value or not os.path.exists(value)]
+    if missing:
+        raise RuntimeError(
+            f"Missing {R60KM_V2_LABEL} artifacts {missing}; manifest={manifest_path}"
+        )
+    return {
+        "radius_km": R60KM_V2_RADIUS_KM,
+        "model_label": R60KM_V2_LABEL,
+        "experiment_tag": manifest.get("run_tag", R60KM_V2_EXPERIMENT_TAG),
+        "manifest_path": str(manifest_path),
+        "manifest": manifest,
+        **{key: str(value) for key, value in paths.items()},
+    }
+
+
 def model_positive_class_probability(model, X_scaled: np.ndarray) -> np.ndarray:
     if hasattr(model, "predict_proba"):
         p2 = np.asarray(model.predict_proba(X_scaled))
@@ -594,7 +628,16 @@ def candidate_training_scripts_for_radius(script_dir: Path, radius_km: int | flo
         if rp.exists() and rp not in seen:
             seen.add(rp)
             clean.append(rp)
-    return clean
+    # Feature extraction is shared by same-radius model variants. Prefer the
+    # original single-target helper so adding r60kmV2 cannot silently change the
+    # operational R60 feature builder selected by filesystem/glob order.
+    return sorted(
+        clean,
+        key=lambda p: (
+            0 if "singletarget_radiusstats" in p.name and "V2" not in p.name else 1,
+            p.name,
+        ),
+    )
 
 
 def patch_module_paths_to_local_run(mod, original_root: Path, local_root: Path, nam_dir_override: str | None = None):
@@ -777,6 +820,12 @@ def realtime_prediction_cache_candidates(rp: RuntimePaths, date: str, radius_km:
     cyc = cycle_cache_token(cycle_label)
     tagged = rp.prediction_cache_dir / f"realtime_predictions_v33_r{r}km_{cyc}_{d}.parquet"
     return [legacy] + ([] if tagged == legacy else [tagged])
+
+
+def realtime_labeled_prediction_cache_path(rp: RuntimePaths, date: str, model_label: str) -> Path:
+    d = date8(date)
+    label = re.sub(r"[^A-Za-z0-9]+", "", str(model_label))
+    return rp.prediction_cache_dir / f"realtime_predictions_v33_{label}_{d}.parquet"
 
 
 def realtime_verified_cache_path(rp: RuntimePaths, date: str, radius_km: int | float, cycle_label: str | None = None) -> Path:
@@ -993,7 +1042,10 @@ def build_realtime_features(
     def dummy_hydro(date_str, lats_1d, lons_1d, *args, **kwargs):
         return dummy_hydro_target_dict(h, len(lats_1d), r)
     def dummy_lsr(date_str, lats_1d, lons_1d, *args, **kwargs):
-        return np.zeros(len(lats_1d), dtype=np.int8)
+        target = np.zeros(len(lats_1d), dtype=np.int8)
+        if kwargs.get("return_report_count"):
+            return target, np.zeros(len(lats_1d), dtype=np.int16)
+        return target
 
     patch("fetch_mrms_ffg_exceedance_target", dummy_hydro)
     patch("fetch_iem_flash_flood_reports_pixel", dummy_lsr)
@@ -1153,6 +1205,74 @@ def predict_realtime_case(
     return out
 
 
+def predict_realtime_r60km_v2_case(
+    date: str,
+    rp: RuntimePaths,
+    force_predict: bool = False,
+    force_features: bool = False,
+    training_script: str | None = None,
+    nam_dir_override: str | None = None,
+    cycle_label: str | None = None,
+    allow_feature_nan_fill_zero: bool = False,
+) -> pd.DataFrame:
+    """Predict the separately versioned r60kmV2 model using shared R60 features."""
+    d = date8(date)
+    out_path = realtime_labeled_prediction_cache_path(rp, d, R60KM_V2_LABEL)
+    if not force_predict and out_path.exists() and out_path.stat().st_size > 1024:
+        log(f"Using existing realtime {R60KM_V2_LABEL} prediction cache: {out_path}")
+        return pd.read_parquet(out_path)
+
+    df = build_realtime_features(
+        d,
+        R60KM_V2_RADIUS_KM,
+        rp=rp,
+        force_features=force_features,
+        training_script=training_script,
+        nam_dir_override=nam_dir_override,
+        cycle_label=cycle_label,
+    )
+    art = find_r60km_v2_artifacts(
+        rp.project_dir,
+        original_root=rp.original_root,
+        local_root=rp.local_root,
+    )
+    feature_names = load_feature_names(art["features_path"])
+    X_raw = strict_realtime_model_matrix(
+        df,
+        feature_names,
+        context=f"realtime_{d}_{R60KM_V2_LABEL}_{cycle_cache_token(cycle_label)}",
+        diagnostic_dir=rp.cache_dir / "diagnostics",
+        allow_nan_fill_zero=allow_feature_nan_fill_zero,
+    )
+    scaler = joblib.load(art["scaler_path"])
+    model = joblib.load(art["model_path"])
+    X_scaled = scaler.transform(X_raw).astype(np.float32, copy=False)
+    probability = np.clip(
+        model_positive_class_probability(model, X_scaled), 0.0, 1.0
+    ).astype(np.float32)
+
+    keep = [c for c in ["Date", "Year", "Lat", "Lon", "Realtime_Cycle_Label"] if c in df.columns]
+    out = df[keep].copy()
+    out["Date"] = d
+    out["Year"] = d[:4]
+    out["ML_Target_Radius_km"] = R60KM_V2_RADIUS_KM
+    out["ML_Model_Label"] = R60KM_V2_LABEL
+    out["ML_Forecast_Prob"] = probability
+    out["ML_Experiment_Tag"] = art["experiment_tag"]
+    out["ML_Model_Path"] = art["model_path"]
+    out["ML_Feature_Names_Path"] = art["features_path"]
+    out["Prediction_Created_UTC"] = datetime.now(timezone.utc).isoformat()
+    out["Realtime_Cycle_Label"] = cycle_label or ""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out.to_parquet(out_path, index=False)
+    log(
+        f"Saved realtime {R60KM_V2_LABEL} predictions: {out_path} rows={len(out):,} "
+        f"mean={float(np.nanmean(probability)):.6f} p95={float(np.nanpercentile(probability,95)):.6f} "
+        f"p99={float(np.nanpercentile(probability,99)):.6f} max={float(np.nanmax(probability)):.6f}"
+    )
+    return out
+
+
 # ======================================================================================
 # Multi-radius member merge
 # ======================================================================================
@@ -1165,10 +1285,15 @@ def radius_prob_col(radius_km: int | float) -> str:
 def radius_cols_in_df(df: pd.DataFrame, radii: list[int] | None = None) -> list[str]:
     """Return individual-radius ML probability columns in radius order."""
     if radii is not None:
-        ordered = [radius_prob_col(r) for r in radii]
+        ordered = []
+        for radius in radii:
+            ordered.append(radius_prob_col(radius))
+            if int(radius) == R60KM_V2_RADIUS_KM:
+                ordered.append(R60KM_V2_PROB_COL)
         return [c for c in ordered if c in df.columns]
-    cols = [c for c in df.columns if re.match(r"^ML_r\d+_Prob$", str(c))]
-    return sorted(cols, key=lambda c: int(re.search(r"r(\d+)", c).group(1)))
+    cols = [c for c in df.columns if re.match(r"^ML_r(?:\d+|60kmV2)_Prob$", str(c))]
+    order = {"ML_r40_Prob": 0, "ML_r60_Prob": 1, R60KM_V2_PROB_COL: 2, "ML_r75_Prob": 3, "ML_r100_Prob": 4}
+    return sorted(cols, key=lambda c: (order.get(c, 99), c))
 
 
 ENSEMBLE_MEAN_COL = "ML_Ensemble_Mean"
@@ -1215,6 +1340,7 @@ def build_predict_verify_realtime_multi_radius(
     nam_dir_override: str | None = None,
     cycle_label: str | None = None,
     allow_feature_nan_fill_zero: bool = False,
+    include_r60km_v2: bool = True,
 ) -> pd.DataFrame:
     """Build/predict each requested radius and merge them onto one grid.
 
@@ -1263,13 +1389,52 @@ def build_predict_verify_realtime_multi_radius(
             if SCRIPT_VERBOSE:
                 traceback.print_exc(limit=3)
 
-    if base is None or not available:
-        detail = "\n".join([f"  r{r}: {err}" for r, err in missing])
+    available_models = [f"r{r}km" for r in available]
+    if include_r60km_v2:
+        try:
+            pred = predict_realtime_r60km_v2_case(
+                d,
+                rp=rp,
+                force_predict=force_predict,
+                force_features=force_features,
+                training_script=training_script_by_radius.get(R60KM_V2_RADIUS_KM),
+                nam_dir_override=nam_dir_override,
+                cycle_label=cycle_label,
+                allow_feature_nan_fill_zero=allow_feature_nan_fill_zero,
+            )
+            pred = pred.copy()
+            pred["Date"] = pred["Date"].astype(str).str.slice(0, 8)
+            keep = [c for c in ["Date", "Year", "Lat", "Lon", "Realtime_Cycle_Label"] if c in pred.columns]
+            if "Year" not in keep:
+                pred["Year"] = d[:4]
+                keep.append("Year")
+            one = pred[keep].copy()
+            one[R60KM_V2_PROB_COL] = pd.to_numeric(pred["ML_Forecast_Prob"], errors="coerce").astype(np.float32)
+            one["ML_r60kmV2_Model_Path"] = pred.get("ML_Model_Path", "")
+            one["ML_r60kmV2_Feature_Names_Path"] = pred.get("ML_Feature_Names_Path", "")
+            v2_columns = [R60KM_V2_PROB_COL, "ML_r60kmV2_Model_Path", "ML_r60kmV2_Feature_Names_Path"]
+            if base is None:
+                base = one
+            else:
+                base = merge_grid_by_date_latlon(base, one, columns_to_add=v2_columns)
+            available_models.append(R60KM_V2_LABEL)
+            log(f"Realtime model member {R60KM_V2_LABEL} loaded: {len(pred):,} rows")
+            del pred, one
+            gc.collect()
+        except Exception as exc:
+            missing.append((R60KM_V2_LABEL, repr(exc)))
+            log(f"Skipping realtime model {R60KM_V2_LABEL}: {exc}")
+            if SCRIPT_VERBOSE:
+                traceback.print_exc(limit=3)
+
+    if base is None or not available_models:
+        detail = "\n".join([f"  {label}: {err}" for label, err in missing])
         raise RuntimeError("No realtime radius members could be loaded.\n" + detail)
 
     # Preserve the available radius list so downstream plotting/status uses the
     # members that actually ran rather than requested-but-missing members.
     base.attrs["available_radii"] = available
+    base.attrs["available_models"] = available_models
     radius_cols = radius_cols_in_df(base, available)
     base = add_ensemble_mean(base, available)
 
@@ -1326,6 +1491,21 @@ def verify_existing_realtime_predictions(
         else:
             base = merge_grid_by_date_latlon(base, one, columns_to_add=[pcol])
         available.append(radius)
+
+    v2_path = realtime_labeled_prediction_cache_path(rp, d, R60KM_V2_LABEL)
+    if v2_path.exists() and v2_path.stat().st_size > 1024:
+        pred = pd.read_parquet(v2_path)
+        pred["Date"] = pred["Date"].astype(str).str.slice(0, 8)
+        keep = [c for c in ["Date", "Year", "Lat", "Lon"] if c in pred.columns]
+        one = pred[keep].copy()
+        one[R60KM_V2_PROB_COL] = pd.to_numeric(pred["ML_Forecast_Prob"], errors="coerce").astype(np.float32)
+        if base is None:
+            base = one
+        else:
+            base = merge_grid_by_date_latlon(base, one, columns_to_add=[R60KM_V2_PROB_COL])
+        log(f"Verification loaded existing {R60KM_V2_LABEL} prediction cache for {d}")
+    else:
+        log(f"Verification skipped missing {R60KM_V2_LABEL} prediction cache for {d}")
 
     if base is None or not available:
         log(f"No existing prediction caches for {d}; internal verification not run.")
@@ -2084,6 +2264,11 @@ def threshold_mask(field, threshold: float, operator: str) -> np.ndarray:
 
 
 def largest_component(mask: np.ndarray, cell_area_km2: float = HRRR_DEFAULT_CELL_AREA_KM2) -> dict:
+    """Return area stats for the single largest contiguous true region.
+
+    The HRRR MCS trigger must be based on one connected cold-cloud object, not
+    the domain-wide sum of every pixel colder than the BT threshold.
+    """
     mask = np.asarray(mask, dtype=bool)
     if mask.size == 0 or not np.any(mask):
         return {
@@ -2645,11 +2830,16 @@ def build_plot_panels(
         c = radius_prob_col(r)
         if c in df.columns:
             panels.append((f"ML r{int(r)} km", c))
+        if int(r) == R60KM_V2_RADIUS_KM and R60KM_V2_PROB_COL in df.columns:
+            panels.append(("ML r60kmV2 density-weighted", R60KM_V2_PROB_COL))
     if not panels:
         # Last-resort automatic discovery if args.radii does not match columns.
         for c in radius_cols_in_df(df):
-            r = int(re.search(r"r(\d+)", c).group(1))
-            panels.append((f"ML r{r} km", c))
+            if c == R60KM_V2_PROB_COL:
+                panels.append(("ML r60kmV2 density-weighted", c))
+            else:
+                r = int(re.search(r"r(\d+)", c).group(1))
+                panels.append((f"ML r{r} km", c))
     if ENSEMBLE_MEAN_COL in df.columns:
         panels.append(("ML Ensemble Mean", ENSEMBLE_MEAN_COL))
     if include_wpc and WPC_COL in df.columns and pd.to_numeric(df[WPC_COL], errors="coerce").fillna(0).max() > 0:
@@ -2945,8 +3135,10 @@ def main(argv=None) -> int:
             allow_feature_nan_fill_zero=args.allow_feature_nan_fill_zero,
         )
         available_radii = df.attrs.get("available_radii", sorted(args.radii))
+        available_models = df.attrs.get("available_models", [f"r{int(r)}km" for r in available_radii])
         data_path = multi_radius_cache_path(rp, d, available_radii, args.cycle_label)
         status["available_radii"] = list(map(int, available_radii))
+        status["available_models"] = list(map(str, available_models))
         status["data_path"] = str(data_path)
         plot_path = plot_realtime_ero_panels(
             df,

@@ -6,7 +6,7 @@ const RISK_COLORS = {
   40: "#e14b3f",
   70: "#d94ad7",
 };
-const MAP_DATA_VERSION = "4";
+const MAP_DATA_VERSION = "5";
 
 const PRODUCT_META = {
   ml_r40: {
@@ -22,6 +22,13 @@ const PRODUCT_META = {
     note: "60-km radius ML forecasts were the most balanced overall in the test-set analysis.",
     detail: "Predicts rainfall exceeding Flash Flood Guidance within 60 km. This configuration provided the best balance between missed events and overly broad or severe risk areas in the test set.",
     dash: "8 4",
+  },
+  ml_r60v2: {
+    short: "ML r60kmV2",
+    title: "60-km V2 density-weighted ML",
+    note: "r60kmV2 emphasizes dense clusters of observed flood proxies during training.",
+    detail: "Uses the same 60-km forecast-predictor neighborhoods as the regular r60 model, but its binary loss penalizes low probabilities more strongly where many MRMS-over-FFG grid points or multiple flood/flash-flood reports occurred within 60 km. Because it is cost-sensitive, its raw probabilities may be less frequency-calibrated than an unweighted model.",
+    dash: "14 4 2 4",
   },
   ml_r75: {
     short: "ML r75 (47 mi)",
@@ -41,7 +48,7 @@ const PRODUCT_META = {
     short: "ML Ensemble Mean",
     title: "ML Ensemble Mean",
     note: "The ensemble mean provides a single consensus forecast from the available ML radius configurations.",
-    detail: "Averages the r40, r60, r75, and r100 probabilities independently at each grid point. Unlike probability matching, it does not redistribute values or preserve pooled extremes.",
+    detail: "Averages the available r40, r60, r60kmV2, r75, and r100 probabilities independently at each grid point. Unlike probability matching, it does not redistribute values or preserve pooled extremes.",
     dash: "10 3 2 3",
   },
   wpc: {
@@ -60,7 +67,7 @@ const PRODUCT_META = {
   },
 };
 
-const PRODUCT_ORDER = ["ml_r40", "ml_r60", "ml_r75", "ml_r100", "ml_mean", "wpc", "pp"];
+const PRODUCT_ORDER = ["ml_r40", "ml_r60", "ml_r60v2", "ml_r75", "ml_r100", "ml_mean", "wpc", "pp"];
 const THRESHOLDS = [5, 15, 40, 70];
 const OBSERVATION_META = {
   stage4_ffg: { label: "Stage IV > FFG", color: "#00e5ff" },
@@ -813,6 +820,7 @@ function setMessage(key) {
   const radius = { ml_r40: "40 km (25 mi)", ml_r60: "60 km (37 mi)", ml_r75: "75 km (47 mi)", ml_r100: "100 km (62 mi)" }[key];
   let prediction = "";
   if (radius) prediction = ` It predicts the probability that observed rainfall will exceed Flash Flood Guidance within ${radius} of a point.`;
+  if (key === "ml_r60v2") prediction = " It predicts the cost-sensitive probability of the 40-km-expanded MRMS-over-FFG or flood/flash-flood-report union, with stronger loss penalties for dense proxy clusters within 60 km.";
   if (key === "ml_mean") prediction = " It averages the available ML radius configurations at each grid point.";
   if (key === "wpc") prediction = " It predicts the probability of rainfall exceeding Flash Flood Guidance within 40 km (25 mi) of a point.";
   if (key === "pp") prediction = " It shows an observation-based, idealized placement of risk after the valid period—not a forecast.";

@@ -82,7 +82,7 @@ status = {
     "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
     "latest_plot": "latest.png" if plot_available else None,
     "site_updated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "product_description": "Machine-learning radius products, ensemble mean, and WPC ERO.",
+    "product_description": "Machine-learning radius products including r60kmV2, ensemble mean, and WPC ERO.",
 }
 if message:
     status["message"] = message
