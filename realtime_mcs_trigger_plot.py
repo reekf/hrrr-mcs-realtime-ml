@@ -674,6 +674,31 @@ def patch_module_paths_to_local_run(mod, original_root: Path, local_root: Path, 
 _IMPORTED_TRAINING_MODULES: dict[str, types.ModuleType] = {}
 
 
+@contextlib.contextmanager
+def sibling_module_import_path(script: Path):
+    """Temporarily expose a generated helper's directory for sibling imports.
+
+    ``spec_from_file_location`` loads the requested file directly, but unlike
+    normal ``python path/to/script.py`` execution it does not add that file's
+    parent directory to ``sys.path``.  Generated helpers can therefore fail on
+    imports such as ``from mode_case_catalog import ...`` even when the sibling
+    module is present.  Keep the path scoped to module execution so unrelated
+    imports in the long-running realtime process are unaffected.
+    """
+    parent = str(Path(script).resolve().parent)
+    inserted = parent not in sys.path
+    if inserted:
+        sys.path.insert(0, parent)
+    try:
+        yield
+    finally:
+        if inserted:
+            try:
+                sys.path.remove(parent)
+            except ValueError:
+                pass
+
+
 def load_training_module_for_realtime(radius_km: int | float, script_dir: Path, explicit_script: str | None, original_root: Path, local_root: Path, nam_dir_override: str | None = None):
     r = int(round(float(radius_km)))
     if explicit_script:
@@ -698,7 +723,12 @@ def load_training_module_for_realtime(radius_km: int | float, script_dir: Path, 
         raise RuntimeError(f"Could not import training helper: {script}")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[mod_name] = mod
-    spec.loader.exec_module(mod)
+    try:
+        with sibling_module_import_path(script):
+            spec.loader.exec_module(mod)
+    except Exception:
+        sys.modules.pop(mod_name, None)
+        raise
     mod = patch_module_paths_to_local_run(mod, original_root=original_root, local_root=local_root, nam_dir_override=nam_dir_override)
     _IMPORTED_TRAINING_MODULES[key] = mod
     log(f"Loaded realtime feature helper r{r}km: {script}", verbose_only=True)

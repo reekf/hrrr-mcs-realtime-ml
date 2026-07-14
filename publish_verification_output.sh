@@ -54,6 +54,22 @@ MPLCONFIGDIR="${MPLCONFIGDIR:-/tmp/matplotlib-cache}" python generate_interactiv
   --date "$DATE_ARG" \
   --source realtime \
   --output "${ARCHIVE_DIR}/map.json"
+python - "${ARCHIVE_DIR}/map.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+payload = json.loads(path.read_text())
+required = {"ml_r40", "ml_r60", "ml_r60v2", "ml_r75", "ml_r100", "ml_mean", "wpc", "pp"}
+missing = sorted(required.difference(payload.get("layers", {})))
+if payload.get("schema_version") != 5 or missing:
+    raise SystemExit(
+        f"ERROR: refusing to publish incomplete verification map {path}: "
+        f"schema={payload.get('schema_version')!r} missing_layers={missing}"
+    )
+print(f"Validated verification map schema/layers: {path}")
+PY
 
 MPING_TOKEN_FILE="${MPING_API_TOKEN_FILE:-${HOME}/.config/realtime-ml/mping-token}"
 if [[ -n "${MPING_API_TOKEN:-}" || -s "$MPING_TOKEN_FILE" ]]; then

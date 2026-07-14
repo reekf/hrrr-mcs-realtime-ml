@@ -102,6 +102,22 @@ if [[ -n "${PNG_SRC}" && -f "${PNG_SRC}" ]]; then
     --date "$DATE_ARG" \
     --source realtime \
     --output "docs/archive/${DATE_ARG}/map.json"
+  python - "docs/archive/${DATE_ARG}/map.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+payload = json.loads(path.read_text())
+required = {"ml_r40", "ml_r60", "ml_r60v2", "ml_r75", "ml_r100", "ml_mean", "wpc"}
+missing = sorted(required.difference(payload.get("layers", {})))
+if payload.get("schema_version") != 5 or missing:
+    raise SystemExit(
+        f"ERROR: refusing to publish incomplete realtime map {path}: "
+        f"schema={payload.get('schema_version')!r} missing_layers={missing}"
+    )
+print(f"Validated realtime map schema/layers: {path}")
+PY
   cp "docs/archive/${DATE_ARG}/map.json" docs/latest/map.json
   write_public_status docs/latest/status.json true true ""
   python - docs/latest/status.json <<'PY'

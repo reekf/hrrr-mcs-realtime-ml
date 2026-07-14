@@ -149,6 +149,13 @@ def load_historical(date: str) -> pd.DataFrame:
 
 
 def _preferred_realtime_forecast(date: str) -> Path:
+    # Verification output is a superset of the day-zero forecast: it carries
+    # the same member probabilities (including label-aware variants such as
+    # r60kmV2) plus the PP fields.  Prefer it when present so a verification
+    # publish cannot fall back to an older pre-V2 multi-radius cache.
+    verification = _realtime_verification(date)
+    if verification is not None:
+        return verification
     exact = REALTIME_DIR / f"realtime_verified_v33_multiradius_r40_r60_r75_r100_{date}.parquet"
     if exact.exists():
         return exact
@@ -158,9 +165,6 @@ def _preferred_realtime_forecast(date: str) -> Path:
         reverse=True,
     )
     if not candidates:
-        verification = _realtime_verification(date)
-        if verification is not None:
-            return verification
         raise RuntimeError(f"No realtime multi-radius forecast parquet for {date}")
     return candidates[0]
 
