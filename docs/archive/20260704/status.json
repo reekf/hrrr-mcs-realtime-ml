@@ -3,7 +3,7 @@
   "latest_plot": "latest.png",
   "map_available": true,
   "map_data": "map.json",
-  "map_updated_utc": "2026-07-13T04:52:50Z",
+  "map_updated_utc": "2026-07-15T15:57:03Z",
   "plot_available": true,
   "product_description": "Machine-learning radius products including density-weighted r60kmV2, ensemble mean, and WPC ERO.",
   "published": true,
@@ -13,5 +13,5 @@
   "valid_start_utc": "2026-07-04T12:00:00Z",
   "verification_available": true,
   "verification_plot": "verification.png",
-  "verification_updated_utc": "2026-07-05T16:06:52Z"
+  "verification_updated_utc": "2026-07-15T15:57:03Z"
 }

@@ -36,7 +36,7 @@
       "date": "20260711",
       "map_available": true,
       "map_href": "archive/20260711/map.json",
-      "map_updated_utc": "2026-07-13T04:53:12Z",
+      "map_updated_utc": "2026-07-15T15:57:45Z",
       "plot_available": true,
       "plot_href": "archive/20260711/latest.png",
       "published": true,
@@ -46,13 +46,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260711/verification.png",
-      "verification_updated_utc": "2026-07-12T16:06:37Z"
+      "verification_updated_utc": "2026-07-15T15:57:45Z"
     },
     {
       "date": "20260710",
       "map_available": true,
       "map_href": "archive/20260710/map.json",
-      "map_updated_utc": "2026-07-13T04:53:09Z",
+      "map_updated_utc": "2026-07-15T15:57:39Z",
       "plot_available": true,
       "plot_href": "archive/20260710/latest.png",
       "published": true,
@@ -62,13 +62,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260710/verification.png",
-      "verification_updated_utc": "2026-07-11T16:06:36Z"
+      "verification_updated_utc": "2026-07-15T15:57:39Z"
     },
     {
       "date": "20260709",
       "map_available": true,
       "map_href": "archive/20260709/map.json",
-      "map_updated_utc": "2026-07-13T04:53:06Z",
+      "map_updated_utc": "2026-07-15T15:57:33Z",
       "plot_available": true,
       "plot_href": "archive/20260709/latest.png",
       "published": true,
@@ -78,13 +78,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260709/verification.png",
-      "verification_updated_utc": "2026-07-10T16:06:36Z"
+      "verification_updated_utc": "2026-07-15T15:57:33Z"
     },
     {
       "date": "20260708",
       "map_available": true,
       "map_href": "archive/20260708/map.json",
-      "map_updated_utc": "2026-07-13T04:53:03Z",
+      "map_updated_utc": "2026-07-15T15:57:27Z",
       "plot_available": true,
       "plot_href": "archive/20260708/latest.png",
       "published": true,
@@ -94,13 +94,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260708/verification.png",
-      "verification_updated_utc": "2026-07-09T16:06:37Z"
+      "verification_updated_utc": "2026-07-15T15:57:27Z"
     },
     {
       "date": "20260707",
       "map_available": true,
       "map_href": "archive/20260707/map.json",
-      "map_updated_utc": "2026-07-13T04:52:59Z",
+      "map_updated_utc": "2026-07-15T15:57:21Z",
       "plot_available": true,
       "plot_href": "archive/20260707/latest.png",
       "published": true,
@@ -110,13 +110,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260707/verification.png",
-      "verification_updated_utc": "2026-07-08T16:06:37Z"
+      "verification_updated_utc": "2026-07-15T15:57:21Z"
     },
     {
       "date": "20260706",
       "map_available": true,
       "map_href": "archive/20260706/map.json",
-      "map_updated_utc": "2026-07-13T04:52:56Z",
+      "map_updated_utc": "2026-07-15T15:57:15Z",
       "plot_available": true,
       "plot_href": "archive/20260706/latest.png",
       "published": true,
@@ -126,13 +126,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260706/verification.png",
-      "verification_updated_utc": "2026-07-07T16:06:45Z"
+      "verification_updated_utc": "2026-07-15T15:57:15Z"
     },
     {
       "date": "20260705",
       "map_available": true,
       "map_href": "archive/20260705/map.json",
-      "map_updated_utc": "2026-07-13T04:52:53Z",
+      "map_updated_utc": "2026-07-15T15:57:09Z",
       "plot_available": true,
       "plot_href": "archive/20260705/latest.png",
       "published": true,
@@ -142,13 +142,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260705/verification.png",
-      "verification_updated_utc": "2026-07-06T16:22:04Z"
+      "verification_updated_utc": "2026-07-15T15:57:09Z"
     },
     {
       "date": "20260704",
       "map_available": true,
       "map_href": "archive/20260704/map.json",
-      "map_updated_utc": "2026-07-13T04:52:50Z",
+      "map_updated_utc": "2026-07-15T15:57:03Z",
       "plot_available": true,
       "plot_href": "archive/20260704/latest.png",
       "published": true,
@@ -158,13 +158,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260704/verification.png",
-      "verification_updated_utc": "2026-07-05T16:06:52Z"
+      "verification_updated_utc": "2026-07-15T15:57:03Z"
     },
     {
       "date": "20260703",
       "map_available": true,
       "map_href": "archive/20260703/map.json",
-      "map_updated_utc": "2026-07-13T04:52:47Z",
+      "map_updated_utc": "2026-07-15T15:56:57Z",
       "plot_available": true,
       "plot_href": "archive/20260703/latest.png",
       "published": true,
@@ -174,13 +174,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260703/verification.png",
-      "verification_updated_utc": "2026-07-04T16:07:34Z"
+      "verification_updated_utc": "2026-07-15T15:56:57Z"
     },
     {
       "date": "20260702",
       "map_available": true,
       "map_href": "archive/20260702/map.json",
-      "map_updated_utc": "2026-07-13T04:52:43Z",
+      "map_updated_utc": "2026-07-15T15:56:51Z",
       "plot_available": true,
       "plot_href": "archive/20260702/latest.png",
       "published": true,
@@ -190,13 +190,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260702/verification.png",
-      "verification_updated_utc": "2026-07-04T00:48:09Z"
+      "verification_updated_utc": "2026-07-15T15:56:51Z"
     },
     {
       "date": "20260701",
       "map_available": true,
       "map_href": "archive/20260701/map.json",
-      "map_updated_utc": "2026-07-13T04:52:40Z",
+      "map_updated_utc": "2026-07-15T15:56:45Z",
       "plot_available": true,
       "plot_href": "archive/20260701/latest.png",
       "published": true,
@@ -206,13 +206,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260701/verification.png",
-      "verification_updated_utc": "2026-07-04T00:48:09Z"
+      "verification_updated_utc": "2026-07-15T15:56:45Z"
     },
     {
       "date": "20260630",
       "map_available": true,
       "map_href": "archive/20260630/map.json",
-      "map_updated_utc": "2026-07-13T04:52:37Z",
+      "map_updated_utc": "2026-07-15T15:56:39Z",
       "plot_available": true,
       "plot_href": "archive/20260630/latest.png",
       "published": true,
@@ -222,13 +222,13 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260630/verification.png",
-      "verification_updated_utc": "2026-07-04T00:48:09Z"
+      "verification_updated_utc": "2026-07-15T15:56:39Z"
     },
     {
       "date": "20260629",
       "map_available": true,
       "map_href": "archive/20260629/map.json",
-      "map_updated_utc": "2026-07-13T04:52:33Z",
+      "map_updated_utc": "2026-07-15T15:56:34Z",
       "plot_available": true,
       "plot_href": "archive/20260629/latest.png",
       "published": true,
@@ -238,7 +238,7 @@
       "verification_available": true,
       "verification_embedded_in_forecast": false,
       "verification_plot_href": "archive/20260629/verification.png",
-      "verification_updated_utc": "2026-07-04T00:48:09Z"
+      "verification_updated_utc": "2026-07-15T15:56:34Z"
     },
     {
       "date": "20250729",
@@ -961,5 +961,5 @@
       "verification_updated_utc": "2026-07-13T04:48:06Z"
     }
   ],
-  "generated_utc": "2026-07-15T13:52:06Z"
+  "generated_utc": "2026-07-15T15:57:45Z"
 }
