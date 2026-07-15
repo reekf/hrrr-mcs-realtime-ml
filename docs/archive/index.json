@@ -33,6 +33,38 @@
       "verification_updated_utc": "2026-07-15T16:06:37Z"
     },
     {
+      "date": "20260713",
+      "map_available": true,
+      "map_href": "archive/20260713/map.json",
+      "map_updated_utc": "2026-07-15T16:44:09Z",
+      "plot_available": true,
+      "plot_href": "archive/20260713/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-07-15T16:42:33Z",
+      "status_href": "archive/20260713/status.json",
+      "valid_period_label": "2026-07-13 12Z to 2026-07-14 12Z",
+      "verification_available": true,
+      "verification_embedded_in_forecast": false,
+      "verification_plot_href": "archive/20260713/verification.png",
+      "verification_updated_utc": "2026-07-15T16:44:09Z"
+    },
+    {
+      "date": "20260712",
+      "map_available": true,
+      "map_href": "archive/20260712/map.json",
+      "map_updated_utc": "2026-07-15T16:43:33Z",
+      "plot_available": true,
+      "plot_href": "archive/20260712/latest.png",
+      "published": true,
+      "site_updated_utc": "2026-07-15T16:25:55Z",
+      "status_href": "archive/20260712/status.json",
+      "valid_period_label": "2026-07-12 12Z to 2026-07-13 12Z",
+      "verification_available": true,
+      "verification_embedded_in_forecast": false,
+      "verification_plot_href": "archive/20260712/verification.png",
+      "verification_updated_utc": "2026-07-15T16:43:33Z"
+    },
+    {
       "date": "20260711",
       "map_available": true,
       "map_href": "archive/20260711/map.json",
@@ -961,5 +993,5 @@
       "verification_updated_utc": "2026-07-13T04:48:06Z"
     }
   ],
-  "generated_utc": "2026-07-15T16:06:37Z"
+  "generated_utc": "2026-07-15T16:44:09Z"
 }
