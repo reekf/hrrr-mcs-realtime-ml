@@ -5,7 +5,6 @@
     "ml_mean": {
       "15": {
         "brier_score": 0.0635031,
-        "brier_skill_score": -0.00460482,
         "correct_negatives": 24655,
         "csi": 0.04988831,
         "ets": 0.0261383,
@@ -22,7 +21,6 @@
       },
       "40": {
         "brier_score": 0.01332615,
-        "brier_skill_score": -0.21595134,
         "correct_negatives": 27038,
         "csi": 0.0,
         "ets": 0.0,
@@ -39,7 +37,6 @@
       },
       "5": {
         "brier_score": 0.15302309,
-        "brier_skill_score": -0.06493675,
         "correct_negatives": 20051,
         "csi": 0.29026063,
         "ets": 0.20168204,
@@ -56,7 +53,6 @@
       },
       "70": {
         "brier_score": 0.00299134,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -75,7 +71,6 @@
     "ml_r100": {
       "15": {
         "brier_score": 0.06613922,
-        "brier_skill_score": -0.04630765,
         "correct_negatives": 23720,
         "csi": 0.09030655,
         "ets": 0.05317765,
@@ -92,7 +87,6 @@
       },
       "40": {
         "brier_score": 0.01809408,
-        "brier_skill_score": -0.65100354,
         "correct_negatives": 26835,
         "csi": 0.0,
         "ets": -0.0044659,
@@ -109,7 +103,6 @@
       },
       "5": {
         "brier_score": 0.14928724,
-        "brier_skill_score": -0.03893777,
         "correct_negatives": 18942,
         "csi": 0.27884272,
         "ets": 0.17680339,
@@ -126,7 +119,6 @@
       },
       "70": {
         "brier_score": 0.00704321,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -145,7 +137,6 @@
     "ml_r40": {
       "15": {
         "brier_score": 0.06680492,
-        "brier_skill_score": -0.05683887,
         "correct_negatives": 25377,
         "csi": 0.00763747,
         "ets": 0.00333605,
@@ -162,7 +153,6 @@
       },
       "40": {
         "brier_score": 0.01171125,
-        "brier_skill_score": -0.06859897,
         "correct_negatives": 27038,
         "csi": 0.0,
         "ets": 0.0,
@@ -179,7 +169,6 @@
       },
       "5": {
         "brier_score": 0.16571491,
-        "brier_skill_score": -0.15326319,
         "correct_negatives": 21851,
         "csi": 0.1557377,
         "ets": 0.11097753,
@@ -196,7 +185,6 @@
       },
       "70": {
         "brier_score": 0.00064779,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -215,7 +203,6 @@
     "ml_r60": {
       "15": {
         "brier_score": 0.06638849,
-        "brier_skill_score": -0.05025104,
         "correct_negatives": 24976,
         "csi": 0.0422833,
         "ets": 0.02520604,
@@ -232,7 +219,6 @@
       },
       "40": {
         "brier_score": 0.01296953,
-        "brier_skill_score": -0.18341136,
         "correct_negatives": 27038,
         "csi": 0.0,
         "ets": 0.0,
@@ -249,7 +235,6 @@
       },
       "5": {
         "brier_score": 0.16073581,
-        "brier_skill_score": -0.11861204,
         "correct_negatives": 20638,
         "csi": 0.2031926,
         "ets": 0.1283409,
@@ -266,7 +251,6 @@
       },
       "70": {
         "brier_score": 0.00190943,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -285,7 +269,6 @@
     "ml_r60v2": {
       "15": {
         "brier_score": 0.05627621,
-        "brier_skill_score": 0.10972296,
         "correct_negatives": 23626,
         "csi": 0.23687752,
         "ets": 0.19668635,
@@ -302,7 +285,6 @@
       },
       "40": {
         "brier_score": 0.01460977,
-        "brier_skill_score": -0.3330759,
         "correct_negatives": 27010,
         "csi": 0.0,
         "ets": -0.00093835,
@@ -319,7 +301,6 @@
       },
       "5": {
         "brier_score": 0.13486302,
-        "brier_skill_score": 0.061445,
         "correct_negatives": 19233,
         "csi": 0.42908239,
         "ets": 0.33104416,
@@ -336,7 +317,6 @@
       },
       "70": {
         "brier_score": 0.00716893,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -355,7 +335,6 @@
     "ml_r75": {
       "15": {
         "brier_score": 0.06692555,
-        "brier_skill_score": -0.05874721,
         "correct_negatives": 24541,
         "csi": 0.03428571,
         "ets": 0.00928492,
@@ -372,7 +351,6 @@
       },
       "40": {
         "brier_score": 0.01426025,
-        "brier_skill_score": -0.30118377,
         "correct_negatives": 26995,
         "csi": 0.0,
         "ets": -0.00137917,
@@ -389,7 +367,6 @@
       },
       "5": {
         "brier_score": 0.15954974,
-        "brier_skill_score": -0.1103578,
         "correct_negatives": 20019,
         "csi": 0.19352636,
         "ets": 0.10923755,
@@ -406,7 +383,6 @@
       },
       "70": {
         "brier_score": 0.00320871,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -425,7 +401,6 @@
     "wpc": {
       "15": {
         "brier_score": 0.06208167,
-        "brier_skill_score": 0.01788188,
         "correct_negatives": 25486,
         "csi": 0.13746631,
         "ets": 0.12931831,
@@ -442,7 +417,6 @@
       },
       "40": {
         "brier_score": 0.00954885,
-        "brier_skill_score": 0.12871032,
         "correct_negatives": 27038,
         "csi": 0.0,
         "ets": 0.0,
@@ -459,7 +433,6 @@
       },
       "5": {
         "brier_score": 0.1615367,
-        "brier_skill_score": -0.12418569,
         "correct_negatives": 20076,
         "csi": 0.42298692,
         "ets": 0.33396932,
@@ -476,7 +449,6 @@
       },
       "70": {
         "brier_score": 0.00069767,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -493,7 +465,7 @@
       }
     }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "valid_period_label": "2026-06-29 12Z to 2026-06-30 12Z",
   "verification_target": "Practically Perfect: Any flood proxy"
 }

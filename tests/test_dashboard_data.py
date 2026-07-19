@@ -64,18 +64,21 @@ def test_pooled_counts_are_recalculated():
         [
             record("20260701", 2, 1, 1, 6),
             record("20260702", 3, 2, 1, 4),
+            record("20260703", 0, 3, 0, 7),
         ],
         date(2026, 7, 1),
-        date(2026, 7, 2),
+        date(2026, 7, 3),
         "test",
         "weekly",
     )
     result = window["products"]["ml_r40"]["5"]
     assert result["hits"] == 5
-    assert result["misses"] == 3
+    assert result["misses"] == 6
     assert result["false_alarms"] == 2
-    assert result["sample_count"] == 20
-    assert result["verified_forecast_count"] == 2
+    assert result["sample_count"] == 30
+    assert result["risk_case_count"] == 2
+    assert result["verified_forecast_count"] == 3
+    assert "brier_skill_score" not in result
 
 
 def test_published_manifests_and_verification_contracts():
@@ -129,6 +132,7 @@ def test_published_manifests_and_verification_contracts():
     daily_dates = set(index["daily_dates"])
     for day in daily_dates:
         record = json.loads((docs / f"verification/daily/{day}.json").read_text())
+        assert record["schema_version"] == 2
         assert record["dataset_class"] == "realtime-issued-verification"
         for thresholds in record["products"].values():
             assert set(thresholds) == {"5", "15", "40", "70"}
@@ -144,13 +148,24 @@ def test_published_manifests_and_verification_contracts():
                     assert metrics[count_name] >= 0
                 for value in metrics.values():
                     assert value is None or not isinstance(value, float) or math.isfinite(value)
+                assert "brier_skill_score" not in metrics
 
     rolling = json.loads((docs / "verification/rolling/latest.json").read_text())
+    assert rolling["schema_version"] == 2
     assert rolling["dataset_class"] == "realtime-issued-verification"
     for window in rolling["windows"].values():
+        assert window["schema_version"] == 2
         assert set(window["verified_dates"]).issubset(daily_dates)
         assert window["missing_day_count"] >= 0
         assert window["start_date"] <= window["end_date"]
+        for thresholds in window["products"].values():
+            for metrics in thresholds.values():
+                assert "brier_skill_score" not in metrics
+                assert 0 <= metrics["risk_case_count"] <= metrics["verified_forecast_count"]
+
+    index_html = (docs / "index.html").read_text()
+    assert '<option value="40" selected>Moderate or greater</option>' in index_html
+    assert "Brier Skill Score" not in index_html
 
 
 if __name__ == "__main__":

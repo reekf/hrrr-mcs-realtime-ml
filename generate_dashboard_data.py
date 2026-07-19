@@ -108,13 +108,6 @@ def daily_product(values: list[int], truth_values: list[int], threshold: int) ->
             "brier_score": safe_ratio(squared_error_sum, sample_count),
         }
     )
-    truth_frequency = safe_ratio(hits + misses, sample_count)
-    reference_bs = None if truth_frequency is None else truth_frequency * (1.0 - truth_frequency)
-    metrics["brier_skill_score"] = (
-        None
-        if not reference_bs
-        else round(1.0 - metrics["brier_score"] / reference_bs, 8)
-    )
     return metrics
 
 
@@ -150,7 +143,7 @@ def load_realtime_daily(archive_dir: Path) -> list[dict]:
             continue
         records.append(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "dataset_class": "realtime-issued-verification",
                 "verification_target": "Practically Perfect: Any flood proxy",
                 "date": str(payload["date"]),
@@ -236,16 +229,12 @@ def aggregate_window(
                 summed["correct_negatives"],
             )
             brier = safe_ratio(squared_error_sum, summed["sample_count"])
-            climatology = safe_ratio(summed["truth_positive_count"], summed["sample_count"])
-            reference_bs = None if climatology is None else climatology * (1.0 - climatology)
             metrics.update(summed)
             metrics.update(
                 {
                     "brier_score": brier,
-                    "brier_skill_score": (
-                        None
-                        if not reference_bs
-                        else round(1.0 - brier / reference_bs, 8)
+                    "risk_case_count": sum(
+                        int(row["forecast_positive_count"]) > 0 for row in rows
                     ),
                     "verified_forecast_count": len(rows),
                 }
@@ -255,7 +244,7 @@ def aggregate_window(
             products[product] = threshold_payload
     expected_days = (end - start).days + 1
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "dataset_class": "realtime-issued-verification",
         "verification_target": "Practically Perfect: Any flood proxy",
         "window": window_name,
@@ -456,14 +445,14 @@ def publish_realtime_verification(docs_dir: Path, generated: str) -> dict:
         windows[name] = window
         write_json(output_root / f"rolling/{name}.json", window)
     latest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "dataset_class": "realtime-issued-verification",
         "generated_utc": generated,
         "windows": windows,
     }
     write_json(output_root / "rolling/latest.json", latest)
     index = {
-        "schema_version": 1,
+        "schema_version": 2,
         "dataset_class": "realtime-issued-verification",
         "generated_utc": generated,
         "daily_record_count": len(records),

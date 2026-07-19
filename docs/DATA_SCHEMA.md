@@ -57,7 +57,7 @@ The `dataset_class` is `formal-independent-test-set-explainability`. Figure
 entries include model, kind (`beeswarm`, `importance`, or `dependence`), test
 period, source function, timestamp, and path.
 
-## Daily realtime verification — schema version 1
+## Daily realtime verification — schema version 2
 
 Path: `verification/daily/YYYYMMDD.json`
 
@@ -73,12 +73,12 @@ products.<product>.<threshold>
 
 Threshold records contain non-negative contingency counts, sample count, truth
 and forecast positive counts, squared-error sum, ETS, CSI, POD, FAR, frequency
-bias, Brier Score, and BSS. Undefined metrics are `null`.
+bias, and Brier Score. Undefined metrics are `null`.
 
 Only maps with `source_class == "realtime"` and an actual `layers.pp` array are
 eligible.
 
-## Rolling realtime verification — schema version 1
+## Rolling realtime verification — schema version 2
 
 Paths:
 
@@ -91,8 +91,10 @@ verification/rolling/seasonal.json
 
 Each window records its definition, start/end dates, verified dates and count,
 expected calendar days, missing-day count, completeness, target, and pooled
-product/threshold metrics. `latest.json` embeds all three windows for one
-browser request.
+product/threshold metrics. Each product/threshold also records
+`risk_case_count`, the number of verified forecasts containing at least one
+grid cell at or above that threshold. `latest.json` embeds all three windows
+for one browser request.
 
 `verification/index.json` lists available daily dates and paths.
 

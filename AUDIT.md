@@ -67,8 +67,10 @@ figure, and it does not retrain a model.
   FAR, and frequency bias.
 - Brier Score will pool squared errors and sample counts for continuous ML
   probabilities against thresholded Practically Perfect truth at each
-  categorical threshold. BSS will use the pooled observed climatology as the
-  reference. Division-by-zero results are explicit `null`.
+  categorical threshold. Brier Skill Score is not published. Division-by-zero
+  results are explicit `null`.
+- Each product and threshold will count verified cases containing at least one
+  forecast grid cell in the selected risk area.
 - Weekly means the latest seven verified forecasts. Monthly is the trailing
   30 calendar days ending on the latest verified forecast. Seasonal uses the
   latest forecast's meteorological season and handles December as DJF.

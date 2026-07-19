@@ -5,7 +5,6 @@
     "ml_mean": {
       "15": {
         "brier_score": 0.14706883,
-        "brier_skill_score": 0.03310989,
         "correct_negatives": 19133,
         "csi": 0.270346,
         "ets": 0.16983345,
@@ -22,7 +21,6 @@
       },
       "40": {
         "brier_score": 0.01697073,
-        "brier_skill_score": -29.94990387,
         "correct_negatives": 26797,
         "csi": 0.02757353,
         "ets": 0.02703974,
@@ -39,7 +37,6 @@
       },
       "5": {
         "brier_score": 0.31701835,
-        "brier_skill_score": -0.31984493,
         "correct_negatives": 14511,
         "csi": 0.44099766,
         "ets": 0.26910887,
@@ -56,7 +53,6 @@
       },
       "70": {
         "brier_score": 0.01690468,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -75,7 +71,6 @@
     "ml_r100": {
       "15": {
         "brier_score": 0.13807942,
-        "brier_skill_score": 0.09220992,
         "correct_negatives": 18373,
         "csi": 0.30475022,
         "ets": 0.19400983,
@@ -92,7 +87,6 @@
       },
       "40": {
         "brier_score": 0.03763328,
-        "brier_skill_score": -67.63266333,
         "correct_negatives": 24930,
         "csi": 0.00622148,
         "ets": 0.00567597,
@@ -109,7 +103,6 @@
       },
       "5": {
         "brier_score": 0.28619559,
-        "brier_skill_score": -0.1915203,
         "correct_negatives": 14009,
         "csi": 0.49707471,
         "ets": 0.31052906,
@@ -126,7 +119,6 @@
       },
       "70": {
         "brier_score": 0.03769597,
-        "brier_skill_score": null,
         "correct_negatives": 27292,
         "csi": 0.0,
         "ets": 0.0,
@@ -145,7 +137,6 @@
     "ml_r40": {
       "15": {
         "brier_score": 0.16524202,
-        "brier_skill_score": -0.08636803,
         "correct_negatives": 21633,
         "csi": 0.15522074,
         "ets": 0.11220585,
@@ -162,7 +153,6 @@
       },
       "40": {
         "brier_score": 0.00464826,
-        "brier_skill_score": -7.47713682,
         "correct_negatives": 27264,
         "csi": 0.0,
         "ets": -0.00044195,
@@ -179,7 +169,6 @@
       },
       "5": {
         "brier_score": 0.36203753,
-        "brier_skill_score": -0.50727363,
         "correct_negatives": 15229,
         "csi": 0.31448151,
         "ets": 0.1798677,
@@ -196,7 +185,6 @@
       },
       "70": {
         "brier_score": 0.00438843,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -215,7 +203,6 @@
     "ml_r60": {
       "15": {
         "brier_score": 0.15495721,
-        "brier_skill_score": -0.01875152,
         "correct_negatives": 20109,
         "csi": 0.23271571,
         "ets": 0.14907487,
@@ -232,7 +219,6 @@
       },
       "40": {
         "brier_score": 0.01121902,
-        "brier_skill_score": -19.46038035,
         "correct_negatives": 27094,
         "csi": 0.00404858,
         "ets": 0.00353288,
@@ -249,7 +235,6 @@
       },
       "5": {
         "brier_score": 0.33622,
-        "brier_skill_score": -0.39978731,
         "correct_negatives": 14769,
         "csi": 0.39627744,
         "ets": 0.23558701,
@@ -266,7 +251,6 @@
       },
       "70": {
         "brier_score": 0.01104741,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -285,7 +269,6 @@
     "ml_r60v2": {
       "15": {
         "brier_score": 0.1454004,
-        "brier_skill_score": 0.04407883,
         "correct_negatives": 18903,
         "csi": 0.26368808,
         "ets": 0.16041165,
@@ -302,7 +285,6 @@
       },
       "40": {
         "brier_score": 0.0283567,
-        "brier_skill_score": -50.71475471,
         "correct_negatives": 25714,
         "csi": 0.00921942,
         "ets": 0.00867556,
@@ -319,7 +301,6 @@
       },
       "5": {
         "brier_score": 0.29818362,
-        "brier_skill_score": -0.24143016,
         "correct_negatives": 14370,
         "csi": 0.48084188,
         "ets": 0.30325763,
@@ -336,7 +317,6 @@
       },
       "70": {
         "brier_score": 0.02846913,
-        "brier_skill_score": null,
         "correct_negatives": 27322,
         "csi": 0.0,
         "ets": 0.0,
@@ -355,7 +335,6 @@
     "ml_r75": {
       "15": {
         "brier_score": 0.1468186,
-        "brier_skill_score": 0.03475501,
         "correct_negatives": 19269,
         "csi": 0.27130823,
         "ets": 0.17260853,
@@ -372,7 +351,6 @@
       },
       "40": {
         "brier_score": 0.01813962,
-        "brier_skill_score": -32.08163499,
         "correct_negatives": 26637,
         "csi": 0.01420455,
         "ets": 0.01366726,
@@ -389,7 +367,6 @@
       },
       "5": {
         "brier_score": 0.31760299,
-        "brier_skill_score": -0.32227897,
         "correct_negatives": 14399,
         "csi": 0.44730335,
         "ets": 0.27212542,
@@ -406,7 +383,6 @@
       },
       "70": {
         "brier_score": 0.01806516,
-        "brier_skill_score": null,
         "correct_negatives": 27340,
         "csi": 0.0,
         "ets": 0.0,
@@ -425,7 +401,6 @@
     "wpc": {
       "15": {
         "brier_score": 0.17831114,
-        "brier_skill_score": -0.17228972,
         "correct_negatives": 21933,
         "csi": 0.1316568,
         "ets": 0.10040611,
@@ -442,7 +417,6 @@
       },
       "40": {
         "brier_score": 0.00143758,
-        "brier_skill_score": -1.62174714,
         "correct_negatives": 27326,
         "csi": 0.0,
         "ets": 0.0,
@@ -459,7 +433,6 @@
       },
       "5": {
         "brier_score": 0.38731594,
-        "brier_skill_score": -0.61251543,
         "correct_negatives": 15082,
         "csi": 0.17897055,
         "ets": 0.07317067,
@@ -476,7 +449,6 @@
       },
       "70": {
         "brier_score": 0.00105355,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -493,7 +465,7 @@
       }
     }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "valid_period_label": "2026-07-03 12Z to 2026-07-04 12Z",
   "verification_target": "Practically Perfect: Any flood proxy"
 }

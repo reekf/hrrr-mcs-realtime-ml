@@ -1,7 +1,7 @@
 {
   "dataset_class": "realtime-issued-verification",
-  "generated_utc": "2026-07-19T16:06:27Z",
-  "schema_version": 1,
+  "generated_utc": "2026-07-19T16:18:02Z",
+  "schema_version": 2,
   "windows": {
     "monthly": {
       "completeness_percent": 60.0,
@@ -9,13 +9,12 @@
       "definition": "Trailing 30 calendar days",
       "end_date": "20260718",
       "expected_calendar_days": 30,
-      "generated_utc": "2026-07-19T16:06:27Z",
+      "generated_utc": "2026-07-19T16:18:02Z",
       "missing_day_count": 12,
       "products": {
         "ml_mean": {
           "15": {
             "brier_score": 0.09967148,
-            "brier_skill_score": 0.06733406,
             "correct_negatives": 412600,
             "csi": 0.23886696,
             "ets": 0.19102751,
@@ -26,13 +25,13 @@
             "hits": 18999,
             "misses": 40880,
             "pod": 0.31728987,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.01963988,
-            "brier_skill_score": -0.00290908,
             "correct_negatives": 480755,
             "csi": 0.0857419,
             "ets": 0.08167141,
@@ -43,13 +42,13 @@
             "hits": 976,
             "misses": 8858,
             "pod": 0.09924751,
+            "risk_case_count": 12,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.21664884,
-            "brier_skill_score": -0.13737457,
             "correct_negatives": 328055,
             "csi": 0.35833694,
             "ets": 0.2440669,
@@ -60,13 +59,13 @@
             "hits": 58797,
             "misses": 67208,
             "pod": 0.46662434,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00671544,
-            "brier_skill_score": -18.22113839,
             "correct_negatives": 491966,
             "csi": 0.0,
             "ets": 0.0,
@@ -77,6 +76,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -85,7 +85,6 @@
         "ml_r100": {
           "15": {
             "brier_score": 0.09581072,
-            "brier_skill_score": 0.10346074,
             "correct_negatives": 393819,
             "csi": 0.25693915,
             "ets": 0.19334914,
@@ -96,13 +95,13 @@
             "hits": 25262,
             "misses": 34617,
             "pod": 0.42188413,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.02553914,
-            "brier_skill_score": -0.30415438,
             "correct_negatives": 473020,
             "csi": 0.1391882,
             "ets": 0.12830513,
@@ -113,13 +112,13 @@
             "hits": 2661,
             "misses": 7173,
             "pod": 0.27059182,
+            "risk_case_count": 17,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.20390378,
-            "brier_skill_score": -0.07046488,
             "correct_negatives": 310490,
             "csi": 0.38328525,
             "ets": 0.25104666,
@@ -130,13 +129,13 @@
             "hits": 69623,
             "misses": 56382,
             "pod": 0.55254157,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.01431615,
-            "brier_skill_score": -39.97612373,
             "correct_negatives": 491917,
             "csi": 0.0,
             "ets": -7.75e-05,
@@ -147,6 +146,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 1,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -155,7 +155,6 @@
         "ml_r40": {
           "15": {
             "brier_score": 0.11157457,
-            "brier_skill_score": -0.04404791,
             "correct_negatives": 429467,
             "csi": 0.08645147,
             "ets": 0.07165446,
@@ -166,13 +165,13 @@
             "hits": 5418,
             "misses": 54461,
             "pod": 0.09048247,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.01842116,
-            "brier_skill_score": 0.05932477,
             "correct_negatives": 482211,
             "csi": 0.00936839,
             "ets": 0.00899736,
@@ -183,13 +182,13 @@
             "hits": 93,
             "misses": 9741,
             "pod": 0.00945699,
+            "risk_case_count": 5,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.23949466,
-            "brier_skill_score": -0.25731177,
             "correct_negatives": 353232,
             "csi": 0.2118411,
             "ets": 0.14514677,
@@ -200,13 +199,13 @@
             "hits": 29426,
             "misses": 96579,
             "pod": 0.23353042,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00176983,
-            "brier_skill_score": -4.06566172,
             "correct_negatives": 491966,
             "csi": 0.0,
             "ets": 0.0,
@@ -217,6 +216,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -225,7 +225,6 @@
         "ml_r60": {
           "15": {
             "brier_score": 0.10526212,
-            "brier_skill_score": 0.01502021,
             "correct_negatives": 420168,
             "csi": 0.18600806,
             "ets": 0.14936914,
@@ -236,13 +235,13 @@
             "hits": 13387,
             "misses": 46492,
             "pod": 0.22356753,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.01899013,
-            "brier_skill_score": 0.03027035,
             "correct_negatives": 481621,
             "csi": 0.04820766,
             "ets": 0.0460508,
@@ -253,13 +252,13 @@
             "hits": 507,
             "misses": 9327,
             "pod": 0.05155583,
+            "risk_case_count": 11,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.22713364,
-            "brier_skill_score": -0.19241823,
             "correct_negatives": 338422,
             "csi": 0.29838143,
             "ets": 0.2003864,
@@ -270,13 +269,13 @@
             "hits": 45866,
             "misses": 80139,
             "pod": 0.36400143,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00437843,
-            "brier_skill_score": -11.53207667,
             "correct_negatives": 491966,
             "csi": 0.0,
             "ets": 0.0,
@@ -287,6 +286,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -295,7 +295,6 @@
         "ml_r60v2": {
           "15": {
             "brier_score": 0.09122878,
-            "brier_skill_score": 0.14633579,
             "correct_negatives": 402931,
             "csi": 0.30087325,
             "ets": 0.24287061,
@@ -306,13 +305,13 @@
             "hits": 26840,
             "misses": 33039,
             "pod": 0.44823728,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.02171038,
-            "brier_skill_score": -0.10863902,
             "correct_negatives": 475104,
             "csi": 0.14400611,
             "ets": 0.13420206,
@@ -323,13 +322,13 @@
             "hits": 2453,
             "misses": 7381,
             "pod": 0.24944072,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.2005138,
-            "brier_skill_score": -0.05266798,
             "correct_negatives": 317605,
             "csi": 0.44083927,
             "ets": 0.31470349,
@@ -340,13 +339,13 @@
             "hits": 76941,
             "misses": 49064,
             "pod": 0.61061863,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.01261348,
-            "brier_skill_score": -35.10268942,
             "correct_negatives": 491910,
             "csi": 0.0,
             "ets": -8.585e-05,
@@ -357,6 +356,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 3,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -365,7 +365,6 @@
         "ml_r75": {
           "15": {
             "brier_score": 0.1014956,
-            "brier_skill_score": 0.05026504,
             "correct_negatives": 412065,
             "csi": 0.22141046,
             "ets": 0.17380151,
@@ -376,13 +375,13 @@
             "hits": 17729,
             "misses": 42150,
             "pod": 0.29608043,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.02054051,
-            "brier_skill_score": -0.04889969,
             "correct_negatives": 479373,
             "csi": 0.11774383,
             "ets": 0.11157734,
@@ -393,13 +392,13 @@
             "hits": 1503,
             "misses": 8331,
             "pod": 0.1528371,
+            "risk_case_count": 17,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.21923451,
-            "brier_skill_score": -0.15094896,
             "correct_negatives": 330668,
             "csi": 0.33410541,
             "ets": 0.22409958,
@@ -410,13 +409,13 @@
             "hits": 53948,
             "misses": 72057,
             "pod": 0.42814174,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00749636,
-            "brier_skill_score": -20.45631157,
             "correct_negatives": 491960,
             "csi": 0.0,
             "ets": -1.178e-05,
@@ -427,6 +426,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 4,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -435,7 +435,6 @@
         "wpc": {
           "15": {
             "brier_score": 0.10562861,
-            "brier_skill_score": 0.01159081,
             "correct_negatives": 424357,
             "csi": 0.30864106,
             "ets": 0.27092046,
@@ -446,13 +445,13 @@
             "hits": 20920,
             "misses": 38959,
             "pod": 0.34937123,
+            "risk_case_count": 17,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.01672651,
-            "brier_skill_score": 0.14586195,
             "correct_negatives": 482304,
             "csi": 0.01464308,
             "ets": 0.01435467,
@@ -463,13 +462,13 @@
             "hits": 144,
             "misses": 9690,
             "pod": 0.01464308,
+            "risk_case_count": 1,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.23097252,
-            "brier_skill_score": -0.21257178,
             "correct_negatives": 326300,
             "csi": 0.46920489,
             "ets": 0.35139869,
@@ -480,13 +479,13 @@
             "hits": 77812,
             "misses": 48193,
             "pod": 0.61753105,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00202027,
-            "brier_skill_score": -4.78247877,
             "correct_negatives": 491966,
             "csi": 0.0,
             "ets": 0.0,
@@ -497,13 +496,14 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
           }
         }
       },
-      "schema_version": 1,
+      "schema_version": 2,
       "start_date": "20260619",
       "verification_target": "Practically Perfect: Any flood proxy",
       "verified_dates": [
@@ -535,13 +535,12 @@
       "definition": "JJA meteorological season to date",
       "end_date": "20260718",
       "expected_calendar_days": 48,
-      "generated_utc": "2026-07-19T16:06:27Z",
+      "generated_utc": "2026-07-19T16:18:02Z",
       "missing_day_count": 30,
       "products": {
         "ml_mean": {
           "15": {
             "brier_score": 0.09967148,
-            "brier_skill_score": 0.06733406,
             "correct_negatives": 412600,
             "csi": 0.23886696,
             "ets": 0.19102751,
@@ -552,13 +551,13 @@
             "hits": 18999,
             "misses": 40880,
             "pod": 0.31728987,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.01963988,
-            "brier_skill_score": -0.00290908,
             "correct_negatives": 480755,
             "csi": 0.0857419,
             "ets": 0.08167141,
@@ -569,13 +568,13 @@
             "hits": 976,
             "misses": 8858,
             "pod": 0.09924751,
+            "risk_case_count": 12,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.21664884,
-            "brier_skill_score": -0.13737457,
             "correct_negatives": 328055,
             "csi": 0.35833694,
             "ets": 0.2440669,
@@ -586,13 +585,13 @@
             "hits": 58797,
             "misses": 67208,
             "pod": 0.46662434,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00671544,
-            "brier_skill_score": -18.22113839,
             "correct_negatives": 491966,
             "csi": 0.0,
             "ets": 0.0,
@@ -603,6 +602,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -611,7 +611,6 @@
         "ml_r100": {
           "15": {
             "brier_score": 0.09581072,
-            "brier_skill_score": 0.10346074,
             "correct_negatives": 393819,
             "csi": 0.25693915,
             "ets": 0.19334914,
@@ -622,13 +621,13 @@
             "hits": 25262,
             "misses": 34617,
             "pod": 0.42188413,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.02553914,
-            "brier_skill_score": -0.30415438,
             "correct_negatives": 473020,
             "csi": 0.1391882,
             "ets": 0.12830513,
@@ -639,13 +638,13 @@
             "hits": 2661,
             "misses": 7173,
             "pod": 0.27059182,
+            "risk_case_count": 17,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.20390378,
-            "brier_skill_score": -0.07046488,
             "correct_negatives": 310490,
             "csi": 0.38328525,
             "ets": 0.25104666,
@@ -656,13 +655,13 @@
             "hits": 69623,
             "misses": 56382,
             "pod": 0.55254157,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.01431615,
-            "brier_skill_score": -39.97612373,
             "correct_negatives": 491917,
             "csi": 0.0,
             "ets": -7.75e-05,
@@ -673,6 +672,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 1,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -681,7 +681,6 @@
         "ml_r40": {
           "15": {
             "brier_score": 0.11157457,
-            "brier_skill_score": -0.04404791,
             "correct_negatives": 429467,
             "csi": 0.08645147,
             "ets": 0.07165446,
@@ -692,13 +691,13 @@
             "hits": 5418,
             "misses": 54461,
             "pod": 0.09048247,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.01842116,
-            "brier_skill_score": 0.05932477,
             "correct_negatives": 482211,
             "csi": 0.00936839,
             "ets": 0.00899736,
@@ -709,13 +708,13 @@
             "hits": 93,
             "misses": 9741,
             "pod": 0.00945699,
+            "risk_case_count": 5,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.23949466,
-            "brier_skill_score": -0.25731177,
             "correct_negatives": 353232,
             "csi": 0.2118411,
             "ets": 0.14514677,
@@ -726,13 +725,13 @@
             "hits": 29426,
             "misses": 96579,
             "pod": 0.23353042,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00176983,
-            "brier_skill_score": -4.06566172,
             "correct_negatives": 491966,
             "csi": 0.0,
             "ets": 0.0,
@@ -743,6 +742,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -751,7 +751,6 @@
         "ml_r60": {
           "15": {
             "brier_score": 0.10526212,
-            "brier_skill_score": 0.01502021,
             "correct_negatives": 420168,
             "csi": 0.18600806,
             "ets": 0.14936914,
@@ -762,13 +761,13 @@
             "hits": 13387,
             "misses": 46492,
             "pod": 0.22356753,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.01899013,
-            "brier_skill_score": 0.03027035,
             "correct_negatives": 481621,
             "csi": 0.04820766,
             "ets": 0.0460508,
@@ -779,13 +778,13 @@
             "hits": 507,
             "misses": 9327,
             "pod": 0.05155583,
+            "risk_case_count": 11,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.22713364,
-            "brier_skill_score": -0.19241823,
             "correct_negatives": 338422,
             "csi": 0.29838143,
             "ets": 0.2003864,
@@ -796,13 +795,13 @@
             "hits": 45866,
             "misses": 80139,
             "pod": 0.36400143,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00437843,
-            "brier_skill_score": -11.53207667,
             "correct_negatives": 491966,
             "csi": 0.0,
             "ets": 0.0,
@@ -813,6 +812,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -821,7 +821,6 @@
         "ml_r60v2": {
           "15": {
             "brier_score": 0.09122878,
-            "brier_skill_score": 0.14633579,
             "correct_negatives": 402931,
             "csi": 0.30087325,
             "ets": 0.24287061,
@@ -832,13 +831,13 @@
             "hits": 26840,
             "misses": 33039,
             "pod": 0.44823728,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.02171038,
-            "brier_skill_score": -0.10863902,
             "correct_negatives": 475104,
             "csi": 0.14400611,
             "ets": 0.13420206,
@@ -849,13 +848,13 @@
             "hits": 2453,
             "misses": 7381,
             "pod": 0.24944072,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.2005138,
-            "brier_skill_score": -0.05266798,
             "correct_negatives": 317605,
             "csi": 0.44083927,
             "ets": 0.31470349,
@@ -866,13 +865,13 @@
             "hits": 76941,
             "misses": 49064,
             "pod": 0.61061863,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.01261348,
-            "brier_skill_score": -35.10268942,
             "correct_negatives": 491910,
             "csi": 0.0,
             "ets": -8.585e-05,
@@ -883,6 +882,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 3,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -891,7 +891,6 @@
         "ml_r75": {
           "15": {
             "brier_score": 0.1014956,
-            "brier_skill_score": 0.05026504,
             "correct_negatives": 412065,
             "csi": 0.22141046,
             "ets": 0.17380151,
@@ -902,13 +901,13 @@
             "hits": 17729,
             "misses": 42150,
             "pod": 0.29608043,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.02054051,
-            "brier_skill_score": -0.04889969,
             "correct_negatives": 479373,
             "csi": 0.11774383,
             "ets": 0.11157734,
@@ -919,13 +918,13 @@
             "hits": 1503,
             "misses": 8331,
             "pod": 0.1528371,
+            "risk_case_count": 17,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.21923451,
-            "brier_skill_score": -0.15094896,
             "correct_negatives": 330668,
             "csi": 0.33410541,
             "ets": 0.22409958,
@@ -936,13 +935,13 @@
             "hits": 53948,
             "misses": 72057,
             "pod": 0.42814174,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00749636,
-            "brier_skill_score": -20.45631157,
             "correct_negatives": 491960,
             "csi": 0.0,
             "ets": -1.178e-05,
@@ -953,6 +952,7 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 4,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
@@ -961,7 +961,6 @@
         "wpc": {
           "15": {
             "brier_score": 0.10562861,
-            "brier_skill_score": 0.01159081,
             "correct_negatives": 424357,
             "csi": 0.30864106,
             "ets": 0.27092046,
@@ -972,13 +971,13 @@
             "hits": 20920,
             "misses": 38959,
             "pod": 0.34937123,
+            "risk_case_count": 17,
             "sample_count": 492138,
             "truth_positive_count": 59879,
             "verified_forecast_count": 18
           },
           "40": {
             "brier_score": 0.01672651,
-            "brier_skill_score": 0.14586195,
             "correct_negatives": 482304,
             "csi": 0.01464308,
             "ets": 0.01435467,
@@ -989,13 +988,13 @@
             "hits": 144,
             "misses": 9690,
             "pod": 0.01464308,
+            "risk_case_count": 1,
             "sample_count": 492138,
             "truth_positive_count": 9834,
             "verified_forecast_count": 18
           },
           "5": {
             "brier_score": 0.23097252,
-            "brier_skill_score": -0.21257178,
             "correct_negatives": 326300,
             "csi": 0.46920489,
             "ets": 0.35139869,
@@ -1006,13 +1005,13 @@
             "hits": 77812,
             "misses": 48193,
             "pod": 0.61753105,
+            "risk_case_count": 18,
             "sample_count": 492138,
             "truth_positive_count": 126005,
             "verified_forecast_count": 18
           },
           "70": {
             "brier_score": 0.00202027,
-            "brier_skill_score": -4.78247877,
             "correct_negatives": 491966,
             "csi": 0.0,
             "ets": 0.0,
@@ -1023,13 +1022,14 @@
             "hits": 0,
             "misses": 172,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 492138,
             "truth_positive_count": 172,
             "verified_forecast_count": 18
           }
         }
       },
-      "schema_version": 1,
+      "schema_version": 2,
       "start_date": "20260601",
       "verification_target": "Practically Perfect: Any flood proxy",
       "verified_dates": [
@@ -1061,13 +1061,12 @@
       "definition": "Latest seven verified forecasts",
       "end_date": "20260718",
       "expected_calendar_days": 9,
-      "generated_utc": "2026-07-19T16:06:27Z",
+      "generated_utc": "2026-07-19T16:18:02Z",
       "missing_day_count": 2,
       "products": {
         "ml_mean": {
           "15": {
             "brier_score": 0.10076583,
-            "brier_skill_score": 0.06114459,
             "correct_negatives": 164590,
             "csi": 0.23722805,
             "ets": 0.20170712,
@@ -1078,13 +1077,13 @@
             "hits": 6357,
             "misses": 17046,
             "pod": 0.27163184,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 23403,
             "verified_forecast_count": 7
           },
           "40": {
             "brier_score": 0.02628306,
-            "brier_skill_score": 0.10125941,
             "correct_negatives": 185366,
             "csi": 0.05098821,
             "ets": 0.04833354,
@@ -1095,13 +1094,13 @@
             "hits": 307,
             "misses": 5464,
             "pod": 0.05319702,
+            "risk_case_count": 4,
             "sample_count": 191387,
             "truth_positive_count": 5771,
             "verified_forecast_count": 7
           },
           "5": {
             "brier_score": 0.19603975,
-            "brier_skill_score": -0.11056054,
             "correct_negatives": 138613,
             "csi": 0.36574829,
             "ets": 0.27712657,
@@ -1112,13 +1111,13 @@
             "hits": 19302,
             "misses": 24513,
             "pod": 0.44053406,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 43815,
             "verified_forecast_count": 7
           },
           "70": {
             "brier_score": 0.0046265,
-            "brier_skill_score": -6.91047336,
             "correct_negatives": 191275,
             "csi": 0.0,
             "ets": 0.0,
@@ -1129,6 +1128,7 @@
             "hits": 0,
             "misses": 112,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 191387,
             "truth_positive_count": 112,
             "verified_forecast_count": 7
@@ -1137,7 +1137,6 @@
         "ml_r100": {
           "15": {
             "brier_score": 0.09732542,
-            "brier_skill_score": 0.09319958,
             "correct_negatives": 160598,
             "csi": 0.27048621,
             "ets": 0.22192712,
@@ -1148,13 +1147,13 @@
             "hits": 8328,
             "misses": 15075,
             "pod": 0.35585181,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 23403,
             "verified_forecast_count": 7
           },
           "40": {
             "brier_score": 0.02879261,
-            "brier_skill_score": 0.01544617,
             "correct_negatives": 183988,
             "csi": 0.10285174,
             "ets": 0.0940312,
@@ -1165,13 +1164,13 @@
             "hits": 761,
             "misses": 5010,
             "pod": 0.13186623,
+            "risk_case_count": 6,
             "sample_count": 191387,
             "truth_positive_count": 5771,
             "verified_forecast_count": 7
           },
           "5": {
             "brier_score": 0.18772412,
-            "brier_skill_score": -0.06345269,
             "correct_negatives": 132870,
             "csi": 0.3772408,
             "ets": 0.27257837,
@@ -1182,13 +1181,13 @@
             "hits": 22075,
             "misses": 21740,
             "pod": 0.50382289,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 43815,
             "verified_forecast_count": 7
           },
           "70": {
             "brier_score": 0.00865725,
-            "brier_skill_score": -13.80232261,
             "correct_negatives": 191275,
             "csi": 0.0,
             "ets": 0.0,
@@ -1199,6 +1198,7 @@
             "hits": 0,
             "misses": 112,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 191387,
             "truth_positive_count": 112,
             "verified_forecast_count": 7
@@ -1207,7 +1207,6 @@
         "ml_r40": {
           "15": {
             "brier_score": 0.1134306,
-            "brier_skill_score": -0.05685561,
             "correct_negatives": 167665,
             "csi": 0.06635191,
             "ets": 0.05715165,
@@ -1218,13 +1217,13 @@
             "hits": 1574,
             "misses": 21829,
             "pod": 0.06725633,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 23403,
             "verified_forecast_count": 7
           },
           "40": {
             "brier_score": 0.02796525,
-            "brier_skill_score": 0.04373747,
             "correct_negatives": 185616,
             "csi": 0.00242592,
             "ets": 0.00235294,
@@ -1235,13 +1234,13 @@
             "hits": 14,
             "misses": 5757,
             "pod": 0.00242592,
+            "risk_case_count": 1,
             "sample_count": 191387,
             "truth_positive_count": 5771,
             "verified_forecast_count": 7
           },
           "5": {
             "brier_score": 0.2163372,
-            "brier_skill_score": -0.22554511,
             "correct_negatives": 145517,
             "csi": 0.17979071,
             "ets": 0.13533247,
@@ -1252,13 +1251,13 @@
             "hits": 8247,
             "misses": 35568,
             "pod": 0.18822321,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 43815,
             "verified_forecast_count": 7
           },
           "70": {
             "brier_score": 0.00136486,
-            "brier_skill_score": -1.33366231,
             "correct_negatives": 191275,
             "csi": 0.0,
             "ets": 0.0,
@@ -1269,6 +1268,7 @@
             "hits": 0,
             "misses": 112,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 191387,
             "truth_positive_count": 112,
             "verified_forecast_count": 7
@@ -1277,7 +1277,6 @@
         "ml_r60": {
           "15": {
             "brier_score": 0.10680918,
-            "brier_skill_score": 0.00483749,
             "correct_negatives": 166073,
             "csi": 0.16733823,
             "ets": 0.14185695,
@@ -1288,13 +1287,13 @@
             "hits": 4236,
             "misses": 19167,
             "pod": 0.18100244,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 23403,
             "verified_forecast_count": 7
           },
           "40": {
             "brier_score": 0.02705424,
-            "brier_skill_score": 0.07488916,
             "correct_negatives": 185534,
             "csi": 0.03485392,
             "ets": 0.03342976,
@@ -1305,13 +1304,13 @@
             "hits": 204,
             "misses": 5567,
             "pod": 0.03534916,
+            "risk_case_count": 4,
             "sample_count": 191387,
             "truth_positive_count": 5771,
             "verified_forecast_count": 7
           },
           "5": {
             "brier_score": 0.20577308,
-            "brier_skill_score": -0.16569962,
             "correct_negatives": 141628,
             "csi": 0.28392854,
             "ets": 0.21107233,
@@ -1322,13 +1321,13 @@
             "hits": 14128,
             "misses": 29687,
             "pod": 0.32244665,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 43815,
             "verified_forecast_count": 7
           },
           "70": {
             "brier_score": 0.00308829,
-            "brier_skill_score": -4.28041409,
             "correct_negatives": 191275,
             "csi": 0.0,
             "ets": 0.0,
@@ -1339,6 +1338,7 @@
             "hits": 0,
             "misses": 112,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 191387,
             "truth_positive_count": 112,
             "verified_forecast_count": 7
@@ -1347,7 +1347,6 @@
         "ml_r60v2": {
           "15": {
             "brier_score": 0.08843724,
-            "brier_skill_score": 0.17601253,
             "correct_negatives": 159992,
             "csi": 0.35340022,
             "ets": 0.30146985,
@@ -1358,13 +1357,13 @@
             "hits": 11095,
             "misses": 12308,
             "pod": 0.47408452,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 23403,
             "verified_forecast_count": 7
           },
           "40": {
             "brier_score": 0.02556303,
-            "brier_skill_score": 0.1258806,
             "correct_negatives": 183885,
             "csi": 0.14249533,
             "ets": 0.13273485,
@@ -1375,13 +1374,13 @@
             "hits": 1069,
             "misses": 4702,
             "pod": 0.18523653,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 5771,
             "verified_forecast_count": 7
           },
           "5": {
             "brier_score": 0.17579044,
-            "brier_skill_score": 0.00415132,
             "correct_negatives": 132878,
             "csi": 0.4977183,
             "ets": 0.39379006,
@@ -1392,13 +1391,13 @@
             "hits": 29121,
             "misses": 14694,
             "pod": 0.6646354,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 43815,
             "verified_forecast_count": 7
           },
           "70": {
             "brier_score": 0.01035671,
-            "brier_skill_score": -16.70809005,
             "correct_negatives": 191250,
             "csi": 0.0,
             "ets": -0.0001068,
@@ -1409,6 +1408,7 @@
             "hits": 0,
             "misses": 112,
             "pod": 0.0,
+            "risk_case_count": 1,
             "sample_count": 191387,
             "truth_positive_count": 112,
             "verified_forecast_count": 7
@@ -1417,7 +1417,6 @@
         "ml_r75": {
           "15": {
             "brier_score": 0.10309568,
-            "brier_skill_score": 0.03943691,
             "correct_negatives": 164747,
             "csi": 0.20975976,
             "ets": 0.17639736,
@@ -1428,13 +1427,13 @@
             "hits": 5588,
             "misses": 17815,
             "pod": 0.23877281,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 23403,
             "verified_forecast_count": 7
           },
           "40": {
             "brier_score": 0.02729473,
-            "brier_skill_score": 0.06666569,
             "correct_negatives": 184950,
             "csi": 0.07254932,
             "ets": 0.06760067,
@@ -1445,13 +1444,13 @@
             "hits": 467,
             "misses": 5304,
             "pod": 0.08092185,
+            "risk_case_count": 6,
             "sample_count": 191387,
             "truth_positive_count": 5771,
             "verified_forecast_count": 7
           },
           "5": {
             "brier_score": 0.19987423,
-            "brier_skill_score": -0.13228277,
             "correct_negatives": 140386,
             "csi": 0.32232701,
             "ets": 0.24193561,
@@ -1462,13 +1461,13 @@
             "hits": 16439,
             "misses": 27376,
             "pod": 0.37519114,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 43815,
             "verified_forecast_count": 7
           },
           "70": {
             "brier_score": 0.00491039,
-            "brier_skill_score": -7.39587362,
             "correct_negatives": 191275,
             "csi": 0.0,
             "ets": 0.0,
@@ -1479,6 +1478,7 @@
             "hits": 0,
             "misses": 112,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 191387,
             "truth_positive_count": 112,
             "verified_forecast_count": 7
@@ -1487,7 +1487,6 @@
         "wpc": {
           "15": {
             "brier_score": 0.10083655,
-            "brier_skill_score": 0.06048568,
             "correct_negatives": 163929,
             "csi": 0.44198412,
             "ets": 0.3986219,
@@ -1498,13 +1497,13 @@
             "hits": 12136,
             "misses": 11267,
             "pod": 0.518566,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 23403,
             "verified_forecast_count": 7
           },
           "40": {
             "brier_score": 0.02397971,
-            "brier_skill_score": 0.1800217,
             "correct_negatives": 185616,
             "csi": 0.02495235,
             "ets": 0.02421817,
@@ -1515,13 +1514,13 @@
             "hits": 144,
             "misses": 5627,
             "pod": 0.02495235,
+            "risk_case_count": 1,
             "sample_count": 191387,
             "truth_positive_count": 5771,
             "verified_forecast_count": 7
           },
           "5": {
             "brier_score": 0.19770154,
-            "brier_skill_score": -0.11997454,
             "correct_negatives": 137582,
             "csi": 0.61042654,
             "ets": 0.52360107,
@@ -1532,13 +1531,13 @@
             "hits": 32844,
             "misses": 10971,
             "pod": 0.7496063,
+            "risk_case_count": 7,
             "sample_count": 191387,
             "truth_positive_count": 43815,
             "verified_forecast_count": 7
           },
           "70": {
             "brier_score": 0.00267837,
-            "brier_skill_score": -3.57952546,
             "correct_negatives": 191275,
             "csi": 0.0,
             "ets": 0.0,
@@ -1549,13 +1548,14 @@
             "hits": 0,
             "misses": 112,
             "pod": 0.0,
+            "risk_case_count": 0,
             "sample_count": 191387,
             "truth_positive_count": 112,
             "verified_forecast_count": 7
           }
         }
       },
-      "schema_version": 1,
+      "schema_version": 2,
       "start_date": "20260710",
       "verification_target": "Practically Perfect: Any flood proxy",
       "verified_dates": [

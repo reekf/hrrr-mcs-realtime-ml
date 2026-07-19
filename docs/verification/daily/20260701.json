@@ -5,7 +5,6 @@
     "ml_mean": {
       "15": {
         "brier_score": 0.05107874,
-        "brier_skill_score": 0.17245437,
         "correct_negatives": 23918,
         "csi": 0.2751972,
         "ets": 0.23753941,
@@ -22,7 +21,6 @@
       },
       "40": {
         "brier_score": 0.00985318,
-        "brier_skill_score": -1.39392597,
         "correct_negatives": 27076,
         "csi": 0.16226415,
         "ets": 0.15970861,
@@ -39,7 +37,6 @@
       },
       "5": {
         "brier_score": 0.14884261,
-        "brier_skill_score": 0.00363529,
         "correct_negatives": 19005,
         "csi": 0.32365643,
         "ets": 0.22047448,
@@ -56,7 +53,6 @@
       },
       "70": {
         "brier_score": 0.00829171,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -75,7 +71,6 @@
     "ml_r100": {
       "15": {
         "brier_score": 0.05103993,
-        "brier_skill_score": 0.17308315,
         "correct_negatives": 22237,
         "csi": 0.21453762,
         "ets": 0.16717344,
@@ -92,7 +87,6 @@
       },
       "40": {
         "brier_score": 0.01738834,
-        "brier_skill_score": -3.22466643,
         "correct_negatives": 26556,
         "csi": 0.10828025,
         "ets": 0.10471202,
@@ -109,7 +103,6 @@
       },
       "5": {
         "brier_score": 0.13846526,
-        "brier_skill_score": 0.07310212,
         "correct_negatives": 17974,
         "csi": 0.34664247,
         "ets": 0.23258043,
@@ -126,7 +119,6 @@
       },
       "70": {
         "brier_score": 0.0161949,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -145,7 +137,6 @@
     "ml_r40": {
       "15": {
         "brier_score": 0.0572634,
-        "brier_skill_score": 0.0722544,
         "correct_negatives": 25356,
         "csi": 0.20906801,
         "ets": 0.19313721,
@@ -162,7 +153,6 @@
       },
       "40": {
         "brier_score": 0.00455392,
-        "brier_skill_score": -0.10641918,
         "correct_negatives": 27205,
         "csi": 0.0,
         "ets": -0.00069945,
@@ -179,7 +169,6 @@
       },
       "5": {
         "brier_score": 0.16611655,
-        "brier_skill_score": -0.11199789,
         "correct_negatives": 21212,
         "csi": 0.25860662,
         "ets": 0.19325469,
@@ -196,7 +185,6 @@
       },
       "70": {
         "brier_score": 0.00194282,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -215,7 +203,6 @@
     "ml_r60": {
       "15": {
         "brier_score": 0.05266545,
-        "brier_skill_score": 0.14674749,
         "correct_negatives": 24687,
         "csi": 0.31499623,
         "ets": 0.28503125,
@@ -232,7 +219,6 @@
       },
       "40": {
         "brier_score": 0.00739242,
-        "brier_skill_score": -0.79606038,
         "correct_negatives": 27160,
         "csi": 0.02209945,
         "ets": 0.02048907,
@@ -249,7 +235,6 @@
       },
       "5": {
         "brier_score": 0.15437103,
-        "brier_skill_score": -0.03337241,
         "correct_negatives": 19852,
         "csi": 0.30631593,
         "ets": 0.21457941,
@@ -266,7 +251,6 @@
       },
       "70": {
         "brier_score": 0.00507041,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -285,7 +269,6 @@
     "ml_r60v2": {
       "15": {
         "brier_score": 0.05186581,
-        "brier_skill_score": 0.15970276,
         "correct_negatives": 23211,
         "csi": 0.22566586,
         "ets": 0.18311528,
@@ -302,7 +285,6 @@
       },
       "40": {
         "brier_score": 0.01832608,
-        "brier_skill_score": -3.45249948,
         "correct_negatives": 26260,
         "csi": 0.08048104,
         "ets": 0.07675706,
@@ -319,7 +301,6 @@
       },
       "5": {
         "brier_score": 0.14612974,
-        "brier_skill_score": 0.02179546,
         "correct_negatives": 18325,
         "csi": 0.24833629,
         "ets": 0.13912308,
@@ -336,7 +317,6 @@
       },
       "70": {
         "brier_score": 0.01803984,
-        "brier_skill_score": null,
         "correct_negatives": 27329,
         "csi": 0.0,
         "ets": 0.0,
@@ -355,7 +335,6 @@
     "ml_r75": {
       "15": {
         "brier_score": 0.0514442,
-        "brier_skill_score": 0.16653342,
         "correct_negatives": 23922,
         "csi": 0.2834162,
         "ets": 0.24578685,
@@ -372,7 +351,6 @@
       },
       "40": {
         "brier_score": 0.01048381,
-        "brier_skill_score": -1.54714367,
         "correct_negatives": 26990,
         "csi": 0.18233618,
         "ets": 0.17941818,
@@ -389,7 +367,6 @@
       },
       "5": {
         "brier_score": 0.14800636,
-        "brier_skill_score": 0.00923321,
         "correct_negatives": 19165,
         "csi": 0.3231409,
         "ets": 0.22188838,
@@ -406,7 +383,6 @@
       },
       "70": {
         "brier_score": 0.00908905,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -425,7 +401,6 @@
     "wpc": {
       "15": {
         "brier_score": 0.05794612,
-        "brier_skill_score": 0.0611934,
         "correct_negatives": 24987,
         "csi": 0.24766355,
         "ets": 0.22301283,
@@ -442,7 +417,6 @@
       },
       "40": {
         "brier_score": 0.00464888,
-        "brier_skill_score": -0.12949064,
         "correct_negatives": 27228,
         "csi": 0.0,
         "ets": 0.0,
@@ -459,7 +433,6 @@
       },
       "5": {
         "brier_score": 0.16631085,
-        "brier_skill_score": -0.11329855,
         "correct_negatives": 18420,
         "csi": 0.34962448,
         "ets": 0.23994973,
@@ -476,7 +449,6 @@
       },
       "70": {
         "brier_score": 0.0014705,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -493,7 +465,7 @@
       }
     }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "valid_period_label": "2026-07-01 12Z to 2026-07-02 12Z",
   "verification_target": "Practically Perfect: Any flood proxy"
 }
