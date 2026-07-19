@@ -1921,35 +1921,32 @@ function renderSkillFrequency() {
   const products = state.riskFrequency?.products || {};
   const rows = Object.entries(products)
     .map(([label, values]) => ({ label, ...(values[threshold] || {}) }))
-    .filter((row) => Number.isInteger(row.forecast_day_count));
+    .filter((row) => Number.isInteger(row.false_alarm_grid_cell_count)
+      && Number.isInteger(row.miss_grid_cell_count));
   if (!rows.length) {
-    chart.textContent = "Final risk-frequency counts are not available.";
+    chart.textContent = "Final false-alarm and miss counts are not available.";
     answer.textContent = "";
     return;
   }
-  const maximum = Math.max(...rows.flatMap((row) => [row.forecast_day_count, row.observed_day_count || 0]), 1);
+  const maximum = Math.max(
+    ...rows.flatMap((row) => [row.false_alarm_grid_cell_count, row.miss_grid_cell_count]),
+    1,
+  );
   for (const row of rows) {
     const group = document.createElement("div");
     group.className = "bar-group";
     const label = document.createElement("strong");
     label.textContent = row.label;
-    const forecast = document.createElement("div");
-    forecast.className = "bar-row";
-    forecast.innerHTML = `<span>Forecast</span><i style="--bar-width:${row.forecast_day_count / maximum * 100}%"></i><b>${row.forecast_day_count}</b>`;
-    const observed = document.createElement("div");
-    observed.className = "bar-row observed";
-    observed.innerHTML = `<span>Observed PP</span><i style="--bar-width:${(row.observed_day_count || 0) / maximum * 100}%"></i><b>${row.observed_day_count ?? "—"}</b>`;
-    group.append(label, forecast, observed);
+    const falseAlarms = document.createElement("div");
+    falseAlarms.className = "bar-row false-alarms";
+    falseAlarms.innerHTML = `<span>False alarms</span><i style="--bar-width:${row.false_alarm_grid_cell_count / maximum * 100}%"></i><b>${row.false_alarm_grid_cell_count.toLocaleString()}</b>`;
+    const misses = document.createElement("div");
+    misses.className = "bar-row misses";
+    misses.innerHTML = `<span>Misses</span><i style="--bar-width:${row.miss_grid_cell_count / maximum * 100}%"></i><b>${row.miss_grid_cell_count.toLocaleString()}</b>`;
+    group.append(label, falseAlarms, misses);
     chart.append(group);
   }
-  const ml = rows.find((row) => /ML r60(?:km)?$/i.test(row.label)) || rows.find((row) => /^ML/i.test(row.label));
-  const wpc = rows.find((row) => /WPC/i.test(row.label));
-  if (ml && wpc) {
-    const difference = ml.forecast_day_count - wpc.forecast_day_count;
-    answer.textContent = `${ml.label} issued ${Math.abs(difference)} ${difference >= 0 ? "more" : "fewer"} ${THRESHOLD_LABELS_CLIENT[threshold].toLowerCase()} day${Math.abs(difference) === 1 ? "" : "s"} than WPC in the common 2024–2025 test set. This frequency difference is not, by itself, a skill score.`;
-  } else {
-    answer.textContent = "Compare issuance counts with ETS, POD, FAR, and frequency bias before drawing a performance conclusion.";
-  }
+  answer.textContent = `${THRESHOLD_LABELS_CLIENT[threshold]} false alarms and misses are pooled grid-cell contingency counts across the same 45 independent test cases. Lower counts are better, but compare both error types with ETS before judging overall skill.`;
 }
 
 const THRESHOLD_LABELS_CLIENT = {
@@ -1976,16 +1973,29 @@ function renderSkillDashboard() {
     image.src = figure.path;
     image.alt = figure.title;
     image.loading = "lazy";
+    image.decoding = "async";
+    const imageLink = document.createElement("a");
+    imageLink.href = figure.path;
+    imageLink.target = "_blank";
+    imageLink.rel = "noopener";
+    imageLink.className = "full-resolution-image";
+    imageLink.title = `Open ${figure.title} at full resolution`;
+    imageLink.append(image);
     const caption = document.createElement("figcaption");
     const title = document.createElement("strong");
     title.textContent = figure.title;
     const detail = document.createElement("span");
     const direction = figure.metric === "Brier Score" ? "Lower is better."
-      : figure.metric === "Brier Skill Score" || figure.metric === "ETS" ? "Higher is better."
+      : figure.metric === "ETS" ? "Higher is better."
         : "Frequency and spatial coverage are descriptive, not standalone skill.";
     detail.textContent = `${figure.target} · ${figure.test_period} · ${figure.test_case_count || "Unknown"} test days. ${direction}`;
-    caption.append(title, detail);
-    card.append(image, caption);
+    const fullResolution = document.createElement("a");
+    fullResolution.href = figure.path;
+    fullResolution.target = "_blank";
+    fullResolution.rel = "noopener";
+    fullResolution.textContent = "Open full-resolution figure";
+    caption.append(title, detail, fullResolution);
+    card.append(imageLink, caption);
     container.append(card);
   }
   renderSkillFrequency();

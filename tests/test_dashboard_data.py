@@ -89,6 +89,37 @@ def test_published_manifests_and_verification_contracts():
         for figure in manifest["figures"]:
             assert (docs / figure["path"]).is_file()
 
+    skill = json.loads((docs / "model-skill/manifest.json").read_text())
+    assert len(skill["figures"]) == 5
+    assert [figure["metric"] for figure in skill["figures"]].count("ETS") == 3
+    assert [figure["metric"] for figure in skill["figures"]].count("Brier Score") == 2
+    assert {figure["source_directory"] for figure in skill["figures"]} == {
+        "paper_verification_bs_ets_final"
+    }
+    for figure in skill["figures"]:
+        assert "Brier Skill Score" not in figure["title"]
+        assert "risk-area" not in figure["title"].lower()
+        if figure["metric"] == "Brier Score":
+            assert figure["evaluations"] == [
+                "Including Marginal",
+                "Excluding Marginal",
+            ]
+
+    contingency = json.loads((docs / "model-skill/risk-frequency.json").read_text())
+    assert contingency["schema_version"] == 2
+    assert set(contingency["excluded_products"]) == {
+        "ML Local PMM 100km",
+        "ML Ensemble Max",
+        "ML r100kmV2",
+    }
+    assert not set(contingency["excluded_products"]) & set(contingency["products"])
+    for thresholds in contingency["products"].values():
+        for counts in thresholds.values():
+            assert isinstance(counts["false_alarm_grid_cell_count"], int)
+            assert isinstance(counts["miss_grid_cell_count"], int)
+            assert counts["false_alarm_grid_cell_count"] >= 0
+            assert counts["miss_grid_cell_count"] >= 0
+
     index = json.loads((docs / "verification/index.json").read_text())
     assert index["dataset_class"] == "realtime-issued-verification"
     daily_dates = set(index["daily_dates"])

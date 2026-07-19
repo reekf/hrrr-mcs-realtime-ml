@@ -40,21 +40,21 @@ The final viewer notebook is
 Relevant final functions include:
 
 - `compute_ets_pod_far` and `run_final_bs_ets_verification_plots`
-- `_plot_violin_metric`
 - `plot_shap_global_summary`
 - `plot_shap_dependence` and the selected dependence-plot block
 - the realtime multi-radius verification and Practically Perfect helpers
 
 Final 2024–2025 test-set assets and their case tables are already saved under:
 
-- `fall_2025_ml_proj/paper_verification_violin_plots_v17/`
 - `fall_2025_ml_proj/paper_verification_bs_ets_final/`
 - `fall_2025_ml_proj/paper_shap_figures/`
 - `fall_2025_ml_proj/shap_dependence_r100/`
 
-The website publisher will copy selected final figures into stable `docs/`
-locations and write manifests that retain their source path/function and test
-period. It will not retrain a model.
+The website publisher copies the ETS, Practically Perfect ETS, and
+including/excluding-Marginal Brier Score figures from
+`paper_verification_bs_ets_final` into stable `docs/` locations. It does not
+publish a Brier Skill Score or common-case risk-area figure, and it does not
+retrain a model.
 
 ## Verification outputs
 

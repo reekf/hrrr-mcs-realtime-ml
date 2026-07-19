@@ -225,8 +225,8 @@
       <section class="dashboard-card">
         <div class="card-heading">
           <div>
-            <span class="eyebrow">Forecast frequency</span>
-            <h3>Risk issuance and observed occurrence</h3>
+            <span class="eyebrow">Contingency errors</span>
+            <h3>False alarms and misses by product</h3>
           </div>
           <label>Threshold
             <select id="skill-frequency-threshold">
@@ -237,8 +237,8 @@
             </select>
           </label>
         </div>
-        <p>Issuing more Moderate or High risks can increase detection of important events, but it can also increase false alarms and forecast area. Risk frequency should therefore be interpreted with POD, FAR, ETS, frequency bias, and observed occurrence.</p>
-        <div id="skill-frequency-chart" class="bar-chart" aria-label="Risk-frequency comparison"></div>
+        <p>Counts are pooled over the same 45 independent test cases. A false alarm is a forecast-positive grid cell without Practically Perfect truth; a miss is a truth-positive grid cell without a forecast.</p>
+        <div id="skill-frequency-chart" class="bar-chart" aria-label="False-alarm and miss comparison"></div>
         <div id="skill-frequency-answer" class="callout"></div>
       </section>
     </section>

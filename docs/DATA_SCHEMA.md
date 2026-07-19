@@ -44,9 +44,10 @@ entry records title, metric, target, threshold list, test period, model,
 source script/function, generation timestamp, and repo-relative image `path`.
 The publisher fails if a referenced path is missing.
 
-`model-skill/risk-frequency.json` contains exact day counts derived from the
-final PP ETS contingency-count table. It remains labeled as formal test-set
-data.
+`model-skill/risk-frequency.json` contains pooled false-alarm and miss grid-cell
+counts derived from the final PP ETS contingency-count table. Local PMM,
+ensemble maximum, and r100kmV2 are intentionally excluded from this comparison.
+It remains labeled as formal test-set data.
 
 ## Explainability manifest — schema version 1
 
