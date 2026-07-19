@@ -10,6 +10,15 @@ mPING reports, and a date archive.
 **Experimental machine-learning guidance. Not an official NWS forecast, watch,
 or warning.**
 
+## OpenAI Build Week development record
+
+GPT-5.6 and Codex were used to help develop and validate website features,
+improve the efficiency of the XGBoost training workflows, and build out the
+real-time prediction and verification pipeline. See
+[`OPENAI_BUILD_WEEK_README.md`](OPENAI_BUILD_WEEK_README.md) for the full
+engineering contribution record and the boundary between AI-assisted
+development and human scientific decisions.
+
 ## Website views
 
 - `?view=forecast` — 2D/3D map and Location Briefing

@@ -42,9 +42,14 @@ predictors, risk thresholds, Practically Perfect construction, UFVS proxy
 definitions, figure styling, and final test-set interpretation. The extension
 does not retrain models or change those contracts.
 
-## Codex contribution
+## GPT-5.6 and Codex contribution
 
-Codex audited the existing implementation, connected saved scientific outputs
-to the website, implemented the browser and publishing changes, and added
-tests/documentation. The repository does not record an exact underlying model
-version, so this changelog does not fabricate a “GPT-5.6” attribution.
+GPT-5.6 through Codex was used as the primary AI-assisted engineering
+environment during OpenAI Build Week. Codex audited the existing
+implementation, connected saved scientific outputs to the website, implemented
+browser and publishing changes, improved memory-safe and row-sampled ML
+workflows, expanded the real-time prediction/verification pipeline, and added
+tests and documentation. Human scientific and product decisions remained
+authoritative. See
+[`OPENAI_BUILD_WEEK_README.md`](OPENAI_BUILD_WEEK_README.md) for the detailed
+contribution record.
