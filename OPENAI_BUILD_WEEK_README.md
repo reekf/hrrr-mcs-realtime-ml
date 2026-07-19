@@ -52,14 +52,8 @@ decision-support and evaluation website. Codex-assisted work included:
 
 Recent human-directed refinements implemented with Codex included:
 
-- restricting the Model Skill page to Any Flood Proxy ETS, Practically Perfect
-  ETS, and the Including/Excluding-Marginal Any Flood Proxy Brier Score;
-- removing MRMS-over-FFG-only figures, Brier Skill Score, and the common-case
-  risk-area plot;
 - showing pooled Hits, False Alarms, and Misses against Practically Perfect
   truth;
-- excluding Local PMM, ensemble maximum, and r100kmV2 from the formal
-  contingency comparison;
 - adding per-product running counts of verified cases that actually contained
   the selected ML/WPC risk area;
 - separating selected-risk case counts from total verified cases; and
@@ -73,7 +67,7 @@ datasets. This work included:
 
 - developing memory-safe master-Parquet assembly with incremental PyArrow
   row-group writing instead of concatenating every daily dataset in memory;
-- creating slim-master variants that retain the identifiers, target fields,
+- creating variants that retain the identifiers, target fields,
   and predictor columns required for training while omitting unnecessary
   intermediate/debug columns;
 - adding bounded train/test row sampling before full pandas materialization,
