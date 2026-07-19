@@ -1,0 +1,31 @@
+{
+  "daily_dates": [
+    "20260629",
+    "20260630",
+    "20260701",
+    "20260702",
+    "20260703",
+    "20260704",
+    "20260705",
+    "20260706",
+    "20260707",
+    "20260708",
+    "20260709",
+    "20260710",
+    "20260711",
+    "20260712",
+    "20260713",
+    "20260714",
+    "20260717"
+  ],
+  "daily_path_template": "verification/daily/{date}.json",
+  "daily_record_count": 17,
+  "dataset_class": "realtime-issued-verification",
+  "generated_utc": "2026-07-19T15:11:12Z",
+  "rolling_paths": {
+    "monthly": "verification/rolling/monthly.json",
+    "seasonal": "verification/rolling/seasonal.json",
+    "weekly": "verification/rolling/weekly.json"
+  },
+  "schema_version": 1
+}

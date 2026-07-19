@@ -1,0 +1,114 @@
+# XGBoosted Flash Flood Predictions
+
+XGBoosted Flash Flood Predictions (XGBFFP) is an experimental decision-support
+website for flash-flood potential associated with mesoscale convective systems.
+The default Forecast view combines XGBoost neighborhood-radius probabilities,
+WPC Excessive Rainfall Outlook context, post-event Practically Perfect
+verification, predictor diagnostics, radar, flood alerts, storm reports,
+mPING reports, and a date archive.
+
+**Experimental machine-learning guidance. Not an official NWS forecast, watch,
+or warning.**
+
+## Website views
+
+- `?view=forecast` — 2D/3D map and Location Briefing
+- `?view=skill` — independent 2024–2025 test-set skill
+- `?view=running` — issued-forecast weekly, monthly, and seasonal verification
+- `?view=explainability` — finalized global SHAP and dependence figures
+- `?view=about` — product and evaluation-population overview
+
+The Forecast view supports `date=YYYYMMDD` and `map=3d`.
+
+## Forecast products
+
+The website reads the available fields in each archive instead of assuming all
+dates have the newest schema. Products can include r40, r60, r60kmV2, r75,
+r100, the ML ensemble mean, WPC ERO, and post-event Practically Perfect.
+r60kmV2 is an experimental variant and is not included in the standard
+four-member agreement statistic.
+
+## Location Briefing
+
+Click the map to select the nearest valid grid point. The panel displays every
+available product probability and category, standard-member agreement, a
+deterministic interpretation, decoded predictor values, nearby alerts/reports,
+post-event context, and copy-ready plain text.
+
+Agreement uses the standard r40/r60/r75/r100 products:
+
+- High: all members share a risk category and the probability range is at most
+  10 percentage points.
+- Moderate: categories differ by at most one level or the range is at most 20
+  points.
+- Low: all other available-member combinations.
+
+The exact 5, 15, 40, and 70 percent boundaries are inclusive. A click more than
+100 km from the nearest grid point is outside the forecast domain. Nearby
+reports and UFVS observations use a labeled 40-km search radius.
+
+## Evaluation and data sources
+
+Formal model skill uses the final saved 2024–2025 test-set figures produced by
+the v33 viewer notebook. Running verification is calculated only from
+realtime-issued archive maps carrying a Practically Perfect layer; formal test
+cases are never backfilled into the realtime statistics. See
+[`docs/METRICS.md`](docs/METRICS.md) and
+[`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md).
+
+Map context includes WPC ERO, NWS API flood alerts, Iowa Environmental Mesonet
+local storm reports, RainViewer radar, mPING flood-impact reports when a
+publisher token is configured, and the UFVS proxy collections included by the
+verification publisher.
+
+## Reproducible dashboard publishing
+
+`generate_dashboard_data.py`:
+
+1. copies selected final figures to stable `docs/` locations;
+2. records their source function, target, model, period, and path in manifests;
+3. validates every manifest path;
+4. reads verified realtime `map.json` files;
+5. writes daily and pooled rolling verification JSON.
+
+It consumes saved outputs and does not retrain. After initial static-asset
+publishing, the operational verification workflow calls:
+
+```bash
+python generate_dashboard_data.py --verification-only
+```
+
+`publish_verification_output.sh` refreshes and stages the realtime verification
+files after publishing a verified map. Forecast generation and feature
+creation are unchanged.
+
+## Local development and checks
+
+Serve `docs/` from the repository root:
+
+```bash
+python -m http.server 8000 --directory docs
+```
+
+Then open `http://localhost:8000/?view=forecast`.
+
+Core checks:
+
+```bash
+python -m pytest tests/test_dashboard_data.py tests/test_interactive_map_realtime_selection.py
+node tests/test_briefing.js
+node --check docs/app.js
+bash -n publish_latest_ml_output.sh publish_verification_output.sh
+```
+
+## Known limitations
+
+- Final global SHAP figures currently exist for r60 and r100; final
+  pre-rendered dependence panels currently exist only for r100.
+- Map JSON does not export local SHAP values, so raw predictor diagnostics are
+  never mislabeled as local SHAP contributions.
+- Running verification began with the realtime website record and can be
+  sample-limited or have missing dates; every view reports cases and
+  completeness.
+- External radar, alerts, storm reports, and mPING services can be temporarily
+  unavailable without affecting the forecast map data.

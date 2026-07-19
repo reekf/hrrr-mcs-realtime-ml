@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""Unit tests for XGBFFP rolling-verification aggregation."""
+
+from datetime import date
+import json
+import math
+from pathlib import Path
+import sys
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import generate_dashboard_data as dashboard
+
+
+REPO_DIR = Path(__file__).resolve().parents[1]
+
+
+def test_categorical_metrics_zero_denominators_are_null():
+    metrics = dashboard.categorical_metrics(0, 0, 0, 10)
+    assert metrics["ets"] is None
+    assert metrics["csi"] is None
+    assert metrics["pod"] is None
+    assert metrics["far"] is None
+    assert metrics["frequency_bias"] is None
+
+
+def test_threshold_boundaries_are_inclusive():
+    truth = [50, 150, 400, 700]
+    for threshold, index in zip(dashboard.THRESHOLDS, range(4)):
+        metrics = dashboard.daily_product(truth, truth, threshold)
+        expected_positives = 4 - index
+        assert metrics["hits"] == expected_positives
+        assert metrics["misses"] == 0
+        assert metrics["false_alarms"] == 0
+
+
+def test_december_is_assigned_to_following_djf():
+    start, end, name = dashboard.season_bounds(date(2026, 12, 15))
+    assert (start, end, name) == (date(2026, 12, 1), date(2027, 2, 28), "DJF")
+    start, end, name = dashboard.season_bounds(date(2027, 1, 5))
+    assert (start, end, name) == (date(2026, 12, 1), date(2027, 2, 28), "DJF")
+
+
+def test_pooled_counts_are_recalculated():
+    def record(day, hits, misses, false_alarms, correct_negatives):
+        sample_count = hits + misses + false_alarms + correct_negatives
+        row = {
+            "hits": hits,
+            "misses": misses,
+            "false_alarms": false_alarms,
+            "correct_negatives": correct_negatives,
+            "sample_count": sample_count,
+            "truth_positive_count": hits + misses,
+            "forecast_positive_count": hits + false_alarms,
+            "squared_error_sum": 1.0,
+        }
+        return {
+            "date": day,
+            "products": {"ml_r40": {str(value): row.copy() for value in dashboard.THRESHOLDS}},
+        }
+
+    window = dashboard.aggregate_window(
+        [
+            record("20260701", 2, 1, 1, 6),
+            record("20260702", 3, 2, 1, 4),
+        ],
+        date(2026, 7, 1),
+        date(2026, 7, 2),
+        "test",
+        "weekly",
+    )
+    result = window["products"]["ml_r40"]["5"]
+    assert result["hits"] == 5
+    assert result["misses"] == 3
+    assert result["false_alarms"] == 2
+    assert result["sample_count"] == 20
+    assert result["verified_forecast_count"] == 2
+
+
+def test_published_manifests_and_verification_contracts():
+    docs = REPO_DIR / "docs"
+    for manifest_path in [
+        docs / "model-skill/manifest.json",
+        docs / "explainability/manifest.json",
+    ]:
+        manifest = json.loads(manifest_path.read_text())
+        assert manifest["schema_version"] == 1
+        for figure in manifest["figures"]:
+            assert (docs / figure["path"]).is_file()
+
+    index = json.loads((docs / "verification/index.json").read_text())
+    assert index["dataset_class"] == "realtime-issued-verification"
+    daily_dates = set(index["daily_dates"])
+    for day in daily_dates:
+        record = json.loads((docs / f"verification/daily/{day}.json").read_text())
+        assert record["dataset_class"] == "realtime-issued-verification"
+        for thresholds in record["products"].values():
+            assert set(thresholds) == {"5", "15", "40", "70"}
+            for metrics in thresholds.values():
+                for count_name in [
+                    "hits",
+                    "misses",
+                    "false_alarms",
+                    "correct_negatives",
+                    "sample_count",
+                ]:
+                    assert isinstance(metrics[count_name], int)
+                    assert metrics[count_name] >= 0
+                for value in metrics.values():
+                    assert value is None or not isinstance(value, float) or math.isfinite(value)
+
+    rolling = json.loads((docs / "verification/rolling/latest.json").read_text())
+    assert rolling["dataset_class"] == "realtime-issued-verification"
+    for window in rolling["windows"].values():
+        assert set(window["verified_dates"]).issubset(daily_dates)
+        assert window["missing_day_count"] >= 0
+        assert window["start_date"] <= window["end_date"]
+
+
+if __name__ == "__main__":
+    test_categorical_metrics_zero_denominators_are_null()
+    test_threshold_boundaries_are_inclusive()
+    test_december_is_assigned_to_following_djf()
+    test_pooled_counts_are_recalculated()
+    test_published_manifests_and_verification_contracts()
+    print("Dashboard data unit tests passed.")

@@ -1,0 +1,103 @@
+{
+  "dataset_class": "formal-independent-test-set",
+  "figures": [
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "metric": "ETS",
+      "model": "XGBoost v33 radius configurations and WPC ERO",
+      "path": "model-skill/ets_ufvs_any_violin.png",
+      "source_function": "run_final_bs_ets_verification_plots / _plot_violin_metric",
+      "source_script": "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb",
+      "target": "Any combined raw UFVS flood proxy expanded 40 km",
+      "test_case_count": 45,
+      "test_date_range": "20240610\u201320250729",
+      "test_period": "2024\u20132025",
+      "thresholds_percent": [
+        5,
+        15,
+        40,
+        70
+      ],
+      "title": "UFVS any-flood-proxy ETS"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "metric": "Brier Score",
+      "model": "XGBoost v33 radius configurations and WPC ERO",
+      "path": "model-skill/brier_ufvs_any_violin.png",
+      "source_function": "run_final_bs_ets_verification_plots / _plot_violin_metric",
+      "source_script": "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb",
+      "target": "Any combined raw UFVS flood proxy expanded 40 km",
+      "test_case_count": 45,
+      "test_date_range": "20240610\u201320250729",
+      "test_period": "2024\u20132025",
+      "thresholds_percent": [
+        5,
+        15,
+        40,
+        70
+      ],
+      "title": "UFVS any-flood-proxy Brier Score"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "metric": "Brier Skill Score",
+      "model": "XGBoost v33 radius configurations and WPC ERO",
+      "path": "model-skill/bss_ufvs_any_violin.png",
+      "source_function": "run_final_bs_ets_verification_plots / _plot_violin_metric",
+      "source_script": "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb",
+      "target": "Any combined raw UFVS flood proxy expanded 40 km",
+      "test_case_count": 45,
+      "test_date_range": "20240610\u201320250729",
+      "test_period": "2024\u20132025",
+      "thresholds_percent": [
+        5,
+        15,
+        40,
+        70
+      ],
+      "title": "UFVS any-flood-proxy Brier Skill Score"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "metric": "ETS",
+      "model": "XGBoost v33 radius configurations and WPC ERO",
+      "path": "model-skill/ets_practically_perfect.png",
+      "source_function": "compute_ets_pod_far / run_final_bs_ets_verification_plots",
+      "source_script": "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb",
+      "target": "Practically Perfect: Any flood proxy",
+      "test_case_count": 45,
+      "test_date_range": "20240610\u201320250729",
+      "test_period": "2024\u20132025",
+      "thresholds_percent": [
+        5,
+        15,
+        40,
+        70
+      ],
+      "title": "Practically Perfect ETS by threshold"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "metric": "Risk-area occurrence",
+      "model": "XGBoost v33 radius configurations and WPC ERO",
+      "path": "model-skill/risk_area_occurrence.png",
+      "source_function": "compute_risk_heatmaps_centroids_area_displacement / plot_risk_area_heatmap_panels",
+      "source_script": "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb",
+      "target": "Practically Perfect: Any flood proxy",
+      "test_case_count": 45,
+      "test_date_range": "20240610\u201320250729",
+      "test_period": "2024\u20132025",
+      "thresholds_percent": [
+        5,
+        15,
+        40,
+        70
+      ],
+      "title": "Common-case risk-area occurrence"
+    }
+  ],
+  "generated_utc": "2026-07-19T15:11:12Z",
+  "schema_version": 1,
+  "test_period": "2024\u20132025"
+}

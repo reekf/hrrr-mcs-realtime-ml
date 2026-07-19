@@ -1,0 +1,45 @@
+# XGBFFP Build-Week Changelog
+
+## Existing before this extension
+
+The repository already had the operational v33 forecast/verification pipeline,
+GitHub Pages forecast archive, 2D and fixed-angle 3D maps, multiradius ML and
+ensemble/WPC/Practically Perfect layers, predictor overlays, radar, NWS flood
+alerts, IEM LSRs, mPING reports, and 40-km observation/report rings.
+
+Relevant dated commits include:
+
+- `e0d9d3a` (2026-07-03): interactive ML forecast map
+- `0c58b9a` (2026-07-04): fixed-angle 3D probability map
+- `3caddb4` (2026-07-04): 40-km proxy/report rings
+- `690a83d` (2026-07-08): radar and publish hardening
+- `04d04fa` and `b74ef5a` (2026-07-08): predictor and flood-alert layers
+- `f5f3455` (2026-07-13): r60kmV2 website forecast routing
+
+## Added in the 2026-07-19 extension
+
+- XGBoosted Flash Flood Predictions/XGBFFP product naming
+- direct-link Forecast, Model Skill, Running Verification, Explainability, and
+  About views
+- click-to-select Location Briefing with actual grid probabilities
+- standard-member agreement, deterministic interpretation, predictor values,
+  nearby alert/report/proxy context, and Copy Briefing
+- finalized 2024–2025 ETS, Brier Score/BSS, PP ETS, risk-occurrence, and SHAP
+  assets with machine-readable manifests
+- daily and pooled weekly/monthly/seasonal issued-forecast verification JSON
+- automated manifest/schema/unit validation and publisher integration
+- responsive/mobile dashboard and briefing layouts
+
+## Human scientific and product decisions
+
+Human-authored project logic remains authoritative for model targets,
+predictors, risk thresholds, Practically Perfect construction, UFVS proxy
+definitions, figure styling, and final test-set interpretation. The extension
+does not retrain models or change those contracts.
+
+## Codex contribution
+
+Codex audited the existing implementation, connected saved scientific outputs
+to the website, implemented the browser and publishing changes, and added
+tests/documentation. The repository does not record an exact underlying model
+version, so this changelog does not fabricate a “GPT-5.6” attribution.

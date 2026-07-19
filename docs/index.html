@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>ML-Based Flash Flood Forecast for Mesoscale Convective Systems</title>
+  <title>XGBoosted Flash Flood Predictions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#090b0d">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,10 +20,18 @@
     <div class="brand">
       <span class="brand-mark" aria-hidden="true">FF</span>
       <div>
-        <h1>ML Flash-Flood Forecast</h1>
+        <h1>XGBoosted Flash Flood Predictions</h1>
         <span class="experimental-label">Experimental</span>
       </div>
     </div>
+
+    <nav class="product-nav" aria-label="Primary">
+      <a href="?view=forecast" data-site-view="forecast" aria-current="page">Forecast</a>
+      <a href="?view=skill" data-site-view="skill">Model Skill</a>
+      <a href="?view=running" data-site-view="running">Running Verification</a>
+      <a href="?view=explainability" data-site-view="explainability">Explainability</a>
+      <a href="?view=about" data-site-view="about">About</a>
+    </nav>
 
     <div class="date-controls">
       <label for="date-select">Forecast</label>
@@ -190,6 +198,156 @@
   <div id="product-message" class="product-message" role="status"></div>
   <div id="loading" class="loading" role="status">Loading map data…</div>
 
+  <aside id="location-briefing" class="location-briefing" aria-labelledby="location-briefing-title" hidden>
+    <div class="briefing-header">
+      <div>
+        <span class="eyebrow">Selected-grid guidance</span>
+        <h2 id="location-briefing-title">Location Briefing</h2>
+      </div>
+      <button id="clear-location" class="round-button" type="button" aria-label="Clear selected location">×</button>
+    </div>
+    <div id="location-briefing-content" class="briefing-content"></div>
+    <div class="briefing-actions">
+      <button id="copy-briefing" class="primary-button" type="button">Copy Briefing</button>
+      <span id="copy-briefing-status" class="availability-note" role="status"></span>
+    </div>
+  </aside>
+
+  <main id="dashboard" class="dashboard" hidden>
+    <section id="view-skill" class="dashboard-view" data-dashboard-view="skill" hidden>
+      <div class="dashboard-hero">
+        <span class="eyebrow">Independent evaluation</span>
+        <h2>Formal Test-Set Model Skill</h2>
+        <p>These figures summarize performance on the independent 2024–2025 test set. They are separate from the running verification of forecasts issued by this real-time website. No single metric fully describes forecast quality.</p>
+      </div>
+      <div id="skill-status" class="dashboard-status" role="status">Loading finalized model-skill outputs…</div>
+      <div id="skill-figures" class="figure-grid"></div>
+      <section class="dashboard-card">
+        <div class="card-heading">
+          <div>
+            <span class="eyebrow">Forecast frequency</span>
+            <h3>Risk issuance and observed occurrence</h3>
+          </div>
+          <label>Threshold
+            <select id="skill-frequency-threshold">
+              <option value="5">Marginal or greater</option>
+              <option value="15">Slight or greater</option>
+              <option value="40" selected>Moderate or greater</option>
+              <option value="70">High</option>
+            </select>
+          </label>
+        </div>
+        <p>Issuing more Moderate or High risks can increase detection of important events, but it can also increase false alarms and forecast area. Risk frequency should therefore be interpreted with POD, FAR, ETS, frequency bias, and observed occurrence.</p>
+        <div id="skill-frequency-chart" class="bar-chart" aria-label="Risk-frequency comparison"></div>
+        <div id="skill-frequency-answer" class="callout"></div>
+      </section>
+    </section>
+
+    <section id="view-running" class="dashboard-view" data-dashboard-view="running" hidden>
+      <div class="dashboard-hero">
+        <span class="eyebrow">Issued-forecast record</span>
+        <h2>Running Real-Time Verification</h2>
+        <p>Running verification summarizes forecasts produced by this experimental real-time pipeline after their valid periods have ended. Statistics may change substantially when only a small number of cases are available.</p>
+      </div>
+      <div class="dashboard-toolbar">
+        <label>Window
+          <select id="running-window">
+            <option value="weekly">Latest 7 verified</option>
+            <option value="monthly">Trailing 30 days</option>
+            <option value="seasonal">Season to date</option>
+          </select>
+        </label>
+        <label>Metric
+          <select id="running-metric">
+            <option value="ets">ETS</option>
+            <option value="csi">CSI</option>
+            <option value="pod">POD</option>
+            <option value="far">FAR</option>
+            <option value="frequency_bias">Frequency bias</option>
+            <option value="brier_score">Brier Score</option>
+            <option value="brier_skill_score">Brier Skill Score</option>
+          </select>
+        </label>
+        <label>Threshold
+          <select id="running-threshold">
+            <option value="5">Marginal or greater</option>
+            <option value="15">Slight or greater</option>
+            <option value="40">Moderate or greater</option>
+            <option value="70">High</option>
+          </select>
+        </label>
+        <a class="text-button" id="running-json-download" href="verification/rolling/weekly.json" download>Download JSON</a>
+      </div>
+      <div id="running-status" class="dashboard-status" role="status">Loading issued-forecast verification…</div>
+      <div id="running-summary" class="summary-strip"></div>
+      <div id="running-warning" class="warning-callout" hidden></div>
+      <section class="dashboard-card">
+        <div id="running-chart" class="bar-chart metric-chart" aria-label="Running metric comparison"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Product</th><th>Value</th><th>Cases</th><th>Samples</th><th>Hits</th><th>Misses</th><th>False alarms</th></tr></thead>
+            <tbody id="running-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section id="view-explainability" class="dashboard-view" data-dashboard-view="explainability" hidden>
+      <div class="dashboard-hero">
+        <span class="eyebrow">Model transparency</span>
+        <h2>Global SHAP Explainability</h2>
+        <p>SHAP values estimate how strongly each predictor shifts the model prediction away from its average prediction. Positive and negative effects are relative to the fitted model and do not establish causation.</p>
+      </div>
+      <div class="dashboard-toolbar">
+        <label>Model
+          <select id="shap-model">
+            <option value="r60">r60</option>
+            <option value="r100">r100</option>
+          </select>
+        </label>
+        <label>Figure
+          <select id="shap-kind">
+            <option value="beeswarm">Beeswarm summary</option>
+            <option value="importance">Mean |SHAP| importance</option>
+            <option value="dependence">Dependence plots</option>
+          </select>
+        </label>
+      </div>
+      <div id="explainability-status" class="dashboard-status" role="status">Loading finalized SHAP figures…</div>
+      <figure id="shap-figure" class="dashboard-figure" hidden>
+        <img id="shap-image" alt="">
+        <figcaption id="shap-caption"></figcaption>
+      </figure>
+      <div class="caveat-grid">
+        <p>SHAP describes the fitted model, not physical causality.</p>
+        <p>Correlated predictors can share or redistribute apparent importance.</p>
+        <p>Dependence patterns may reflect interactions and may not represent future distribution shifts.</p>
+      </div>
+    </section>
+
+    <section id="view-about" class="dashboard-view" data-dashboard-view="about" hidden>
+      <div class="dashboard-hero">
+        <span class="eyebrow">About XGBFFP</span>
+        <h2>XGBoosted Flash Flood Predictions</h2>
+        <p>XGBFFP is experimental XGBoost guidance for flash-flood potential associated with mesoscale convective systems. It combines multiple neighborhood-radius models with WPC ERO context, post-event verification, environmental diagnostics, and model-transparency products.</p>
+      </div>
+      <div class="about-grid">
+        <section class="dashboard-card">
+          <h3>Forecast guidance</h3>
+          <p>The map displays 40-, 60-, 75-, and 100-km neighborhood configurations, an experimental 60-km V2 member, an ensemble mean, and the official WPC ERO reference.</p>
+        </section>
+        <section class="dashboard-card">
+          <h3>Three evaluation populations</h3>
+          <p>Formal independent 2024–2025 test-set results, running verification of issued forecasts, and individual event context are intentionally kept separate.</p>
+        </section>
+        <section class="dashboard-card">
+          <h3>Important limitation</h3>
+          <p>Experimental machine-learning guidance. Not an official NWS forecast, watch, or warning.</p>
+        </section>
+      </div>
+    </section>
+  </main>
+
   <dialog id="about-dialog" class="site-dialog">
     <div class="dialog-header">
       <span>About this product</span>
@@ -248,6 +406,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js" crossorigin=""></script>
-  <script src="app.js?v=20260712-r60kmv2-1"></script>
+  <script src="briefing.js?v=20260719-xgbffp-1"></script>
+  <script src="app.js?v=20260719-xgbffp-1"></script>
 </body>
 </html>
