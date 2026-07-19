@@ -760,7 +760,7 @@ body:has(.location-briefing:not([hidden])) .predictor-legend { right: 420px; }
 .dashboard-hero h2 { margin-top: 5px; font-size: clamp(1.55rem, 3vw, 2.7rem); }
 .dashboard-hero p { color: #b7c1c7; line-height: 1.7; }
 .dashboard-status { margin: 14px 0; color: var(--muted); font-size: 0.75rem; }
-.figure-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.figure-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
 
 .dashboard-figure {
   margin: 0;
@@ -771,6 +771,8 @@ body:has(.location-briefing:not([hidden])) .predictor-legend { right: 420px; }
 .dashboard-figure img { width: 100%; height: auto; display: block; background: #fff; }
 .dashboard-figure figcaption { display: grid; gap: 5px; padding: 13px 15px; color: #b7c1c7; font-size: 0.7rem; line-height: 1.45; }
 .dashboard-figure figcaption strong { color: #fff; font-size: 0.78rem; }
+.dashboard-figure figcaption a { color: #7fc9f3; width: fit-content; }
+.full-resolution-image { display: block; }
 
 .dashboard-card {
   margin-top: 20px;
@@ -803,9 +805,9 @@ body:has(.location-briefing:not([hidden])) .predictor-legend { right: 420px; }
 .bar-chart { display: grid; gap: 14px; margin-top: 18px; }
 .bar-group { display: grid; gap: 5px; }
 .bar-group > strong { font-size: 0.72rem; }
-.bar-row, .metric-bar-row { display: grid; grid-template-columns: 120px minmax(80px, 1fr) 55px; align-items: center; gap: 9px; font-size: 0.68rem; }
+.bar-row, .metric-bar-row { display: grid; grid-template-columns: 120px minmax(80px, 1fr) 75px; align-items: center; gap: 9px; font-size: 0.68rem; }
 .bar-row i, .metric-bar-row i { height: 13px; display: block; background: linear-gradient(90deg, #427ca1 var(--bar-width), #1b2329 var(--bar-width)); }
-.bar-row.observed i { background: linear-gradient(90deg, #d7c169 var(--bar-width), #1b2329 var(--bar-width)); }
+.bar-row.misses i { background: linear-gradient(90deg, #d7c169 var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row b, .metric-bar-row b { text-align: right; }
 .chart-heading { color: #fff; font-size: 0.78rem; }
 .metric-chart { margin-bottom: 22px; }
@@ -992,5 +994,5 @@ noscript {
   .product-nav a { padding: 0 8px; font-size: 0.62rem; }
   .summary-strip { grid-template-columns: 1fr; }
   .card-heading { align-items: flex-start; flex-direction: column; }
-  .bar-row, .metric-bar-row { grid-template-columns: 92px minmax(60px, 1fr) 44px; }
+  .bar-row, .metric-bar-row { grid-template-columns: 92px minmax(60px, 1fr) 70px; }
 }

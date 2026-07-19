@@ -279,76 +279,93 @@ def copy_asset(source: Path, destination: Path) -> None:
 
 
 def publish_skill_assets(project_dir: Path, docs_dir: Path, generated: str) -> dict:
-    violin = project_dir / "paper_verification_violin_plots_v17"
     final = project_dir / "paper_verification_bs_ets_final"
-    heatmaps = project_dir / "risk_area_heatmaps_centroids"
     specs = [
-        (
-            violin / "ETS_proxy_UFVS_ANY_violin.png",
-            "model-skill/ets_ufvs_any_violin.png",
-            "UFVS any-flood-proxy ETS",
-            "ETS",
-            "Any combined raw UFVS flood proxy expanded 40 km",
-            "run_final_bs_ets_verification_plots / _plot_violin_metric",
-        ),
-        (
-            violin / "Brier_Score_UFVS_ANY_violin.png",
-            "model-skill/brier_ufvs_any_violin.png",
-            "UFVS any-flood-proxy Brier Score",
-            "Brier Score",
-            "Any combined raw UFVS flood proxy expanded 40 km",
-            "run_final_bs_ets_verification_plots / _plot_violin_metric",
-        ),
-        (
-            violin / "BSS_UFVS_ANY_violin.png",
-            "model-skill/bss_ufvs_any_violin.png",
-            "UFVS any-flood-proxy Brier Skill Score",
-            "Brier Skill Score",
-            "Any combined raw UFVS flood proxy expanded 40 km",
-            "run_final_bs_ets_verification_plots / _plot_violin_metric",
-        ),
-        (
-            final / "ets_pp_any_flood_proxy_ets.png",
-            "model-skill/ets_practically_perfect.png",
-            "Practically Perfect ETS by threshold",
-            "ETS",
-            "Practically Perfect: Any flood proxy",
-            "compute_ets_pod_far / run_final_bs_ets_verification_plots",
-        ),
-        (
-            heatmaps
-            / "risk_area_occurrence_heatmaps_common_case_displacement_markers_pp_binned_mean_radii_per_date_raw.png",
-            "model-skill/risk_area_occurrence.png",
-            "Common-case risk-area occurrence",
-            "Risk-area occurrence",
-            "Practically Perfect: Any flood proxy",
-            "compute_risk_heatmaps_centroids_area_displacement / plot_risk_area_heatmap_panels",
-        ),
+        {
+            "source_name": "ets_any_flood_proxy_ets.png",
+            "path": "model-skill/ets_any_flood_proxy.png",
+            "title": "Any Flood Proxy ETS",
+            "metric": "ETS",
+            "target": "Any flood proxy",
+            "thresholds_percent": [5],
+            "source_function": "compute_ets_pod_far / run_final_bs_ets_verification_plots",
+        },
+        {
+            "source_name": "ets_mrms_ffg_ets.png",
+            "path": "model-skill/ets_mrms_ffg.png",
+            "title": "MRMS > FFG ETS",
+            "metric": "ETS",
+            "target": "MRMS > FFG",
+            "thresholds_percent": [5],
+            "source_function": "compute_ets_pod_far / run_final_bs_ets_verification_plots",
+        },
+        {
+            "source_name": "ets_pp_any_flood_proxy_ets.png",
+            "path": "model-skill/ets_practically_perfect.png",
+            "title": "Practically Perfect ETS by threshold",
+            "metric": "ETS",
+            "target": "Practically Perfect: Any flood proxy",
+            "thresholds_percent": list(THRESHOLDS),
+            "source_function": "compute_ets_pod_far / run_final_bs_ets_verification_plots",
+        },
+        {
+            "source_name": "bs_any_flood_proxy_include_exclude_marginal.png",
+            "path": "model-skill/brier_any_flood_proxy_including_excluding_marginal.png",
+            "title": "Any Flood Proxy Brier Score",
+            "metric": "Brier Score",
+            "target": "Any flood proxy",
+            "thresholds_percent": [5, 15],
+            "evaluations": ["Including Marginal", "Excluding Marginal"],
+            "source_function": "run_final_bs_ets_verification_plots",
+        },
+        {
+            "source_name": "bs_mrms_ffg_include_exclude_marginal.png",
+            "path": "model-skill/brier_mrms_ffg_including_excluding_marginal.png",
+            "title": "MRMS > FFG Brier Score",
+            "metric": "Brier Score",
+            "target": "MRMS > FFG",
+            "thresholds_percent": [5, 15],
+            "evaluations": ["Including Marginal", "Excluding Marginal"],
+            "source_function": "run_final_bs_ets_verification_plots",
+        },
     ]
+    for stale_name in [
+        "ets_ufvs_any_violin.png",
+        "brier_ufvs_any_violin.png",
+        "bss_ufvs_any_violin.png",
+        "risk_area_occurrence.png",
+    ]:
+        (docs_dir / "model-skill" / stale_name).unlink(missing_ok=True)
+
     figures = []
-    for source, relative, title, metric, target, function in specs:
+    for spec in specs:
+        source = final / spec["source_name"]
+        relative = spec["path"]
         destination = docs_dir / relative
         copy_asset(source, destination)
-        figures.append(
-            {
-                "title": title,
-                "metric": metric,
-                "target": target,
-                "thresholds_percent": list(THRESHOLDS),
-                "test_period": "2024–2025",
-                "test_case_count": 45,
-                "test_date_range": "20240610–20250729",
-                "model": "XGBoost v33 radius configurations and WPC ERO",
-                "source_script": (
-                    "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_"
-                    "REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_"
-                    "v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb"
-                ),
-                "source_function": function,
-                "generated_utc": generated,
-                "path": relative,
-            }
-        )
+        figure = {
+            "title": spec["title"],
+            "metric": spec["metric"],
+            "target": spec["target"],
+            "thresholds_percent": spec["thresholds_percent"],
+            "test_period": "2024–2025",
+            "test_case_count": 45,
+            "test_date_range": "20240610–20250729",
+            "model": "XGBoost v33 radius configurations and WPC ERO",
+            "source_script": (
+                "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_"
+                "REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_"
+                "v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb"
+            ),
+            "source_directory": "paper_verification_bs_ets_final",
+            "source_asset": f"paper_verification_bs_ets_final/{spec['source_name']}",
+            "source_function": spec["source_function"],
+            "generated_utc": generated,
+            "path": relative,
+        }
+        if "evaluations" in spec:
+            figure["evaluations"] = spec["evaluations"]
+        figures.append(figure)
     manifest = {
         "schema_version": 1,
         "dataset_class": "formal-independent-test-set",
@@ -364,31 +381,34 @@ def publish_risk_frequency(project_dir: Path, docs_dir: Path, generated: str) ->
     source = project_dir / "paper_verification_bs_ets_final/ets_pp_any_flood_proxy_metrics.csv"
     if not source.is_file():
         raise FileNotFoundError(source)
-    grouped: dict[tuple[str, int], dict[str, set[str]]] = defaultdict(
-        lambda: {"forecast": set(), "observed": set()}
+    excluded_sources = {"ML Local PMM 100km", "ML Ensemble Max", "ML r100kmV2"}
+    grouped: dict[tuple[str, int], dict[str, int]] = defaultdict(
+        lambda: {"false_alarms": 0, "misses": 0}
     )
     with source.open(newline="") as handle:
         for row in csv.DictReader(handle):
+            if row["Source"] in excluded_sources:
+                continue
             threshold = int(round(float(row["Threshold"]) * 100))
             if threshold not in THRESHOLDS:
                 continue
             key = (row["Source"], threshold)
-            if int(row["Hits"]) + int(row["False Alarms"]) > 0:
-                grouped[key]["forecast"].add(row["Date"])
-            if int(row["Hits"]) + int(row["Misses"]) > 0:
-                grouped[key]["observed"].add(row["Date"])
+            grouped[key]["false_alarms"] += int(row["False Alarms"])
+            grouped[key]["misses"] += int(row["Misses"])
     products: dict[str, dict] = defaultdict(dict)
     for (source_label, threshold), values in sorted(grouped.items()):
         products[source_label][str(threshold)] = {
             "threshold_label": THRESHOLD_LABELS[threshold],
-            "forecast_day_count": len(values["forecast"]),
-            "observed_day_count": len(values["observed"]),
+            "false_alarm_grid_cell_count": values["false_alarms"],
+            "miss_grid_cell_count": values["misses"],
         }
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "dataset_class": "formal-independent-test-set",
         "test_period": "2024–2025",
         "verification_target": "Practically Perfect: Any flood proxy",
+        "count_unit": "summed grid-cell contingency counts across 45 test cases",
+        "excluded_products": sorted(excluded_sources),
         "generated_utc": generated,
         "products": dict(products),
         "source_table": "paper_verification_bs_ets_final/ets_pp_any_flood_proxy_metrics.csv",
@@ -476,20 +496,28 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-dir", type=Path, default=DEFAULT_PROJECT_DIR)
     parser.add_argument("--docs-dir", type=Path, default=DOCS_DIR)
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--verification-only",
         action="store_true",
         help="Refresh only realtime daily/rolling verification JSON.",
+    )
+    mode.add_argument(
+        "--skill-only",
+        action="store_true",
+        help="Refresh only formal test-set skill figures and contingency counts.",
     )
     args = parser.parse_args()
     generated = utc_now()
     if not args.verification_only:
         skill = publish_skill_assets(args.project_dir, args.docs_dir, generated)
         publish_risk_frequency(args.project_dir, args.docs_dir, generated)
-        explainability = publish_explainability_assets(args.project_dir, args.docs_dir, generated)
         validate_manifest_paths(args.docs_dir, skill)
-        validate_manifest_paths(args.docs_dir, explainability)
-    publish_realtime_verification(args.docs_dir, generated)
+        if not args.skill_only:
+            explainability = publish_explainability_assets(args.project_dir, args.docs_dir, generated)
+            validate_manifest_paths(args.docs_dir, explainability)
+    if not args.skill_only:
+        publish_realtime_verification(args.docs_dir, generated)
     print(f"Published XGBFFP dashboard data under {args.docs_dir}")
     return 0
 
