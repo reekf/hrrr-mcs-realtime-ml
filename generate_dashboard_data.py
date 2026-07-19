@@ -291,15 +291,6 @@ def publish_skill_assets(project_dir: Path, docs_dir: Path, generated: str) -> d
             "source_function": "compute_ets_pod_far / run_final_bs_ets_verification_plots",
         },
         {
-            "source_name": "ets_mrms_ffg_ets.png",
-            "path": "model-skill/ets_mrms_ffg.png",
-            "title": "MRMS > FFG ETS",
-            "metric": "ETS",
-            "target": "MRMS > FFG",
-            "thresholds_percent": [5],
-            "source_function": "compute_ets_pod_far / run_final_bs_ets_verification_plots",
-        },
-        {
             "source_name": "ets_pp_any_flood_proxy_ets.png",
             "path": "model-skill/ets_practically_perfect.png",
             "title": "Practically Perfect ETS by threshold",
@@ -318,22 +309,14 @@ def publish_skill_assets(project_dir: Path, docs_dir: Path, generated: str) -> d
             "evaluations": ["Including Marginal", "Excluding Marginal"],
             "source_function": "run_final_bs_ets_verification_plots",
         },
-        {
-            "source_name": "bs_mrms_ffg_include_exclude_marginal.png",
-            "path": "model-skill/brier_mrms_ffg_including_excluding_marginal.png",
-            "title": "MRMS > FFG Brier Score",
-            "metric": "Brier Score",
-            "target": "MRMS > FFG",
-            "thresholds_percent": [5, 15],
-            "evaluations": ["Including Marginal", "Excluding Marginal"],
-            "source_function": "run_final_bs_ets_verification_plots",
-        },
     ]
     for stale_name in [
         "ets_ufvs_any_violin.png",
         "brier_ufvs_any_violin.png",
         "bss_ufvs_any_violin.png",
         "risk_area_occurrence.png",
+        "ets_mrms_ffg.png",
+        "brier_mrms_ffg_including_excluding_marginal.png",
     ]:
         (docs_dir / "model-skill" / stale_name).unlink(missing_ok=True)
 
@@ -383,7 +366,7 @@ def publish_risk_frequency(project_dir: Path, docs_dir: Path, generated: str) ->
         raise FileNotFoundError(source)
     excluded_sources = {"ML Local PMM 100km", "ML Ensemble Max", "ML r100kmV2"}
     grouped: dict[tuple[str, int], dict[str, int]] = defaultdict(
-        lambda: {"false_alarms": 0, "misses": 0}
+        lambda: {"hits": 0, "false_alarms": 0, "misses": 0}
     )
     with source.open(newline="") as handle:
         for row in csv.DictReader(handle):
@@ -393,17 +376,19 @@ def publish_risk_frequency(project_dir: Path, docs_dir: Path, generated: str) ->
             if threshold not in THRESHOLDS:
                 continue
             key = (row["Source"], threshold)
+            grouped[key]["hits"] += int(row["Hits"])
             grouped[key]["false_alarms"] += int(row["False Alarms"])
             grouped[key]["misses"] += int(row["Misses"])
     products: dict[str, dict] = defaultdict(dict)
     for (source_label, threshold), values in sorted(grouped.items()):
         products[source_label][str(threshold)] = {
             "threshold_label": THRESHOLD_LABELS[threshold],
+            "hit_grid_cell_count": values["hits"],
             "false_alarm_grid_cell_count": values["false_alarms"],
             "miss_grid_cell_count": values["misses"],
         }
     payload = {
-        "schema_version": 2,
+        "schema_version": 3,
         "dataset_class": "formal-independent-test-set",
         "test_period": "2024–2025",
         "verification_target": "Practically Perfect: Any flood proxy",

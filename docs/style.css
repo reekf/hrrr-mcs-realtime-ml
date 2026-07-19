@@ -807,6 +807,8 @@ body:has(.location-briefing:not([hidden])) .predictor-legend { right: 420px; }
 .bar-group > strong { font-size: 0.72rem; }
 .bar-row, .metric-bar-row { display: grid; grid-template-columns: 120px minmax(80px, 1fr) 75px; align-items: center; gap: 9px; font-size: 0.68rem; }
 .bar-row i, .metric-bar-row i { height: 13px; display: block; background: linear-gradient(90deg, #427ca1 var(--bar-width), #1b2329 var(--bar-width)); }
+.bar-row.hits i { background: linear-gradient(90deg, #4d9b68 var(--bar-width), #1b2329 var(--bar-width)); }
+.bar-row.false-alarms i { background: linear-gradient(90deg, #b65a4c var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row.misses i { background: linear-gradient(90deg, #d7c169 var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row b, .metric-bar-row b { text-align: right; }
 .chart-heading { color: #fff; font-size: 0.78rem; }

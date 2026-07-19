@@ -2,7 +2,7 @@
   "dataset_class": "formal-independent-test-set",
   "figures": [
     {
-      "generated_utc": "2026-07-19T15:48:35Z",
+      "generated_utc": "2026-07-19T16:09:27Z",
       "metric": "ETS",
       "model": "XGBoost v33 radius configurations and WPC ERO",
       "path": "model-skill/ets_any_flood_proxy.png",
@@ -20,25 +20,7 @@
       "title": "Any Flood Proxy ETS"
     },
     {
-      "generated_utc": "2026-07-19T15:48:35Z",
-      "metric": "ETS",
-      "model": "XGBoost v33 radius configurations and WPC ERO",
-      "path": "model-skill/ets_mrms_ffg.png",
-      "source_asset": "paper_verification_bs_ets_final/ets_mrms_ffg_ets.png",
-      "source_directory": "paper_verification_bs_ets_final",
-      "source_function": "compute_ets_pod_far / run_final_bs_ets_verification_plots",
-      "source_script": "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb",
-      "target": "MRMS > FFG",
-      "test_case_count": 45,
-      "test_date_range": "20240610\u201320250729",
-      "test_period": "2024\u20132025",
-      "thresholds_percent": [
-        5
-      ],
-      "title": "MRMS > FFG ETS"
-    },
-    {
-      "generated_utc": "2026-07-19T15:48:35Z",
+      "generated_utc": "2026-07-19T16:09:27Z",
       "metric": "ETS",
       "model": "XGBoost v33 radius configurations and WPC ERO",
       "path": "model-skill/ets_practically_perfect.png",
@@ -63,7 +45,7 @@
         "Including Marginal",
         "Excluding Marginal"
       ],
-      "generated_utc": "2026-07-19T15:48:35Z",
+      "generated_utc": "2026-07-19T16:09:27Z",
       "metric": "Brier Score",
       "model": "XGBoost v33 radius configurations and WPC ERO",
       "path": "model-skill/brier_any_flood_proxy_including_excluding_marginal.png",
@@ -80,32 +62,9 @@
         15
       ],
       "title": "Any Flood Proxy Brier Score"
-    },
-    {
-      "evaluations": [
-        "Including Marginal",
-        "Excluding Marginal"
-      ],
-      "generated_utc": "2026-07-19T15:48:35Z",
-      "metric": "Brier Score",
-      "model": "XGBoost v33 radius configurations and WPC ERO",
-      "path": "model-skill/brier_mrms_ffg_including_excluding_marginal.png",
-      "source_asset": "paper_verification_bs_ets_final/bs_mrms_ffg_include_exclude_marginal.png",
-      "source_directory": "paper_verification_bs_ets_final",
-      "source_function": "run_final_bs_ets_verification_plots",
-      "source_script": "hazard_ml_v33_radiusstats_WORKING_BASELINE_PLUS_VERIFICATION_SHAP_REALTIME_MULTIRADIUS_ENSEMBLE_WPC_VALIDFIX_METRICS_PREDICTORS_v18_PP_EXCLUSIVE_PROXY_CUMULATIVE_VIOLINS.ipynb",
-      "target": "MRMS > FFG",
-      "test_case_count": 45,
-      "test_date_range": "20240610\u201320250729",
-      "test_period": "2024\u20132025",
-      "thresholds_percent": [
-        5,
-        15
-      ],
-      "title": "MRMS > FFG Brier Score"
     }
   ],
-  "generated_utc": "2026-07-19T15:48:35Z",
+  "generated_utc": "2026-07-19T16:09:27Z",
   "schema_version": 1,
   "test_period": "2024\u20132025"
 }

@@ -90,13 +90,15 @@ def test_published_manifests_and_verification_contracts():
             assert (docs / figure["path"]).is_file()
 
     skill = json.loads((docs / "model-skill/manifest.json").read_text())
-    assert len(skill["figures"]) == 5
-    assert [figure["metric"] for figure in skill["figures"]].count("ETS") == 3
-    assert [figure["metric"] for figure in skill["figures"]].count("Brier Score") == 2
+    assert len(skill["figures"]) == 3
+    assert [figure["metric"] for figure in skill["figures"]].count("ETS") == 2
+    assert [figure["metric"] for figure in skill["figures"]].count("Brier Score") == 1
     assert {figure["source_directory"] for figure in skill["figures"]} == {
         "paper_verification_bs_ets_final"
     }
     for figure in skill["figures"]:
+        assert "MRMS" not in figure["title"]
+        assert "MRMS" not in figure["target"]
         assert "Brier Skill Score" not in figure["title"]
         assert "risk-area" not in figure["title"].lower()
         if figure["metric"] == "Brier Score":
@@ -106,7 +108,7 @@ def test_published_manifests_and_verification_contracts():
             ]
 
     contingency = json.loads((docs / "model-skill/risk-frequency.json").read_text())
-    assert contingency["schema_version"] == 2
+    assert contingency["schema_version"] == 3
     assert set(contingency["excluded_products"]) == {
         "ML Local PMM 100km",
         "ML Ensemble Max",
@@ -115,8 +117,10 @@ def test_published_manifests_and_verification_contracts():
     assert not set(contingency["excluded_products"]) & set(contingency["products"])
     for thresholds in contingency["products"].values():
         for counts in thresholds.values():
+            assert isinstance(counts["hit_grid_cell_count"], int)
             assert isinstance(counts["false_alarm_grid_cell_count"], int)
             assert isinstance(counts["miss_grid_cell_count"], int)
+            assert counts["hit_grid_cell_count"] >= 0
             assert counts["false_alarm_grid_cell_count"] >= 0
             assert counts["miss_grid_cell_count"] >= 0
 
