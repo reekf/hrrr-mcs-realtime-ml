@@ -30,9 +30,6 @@ Undefined divisions are stored as JSON `null`, never infinity.
 
 - Brier Score is the mean squared difference between a forecast probability and
   a binary outcome. Lower is better.
-- Brier Skill Score is `1 - BS / BS_reference`. Higher is better. The realtime
-  rolling reference is the pooled observed climatology for the selected
-  Practically Perfect threshold.
 - RPSS is a ranked-probability skill score for multi-category forecasts. It is
   defined by the source notebook but is not published in the initial realtime
   JSON because the archive does not preserve the required ranked components.
@@ -58,9 +55,10 @@ For ETS, CSI, POD, FAR, and frequency bias, XGBFFP sums `H`, `M`, `F`, and `C`
 across verified dates and recalculates each metric. It does not average daily
 scores.
 
-For Brier Score, squared-error sums and sample counts are pooled. BSS is then
-recalculated from the pooled truth climatology. Every metric reports verified
-forecast count and grid sample count.
+For Brier Score, squared-error sums and sample counts are pooled. Every metric
+reports verified forecast count and grid sample count. Each product/threshold
+also reports the number of verified cases containing at least one forecast
+grid cell at or above the selected risk threshold.
 
 The verification target is `Practically Perfect: Any flood proxy`. Formal
 2024–2025 test cases and realtime-issued forecasts remain separate datasets.

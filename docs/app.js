@@ -106,7 +106,6 @@ const METRIC_META = {
   far: { label: "FAR", direction: "Lower is better" },
   frequency_bias: { label: "Frequency bias", direction: "Closer to 1 is better" },
   brier_score: { label: "Brier Score", direction: "Lower is better" },
-  brier_skill_score: { label: "Brier Skill Score", direction: "Higher is better" },
 };
 
 const state = {
@@ -2038,11 +2037,13 @@ function renderRunningDashboard() {
   const windowData = state.runningVerification?.windows?.[windowName];
   const status = document.getElementById("running-status");
   const summary = document.getElementById("running-summary");
+  const caseChart = document.getElementById("running-risk-cases-chart");
   const chart = document.getElementById("running-chart");
   const table = document.getElementById("running-table");
   const warning = document.getElementById("running-warning");
   const download = document.getElementById("running-json-download");
   chart.replaceChildren();
+  caseChart.replaceChildren();
   table.replaceChildren();
   summary.replaceChildren();
   download.href = `verification/rolling/${windowName}.json`;
@@ -2069,6 +2070,22 @@ function renderRunningDashboard() {
     label: PRODUCT_META[key]?.short || key,
     values: thresholds[threshold],
   })).filter((row) => row.values);
+  const maximumCases = Math.max(
+    ...rows.map((row) => Number(row.values.verified_forecast_count) || 0),
+    1,
+  );
+  const caseHeading = document.createElement("div");
+  caseHeading.className = "chart-heading";
+  caseHeading.textContent = `Cases issuing ${THRESHOLD_LABELS_CLIENT[threshold]}`;
+  caseChart.append(caseHeading);
+  for (const row of rows) {
+    const riskCases = Number(row.values.risk_case_count) || 0;
+    const verifiedCases = Number(row.values.verified_forecast_count) || 0;
+    const bar = document.createElement("div");
+    bar.className = "metric-bar-row risk-case-row";
+    bar.innerHTML = `<span>${row.label}</span><i style="--bar-width:${Math.min(100, riskCases / maximumCases * 100)}%"></i><b>${riskCases}/${verifiedCases}</b>`;
+    caseChart.append(bar);
+  }
   const finiteValues = rows.map((row) => Number(row.values[metric])).filter(Number.isFinite);
   const maximum = Math.max(...finiteValues.map(Math.abs), metric === "frequency_bias" ? 1 : 0.0001);
   const direction = METRIC_META[metric];
@@ -2087,6 +2104,7 @@ function renderRunningDashboard() {
     for (const cellValue of [
       row.label,
       metricValueText(value),
+      row.values.risk_case_count,
       row.values.verified_forecast_count,
       row.values.sample_count,
       row.values.hits,
@@ -2107,7 +2125,10 @@ async function loadRunningDashboard() {
     return;
   }
   try {
-    const response = await fetch("verification/rolling/latest.json");
+    const response = await fetch(
+      `verification/rolling/latest.json?v=${Date.now()}`,
+      { cache: "no-store" },
+    );
     if (!response.ok) throw new Error("Running verification unavailable");
     state.runningVerification = await response.json();
     renderRunningDashboard();

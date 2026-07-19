@@ -810,6 +810,7 @@ body:has(.location-briefing:not([hidden])) .predictor-legend { right: 420px; }
 .bar-row.hits i { background: linear-gradient(90deg, #4d9b68 var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row.false-alarms i { background: linear-gradient(90deg, #b65a4c var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row.misses i { background: linear-gradient(90deg, #d7c169 var(--bar-width), #1b2329 var(--bar-width)); }
+.risk-case-row i { background: linear-gradient(90deg, #7a5bc7 var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row b, .metric-bar-row b { text-align: right; }
 .chart-heading { color: #fff; font-size: 0.78rem; }
 .metric-chart { margin-bottom: 22px; }

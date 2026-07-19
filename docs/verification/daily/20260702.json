@@ -5,7 +5,6 @@
     "ml_mean": {
       "15": {
         "brier_score": 0.12508763,
-        "brier_skill_score": 0.17996502,
         "correct_negatives": 21297,
         "csi": 0.53259431,
         "ets": 0.46381534,
@@ -22,7 +21,6 @@
       },
       "40": {
         "brier_score": 0.03299415,
-        "brier_skill_score": 0.34642781,
         "correct_negatives": 25803,
         "csi": 0.14889467,
         "ets": 0.13967731,
@@ -39,7 +37,6 @@
       },
       "5": {
         "brier_score": 0.20593874,
-        "brier_skill_score": -0.00592122,
         "correct_negatives": 17294,
         "csi": 0.57997412,
         "ets": 0.45500384,
@@ -56,7 +53,6 @@
       },
       "70": {
         "brier_score": 0.01444903,
-        "brier_skill_score": -5.59865222,
         "correct_negatives": 27281,
         "csi": 0.0,
         "ets": 0.0,
@@ -75,7 +71,6 @@
     "ml_r100": {
       "15": {
         "brier_score": 0.10436873,
-        "brier_skill_score": 0.31579158,
         "correct_negatives": 19777,
         "csi": 0.51308831,
         "ets": 0.42262762,
@@ -92,7 +87,6 @@
       },
       "40": {
         "brier_score": 0.03483586,
-        "brier_skill_score": 0.30994587,
         "correct_negatives": 25100,
         "csi": 0.52610442,
         "ets": 0.50289589,
@@ -109,7 +103,6 @@
       },
       "5": {
         "brier_score": 0.17404204,
-        "brier_skill_score": 0.1498803,
         "correct_negatives": 16061,
         "csi": 0.56214539,
         "ets": 0.41718539,
@@ -126,7 +119,6 @@
       },
       "70": {
         "brier_score": 0.02947498,
-        "brier_skill_score": -12.46077502,
         "correct_negatives": 27281,
         "csi": 0.0,
         "ets": 0.0,
@@ -145,7 +137,6 @@
     "ml_r40": {
       "15": {
         "brier_score": 0.15769038,
-        "brier_skill_score": -0.03376831,
         "correct_negatives": 22113,
         "csi": 0.20141546,
         "ets": 0.16712651,
@@ -162,7 +153,6 @@
       },
       "40": {
         "brier_score": 0.04008393,
-        "brier_skill_score": 0.20598827,
         "correct_negatives": 25883,
         "csi": 0.00137174,
         "ets": 0.00129869,
@@ -179,7 +169,6 @@
       },
       "5": {
         "brier_score": 0.25018305,
-        "brier_skill_score": -0.22203544,
         "correct_negatives": 18978,
         "csi": 0.46968791,
         "ets": 0.37432093,
@@ -196,7 +185,6 @@
       },
       "70": {
         "brier_score": 0.00441596,
-        "brier_skill_score": -1.01670176,
         "correct_negatives": 27281,
         "csi": 0.0,
         "ets": 0.0,
@@ -215,7 +203,6 @@
     "ml_r60": {
       "15": {
         "brier_score": 0.13748656,
-        "brier_skill_score": 0.09868155,
         "correct_negatives": 21873,
         "csi": 0.45665691,
         "ets": 0.39815521,
@@ -232,7 +219,6 @@
       },
       "40": {
         "brier_score": 0.03421302,
-        "brier_skill_score": 0.32228354,
         "correct_negatives": 25852,
         "csi": 0.02014775,
         "ets": 0.01800245,
@@ -249,7 +235,6 @@
       },
       "5": {
         "brier_score": 0.22409225,
-        "brier_skill_score": -0.09459322,
         "correct_negatives": 17970,
         "csi": 0.5713371,
         "ets": 0.45695628,
@@ -266,7 +251,6 @@
       },
       "70": {
         "brier_score": 0.00973959,
-        "brier_skill_score": -3.4479226,
         "correct_negatives": 27281,
         "csi": 0.0,
         "ets": 0.0,
@@ -285,7 +269,6 @@
     "ml_r60v2": {
       "15": {
         "brier_score": 0.11681598,
-        "brier_skill_score": 0.23419134,
         "correct_negatives": 20367,
         "csi": 0.45483223,
         "ets": 0.36978567,
@@ -302,7 +285,6 @@
       },
       "40": {
         "brier_score": 0.03730937,
-        "brier_skill_score": 0.26094878,
         "correct_negatives": 25012,
         "csi": 0.29111207,
         "ets": 0.26504539,
@@ -319,7 +301,6 @@
       },
       "5": {
         "brier_score": 0.19144287,
-        "brier_skill_score": 0.06488481,
         "correct_negatives": 16948,
         "csi": 0.58106418,
         "ets": 0.45086978,
@@ -336,7 +317,6 @@
       },
       "70": {
         "brier_score": 0.02509036,
-        "brier_skill_score": -10.45838576,
         "correct_negatives": 27281,
         "csi": 0.0,
         "ets": 0.0,
@@ -355,7 +335,6 @@
     "ml_r75": {
       "15": {
         "brier_score": 0.12237028,
-        "brier_skill_score": 0.19777911,
         "correct_negatives": 21275,
         "csi": 0.52357402,
         "ets": 0.45416613,
@@ -372,7 +351,6 @@
       },
       "40": {
         "brier_score": 0.03182992,
-        "brier_skill_score": 0.36948972,
         "correct_negatives": 25711,
         "csi": 0.3196319,
         "ets": 0.3038488,
@@ -389,7 +367,6 @@
       },
       "5": {
         "brier_score": 0.20321978,
-        "brier_skill_score": 0.00735972,
         "correct_negatives": 17090,
         "csi": 0.57145644,
         "ets": 0.44248977,
@@ -406,7 +383,6 @@
       },
       "70": {
         "brier_score": 0.01682316,
-        "brier_skill_score": -6.68288128,
         "correct_negatives": 27281,
         "csi": 0.0,
         "ets": 0.0,
@@ -425,7 +401,6 @@
     "wpc": {
       "15": {
         "brier_score": 0.16373962,
-        "brier_skill_score": -0.07342521,
         "correct_negatives": 21471,
         "csi": 0.3197615,
         "ets": 0.25772832,
@@ -442,7 +417,6 @@
       },
       "40": {
         "brier_score": 0.0429357,
-        "brier_skill_score": 0.14949833,
         "correct_negatives": 25883,
         "csi": 0.0,
         "ets": 0.0,
@@ -459,7 +433,6 @@
       },
       "5": {
         "brier_score": 0.25617955,
-        "brier_skill_score": -0.25132573,
         "correct_negatives": 17838,
         "csi": 0.48995054,
         "ets": 0.36984542,
@@ -476,7 +449,6 @@
       },
       "70": {
         "brier_score": 0.00402344,
-        "brier_skill_score": -0.83744385,
         "correct_negatives": 27281,
         "csi": 0.0,
         "ets": 0.0,
@@ -493,7 +465,7 @@
       }
     }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "valid_period_label": "2026-07-02 12Z to 2026-07-03 12Z",
   "verification_target": "Practically Perfect: Any flood proxy"
 }

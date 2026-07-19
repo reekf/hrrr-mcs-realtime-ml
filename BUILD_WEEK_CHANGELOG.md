@@ -29,6 +29,8 @@ Relevant dated commits include:
   with machine-readable manifests
 - pooled hit, false-alarm, and miss comparison excluding Local PMM, ensemble
   maximum, and r100kmV2
+- running selected-risk case counts by ML/WPC product, with Moderate-or-greater
+  defaults and no published Brier Skill Score
 - daily and pooled weekly/monthly/seasonal issued-forecast verification JSON
 - automated manifest/schema/unit validation and publisher integration
 - responsive/mobile dashboard and briefing layouts

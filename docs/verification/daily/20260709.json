@@ -5,7 +5,6 @@
     "ml_mean": {
       "15": {
         "brier_score": 0.08406596,
-        "brier_skill_score": 0.25647459,
         "correct_negatives": 22009,
         "csi": 0.46005251,
         "ets": 0.39795642,
@@ -22,7 +21,6 @@
       },
       "40": {
         "brier_score": 0.01606888,
-        "brier_skill_score": 0.1435809,
         "correct_negatives": 26721,
         "csi": 0.60806452,
         "ets": 0.60224768,
@@ -39,7 +37,6 @@
       },
       "5": {
         "brier_score": 0.24018834,
-        "brier_skill_score": -0.10381473,
         "correct_negatives": 16174,
         "csi": 0.55001343,
         "ets": 0.40376165,
@@ -56,7 +53,6 @@
       },
       "70": {
         "brier_score": 0.01321441,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -75,7 +71,6 @@
     "ml_r100": {
       "15": {
         "brier_score": 0.07242602,
-        "brier_skill_score": 0.3594246,
         "correct_negatives": 20159,
         "csi": 0.41506544,
         "ets": 0.33560245,
@@ -92,7 +87,6 @@
       },
       "40": {
         "brier_score": 0.02729805,
-        "brier_skill_score": -0.45489738,
         "correct_negatives": 25712,
         "csi": 0.28422345,
         "ets": 0.27078829,
@@ -109,7 +103,6 @@
       },
       "5": {
         "brier_score": 0.20692783,
-        "brier_skill_score": 0.04903799,
         "correct_negatives": 15091,
         "csi": 0.53240816,
         "ets": 0.36655975,
@@ -126,7 +119,6 @@
       },
       "70": {
         "brier_score": 0.02916418,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -145,7 +137,6 @@
     "ml_r40": {
       "15": {
         "brier_score": 0.10479098,
-        "brier_skill_score": 0.07317116,
         "correct_negatives": 23686,
         "csi": 0.24705882,
         "ets": 0.21915762,
@@ -162,7 +153,6 @@
       },
       "40": {
         "brier_score": 0.01235347,
-        "brier_skill_score": 0.34160018,
         "correct_negatives": 26810,
         "csi": 0.14500942,
         "ets": 0.14238335,
@@ -179,7 +169,6 @@
       },
       "5": {
         "brier_score": 0.28274241,
-        "brier_skill_score": -0.29937713,
         "correct_negatives": 17917,
         "csi": 0.4049236,
         "ets": 0.2978502,
@@ -196,7 +185,6 @@
       },
       "70": {
         "brier_score": 0.00382993,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -215,7 +203,6 @@
     "ml_r60": {
       "15": {
         "brier_score": 0.09285433,
-        "brier_skill_score": 0.17874543,
         "correct_negatives": 22914,
         "csi": 0.42218206,
         "ets": 0.37158268,
@@ -232,7 +219,6 @@
       },
       "40": {
         "brier_score": 0.01350361,
-        "brier_skill_score": 0.28030146,
         "correct_negatives": 26808,
         "csi": 0.50281426,
         "ets": 0.49780379,
@@ -249,7 +235,6 @@
       },
       "5": {
         "brier_score": 0.25844286,
-        "brier_skill_score": -0.18770559,
         "correct_negatives": 16920,
         "csi": 0.5230784,
         "ets": 0.38956022,
@@ -266,7 +251,6 @@
       },
       "70": {
         "brier_score": 0.00827432,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -285,7 +269,6 @@
     "ml_r60v2": {
       "15": {
         "brier_score": 0.07538765,
-        "brier_skill_score": 0.33323032,
         "correct_negatives": 21759,
         "csi": 0.51683984,
         "ets": 0.45442618,
@@ -302,7 +285,6 @@
       },
       "40": {
         "brier_score": 0.02135781,
-        "brier_skill_score": -0.13830188,
         "correct_negatives": 26307,
         "csi": 0.3868472,
         "ets": 0.3763364,
@@ -319,7 +301,6 @@
       },
       "5": {
         "brier_score": 0.22273179,
-        "brier_skill_score": -0.02359103,
         "correct_negatives": 15688,
         "csi": 0.54869991,
         "ets": 0.3939625,
@@ -336,7 +317,6 @@
       },
       "70": {
         "brier_score": 0.02045374,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -355,7 +335,6 @@
     "ml_r75": {
       "15": {
         "brier_score": 0.08559711,
-        "brier_skill_score": 0.24293226,
         "correct_negatives": 21887,
         "csi": 0.41125779,
         "ets": 0.3467578,
@@ -372,7 +351,6 @@
       },
       "40": {
         "brier_score": 0.01656598,
-        "brier_skill_score": 0.11708709,
         "correct_negatives": 26618,
         "csi": 0.56293223,
         "ets": 0.55579848,
@@ -389,7 +367,6 @@
       },
       "5": {
         "brier_score": 0.24086334,
-        "brier_skill_score": -0.10691677,
         "correct_negatives": 16209,
         "csi": 0.53224937,
         "ets": 0.38549425,
@@ -406,7 +383,6 @@
       },
       "70": {
         "brier_score": 0.01508542,
-        "brier_skill_score": null,
         "correct_negatives": 27340,
         "csi": 0.0,
         "ets": 0.0,
@@ -425,7 +401,6 @@
     "wpc": {
       "15": {
         "brier_score": 0.10958341,
-        "brier_skill_score": 0.03078428,
         "correct_negatives": 22658,
         "csi": 0.39120222,
         "ets": 0.33668119,
@@ -442,7 +417,6 @@
       },
       "40": {
         "brier_score": 0.01632786,
-        "brier_skill_score": 0.12977811,
         "correct_negatives": 26818,
         "csi": 0.0,
         "ets": 0.0,
@@ -459,7 +433,6 @@
       },
       "5": {
         "brier_score": 0.28361874,
-        "brier_skill_score": -0.30340441,
         "correct_negatives": 15681,
         "csi": 0.47349914,
         "ets": 0.31498114,
@@ -476,7 +449,6 @@
       },
       "70": {
         "brier_score": 0.00293771,
-        "brier_skill_score": null,
         "correct_negatives": 27341,
         "csi": null,
         "ets": null,
@@ -493,7 +465,7 @@
       }
     }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "valid_period_label": "2026-07-09 12Z to 2026-07-10 12Z",
   "verification_target": "Practically Perfect: Any flood proxy"
 }

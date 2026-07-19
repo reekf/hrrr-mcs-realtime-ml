@@ -5,7 +5,6 @@
     "ml_mean": {
       "15": {
         "brier_score": 0.13331586,
-        "brier_skill_score": 0.06157994,
         "correct_negatives": 22529,
         "csi": 0.30922693,
         "ets": 0.26713112,
@@ -22,7 +21,6 @@
       },
       "40": {
         "brier_score": 0.04295106,
-        "brier_skill_score": 0.19094849,
         "correct_negatives": 25714,
         "csi": 0.00983405,
         "ets": 0.00622634,
@@ -39,7 +37,6 @@
       },
       "5": {
         "brier_score": 0.20849079,
-        "brier_skill_score": -0.10278556,
         "correct_negatives": 20276,
         "csi": 0.54635527,
         "ets": 0.47037419,
@@ -56,7 +53,6 @@
       },
       "70": {
         "brier_score": 0.00556398,
-        "brier_skill_score": -5.92035129,
         "correct_negatives": 27319,
         "csi": 0.0,
         "ets": 0.0,
@@ -75,7 +71,6 @@
     "ml_r100": {
       "15": {
         "brier_score": 0.12564216,
-        "brier_skill_score": 0.11559567,
         "correct_negatives": 22402,
         "csi": 0.42741446,
         "ets": 0.37626844,
@@ -92,7 +87,6 @@
       },
       "40": {
         "brier_score": 0.04428456,
-        "brier_skill_score": 0.1658299,
         "correct_negatives": 25530,
         "csi": 0.13197129,
         "ets": 0.11794348,
@@ -109,7 +103,6 @@
       },
       "5": {
         "brier_score": 0.19881841,
-        "brier_skill_score": -0.05162474,
         "correct_negatives": 20223,
         "csi": 0.54214667,
         "ets": 0.4649728,
@@ -126,7 +119,6 @@
       },
       "70": {
         "brier_score": 0.0099657,
-        "brier_skill_score": -11.39511012,
         "correct_negatives": 27319,
         "csi": 0.0,
         "ets": 0.0,
@@ -145,7 +137,6 @@
     "ml_r40": {
       "15": {
         "brier_score": 0.1583141,
-        "brier_skill_score": -0.1143845,
         "correct_negatives": 22650,
         "csi": 0.04497975,
         "ets": 0.03745062,
@@ -162,7 +153,6 @@
       },
       "40": {
         "brier_score": 0.05085563,
-        "brier_skill_score": 0.04205335,
         "correct_negatives": 25803,
         "csi": 0.0,
         "ets": 0.0,
@@ -179,7 +169,6 @@
       },
       "5": {
         "brier_score": 0.23797563,
-        "brier_skill_score": -0.25874188,
         "correct_negatives": 20373,
         "csi": 0.2108209,
         "ets": 0.16482456,
@@ -196,7 +185,6 @@
       },
       "70": {
         "brier_score": 0.00152788,
-        "brier_skill_score": -0.90034226,
         "correct_negatives": 27319,
         "csi": 0.0,
         "ets": 0.0,
@@ -215,7 +203,6 @@
     "ml_r60": {
       "15": {
         "brier_score": 0.1449879,
-        "brier_skill_score": -0.0205804,
         "correct_negatives": 22590,
         "csi": 0.18838139,
         "ets": 0.15931529,
@@ -232,7 +219,6 @@
       },
       "40": {
         "brier_score": 0.04644879,
-        "brier_skill_score": 0.12506319,
         "correct_negatives": 25761,
         "csi": 0.00063291,
         "ets": -0.00089939,
@@ -249,7 +235,6 @@
       },
       "5": {
         "brier_score": 0.22252991,
-        "brier_skill_score": -0.17704371,
         "correct_negatives": 20337,
         "csi": 0.39891491,
         "ets": 0.32916137,
@@ -266,7 +251,6 @@
       },
       "70": {
         "brier_score": 0.0038273,
-        "brier_skill_score": -3.76030835,
         "correct_negatives": 27319,
         "csi": 0.0,
         "ets": 0.0,
@@ -285,7 +269,6 @@
     "ml_r60v2": {
       "15": {
         "brier_score": 0.10917475,
-        "brier_skill_score": 0.23151097,
         "correct_negatives": 22295,
         "csi": 0.6254459,
         "ets": 0.57465724,
@@ -302,7 +285,6 @@
       },
       "40": {
         "brier_score": 0.0363938,
-        "brier_skill_score": 0.31446491,
         "correct_negatives": 25617,
         "csi": 0.13399072,
         "ets": 0.12204498,
@@ -319,7 +301,6 @@
       },
       "5": {
         "brier_score": 0.17798891,
-        "brier_skill_score": 0.05855026,
         "correct_negatives": 19946,
         "csi": 0.78972279,
         "ets": 0.7317438,
@@ -336,7 +317,6 @@
       },
       "70": {
         "brier_score": 0.01184312,
-        "brier_skill_score": -13.73020225,
         "correct_negatives": 27319,
         "csi": 0.0,
         "ets": 0.0,
@@ -355,7 +335,6 @@
     "ml_r75": {
       "15": {
         "brier_score": 0.13522773,
-        "brier_skill_score": 0.04812215,
         "correct_negatives": 22487,
         "csi": 0.30943552,
         "ets": 0.26619931,
@@ -372,7 +351,6 @@
       },
       "40": {
         "brier_score": 0.04350922,
-        "brier_skill_score": 0.18043466,
         "correct_negatives": 25595,
         "csi": 0.09049255,
         "ets": 0.07963988,
@@ -389,7 +367,6 @@
       },
       "5": {
         "brier_score": 0.21191659,
-        "brier_skill_score": -0.1209059,
         "correct_negatives": 20344,
         "csi": 0.42775475,
         "ets": 0.356283,
@@ -406,7 +383,6 @@
       },
       "70": {
         "brier_score": 0.00737089,
-        "brier_skill_score": -8.16774469,
         "correct_negatives": 27319,
         "csi": 0.0,
         "ets": 0.0,
@@ -425,7 +401,6 @@
     "wpc": {
       "15": {
         "brier_score": 0.13383783,
-        "brier_skill_score": 0.05790575,
         "correct_negatives": 21666,
         "csi": 0.59048458,
         "ets": 0.52871404,
@@ -442,7 +417,6 @@
       },
       "40": {
         "brier_score": 0.0435156,
-        "brier_skill_score": 0.18031448,
         "correct_negatives": 25803,
         "csi": 0.0,
         "ets": 0.0,
@@ -459,7 +433,6 @@
       },
       "5": {
         "brier_score": 0.20526901,
-        "brier_skill_score": -0.08574437,
         "correct_negatives": 19975,
         "csi": 0.81930491,
         "ets": 0.76753839,
@@ -476,7 +449,6 @@
       },
       "70": {
         "brier_score": 0.00432903,
-        "brier_skill_score": -4.38434867,
         "correct_negatives": 27319,
         "csi": 0.0,
         "ets": 0.0,
@@ -493,7 +465,7 @@
       }
     }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "valid_period_label": "2026-07-13 12Z to 2026-07-14 12Z",
   "verification_target": "Practically Perfect: Any flood proxy"
 }
