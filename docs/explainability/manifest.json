@@ -1,0 +1,62 @@
+{
+  "dataset_class": "formal-independent-test-set-explainability",
+  "figures": [
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "kind": "beeswarm",
+      "model": "r60",
+      "path": "explainability/shap/r60/beeswarm.png",
+      "source_function": "plot_shap_global_summary",
+      "test_period": "2024\u20132025",
+      "title": "Global SHAP beeswarm: r60"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "kind": "importance",
+      "model": "r60",
+      "path": "explainability/shap/r60/importance.png",
+      "source_function": "plot_shap_global_summary",
+      "test_period": "2024\u20132025",
+      "title": "Mean absolute SHAP importance: r60"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "kind": "beeswarm",
+      "model": "r100",
+      "path": "explainability/shap/r100/beeswarm.png",
+      "source_function": "plot_shap_global_summary",
+      "test_period": "2024\u20132025",
+      "title": "Global SHAP beeswarm: r100"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "kind": "importance",
+      "model": "r100",
+      "path": "explainability/shap/r100/importance.png",
+      "source_function": "plot_shap_global_summary",
+      "test_period": "2024\u20132025",
+      "title": "Mean absolute SHAP importance: r100"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "kind": "dependence",
+      "model": "r100",
+      "path": "explainability/dependence/r100/top5.png",
+      "source_function": "selected SHAP dependence plot block",
+      "test_period": "2024\u20132025",
+      "title": "Top-five SHAP dependence plots: r100"
+    },
+    {
+      "generated_utc": "2026-07-19T15:11:12Z",
+      "kind": "dependence",
+      "model": "r100",
+      "path": "explainability/dependence/r100/selected.png",
+      "source_function": "selected SHAP dependence plot block",
+      "test_period": "2024\u20132025",
+      "title": "Selected SHAP dependence plots: r100"
+    }
+  ],
+  "generated_utc": "2026-07-19T15:11:12Z",
+  "schema_version": 1,
+  "test_period": "2024\u20132025"
+}

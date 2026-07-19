@@ -71,6 +71,10 @@ if payload.get("schema_version") != 5 or missing:
 print(f"Validated verification map schema/layers: {path}")
 PY
 
+# Refresh machine-readable issued-forecast verification after the verified map
+# is in place. This pools contingency counts across dates and does not retrain.
+python generate_dashboard_data.py --verification-only
+
 MPING_TOKEN_FILE="${MPING_API_TOKEN_FILE:-${HOME}/.config/realtime-ml/mping-token}"
 if [[ -n "${MPING_API_TOKEN:-}" || -s "$MPING_TOKEN_FILE" ]]; then
   if ! python fetch_mping_reports.py --date "$DATE_ARG" --output "${ARCHIVE_DIR}/mping.json"; then
@@ -141,11 +145,11 @@ manifest = {"generated_utc": updated, "entries": entries}
 (archive_root / "index.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 PY
 
-git add -f "${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/map.json" "${ARCHIVE_DIR}/status.json" docs/archive/index.json
+git add -f "${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/map.json" "${ARCHIVE_DIR}/status.json" docs/archive/index.json docs/verification
 if [[ -f "${ARCHIVE_DIR}/mping.json" ]]; then
   git add -f "${ARCHIVE_DIR}/mping.json"
 fi
-PUBLISH_PATHS=("${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/map.json" "${ARCHIVE_DIR}/status.json" docs/archive/index.json)
+PUBLISH_PATHS=("${ARCHIVE_DIR}/verification.png" "${ARCHIVE_DIR}/map.json" "${ARCHIVE_DIR}/status.json" docs/archive/index.json docs/verification)
 if [[ -f "${ARCHIVE_DIR}/mping.json" ]]; then
   PUBLISH_PATHS+=("${ARCHIVE_DIR}/mping.json")
 fi

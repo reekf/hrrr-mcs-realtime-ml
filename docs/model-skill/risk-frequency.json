@@ -1,0 +1,230 @@
+{
+  "dataset_class": "formal-independent-test-set",
+  "generated_utc": "2026-07-19T15:11:12Z",
+  "products": {
+    "ML Ensemble Max": {
+      "15": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 45,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 19,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "ML Ensemble Mean": {
+      "15": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 29,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 0,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "ML Local PMM 100km": {
+      "15": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 45,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 19,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "ML r100km": {
+      "15": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 43,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 17,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "ML r100kmV2": {
+      "15": {
+        "forecast_day_count": 43,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 5,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 0,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "ML r40km": {
+      "15": {
+        "forecast_day_count": 43,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 16,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 0,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "ML r60km": {
+      "15": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 28,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 1,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "ML r60kmV2": {
+      "15": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 44,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 10,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "ML r75km": {
+      "15": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 42,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 45,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 17,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    },
+    "WPC ERO": {
+      "15": {
+        "forecast_day_count": 38,
+        "observed_day_count": 45,
+        "threshold_label": "Slight or greater"
+      },
+      "40": {
+        "forecast_day_count": 7,
+        "observed_day_count": 36,
+        "threshold_label": "Moderate or greater"
+      },
+      "5": {
+        "forecast_day_count": 44,
+        "observed_day_count": 45,
+        "threshold_label": "Marginal or greater"
+      },
+      "70": {
+        "forecast_day_count": 0,
+        "observed_day_count": 9,
+        "threshold_label": "High"
+      }
+    }
+  },
+  "schema_version": 1,
+  "source_table": "paper_verification_bs_ets_final/ets_pp_any_flood_proxy_metrics.csv",
+  "test_period": "2024\u20132025",
+  "verification_target": "Practically Perfect: Any flood proxy"
+}

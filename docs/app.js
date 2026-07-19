@@ -96,6 +96,18 @@ const OBSERVATION_CLEARANCE_METERS = 32000;
 const EXPANSION_RADIUS_METERS = 40000;
 const WPC_LOCAL_RISK_DISTANCE_KM = 350;
 const CONUS_LONGITUDE_SCALE = Math.cos(40 * Math.PI / 180);
+const BRIEFING_SEARCH_RADIUS_KM = 40;
+const BRIEFING_MAX_GRID_DISTANCE_KM = 100;
+const SITE_VIEWS = new Set(["forecast", "skill", "running", "explainability", "about"]);
+const METRIC_META = {
+  ets: { label: "ETS", direction: "Higher is better" },
+  csi: { label: "CSI", direction: "Higher is better" },
+  pod: { label: "POD", direction: "Higher is better" },
+  far: { label: "FAR", direction: "Lower is better" },
+  frequency_bias: { label: "Frequency bias", direction: "Closer to 1 is better" },
+  brier_score: { label: "Brier Score", direction: "Lower is better" },
+  brier_skill_score: { label: "Brier Skill Score", direction: "Higher is better" },
+};
 
 const state = {
   archive: [],
@@ -112,6 +124,7 @@ const state = {
   lsrLayer: null,
   lsrTimer: null,
   lsrRequest: 0,
+  lsrAvailability: "loading",
   radarEnabled: false,
   radarFrames: [],
   radarHost: "",
@@ -129,10 +142,12 @@ const state = {
   floodAlertLayer: null,
   floodAlertTimer: null,
   floodAlertRequest: 0,
+  floodAlertAvailability: "loading",
   floodZoneCache: new Map(),
   mpingReports: [],
   mpingVisible: true,
   mpingRequest: 0,
+  mpingAvailability: "loading",
   viewMode: "2d",
   map3d: null,
   deckOverlay: null,
@@ -140,6 +155,14 @@ const state = {
   surface3dCache: new Map(),
   separated3dPoints: false,
   showExpansionRings: false,
+  siteView: "forecast",
+  selectedLocation: null,
+  selectedLocationMarker: null,
+  briefingText: "",
+  skillManifest: null,
+  riskFrequency: null,
+  runningVerification: null,
+  explainabilityManifest: null,
 };
 
 const map = L.map("map", {
@@ -171,6 +194,8 @@ map.createPane("lsrPane");
 map.getPane("lsrPane").style.zIndex = 485;
 map.createPane("floodAlertPane");
 map.getPane("floodAlertPane").style.zIndex = 470;
+map.createPane("briefingPane");
+map.getPane("briefingPane").style.zIndex = 520;
 
 L.control.zoom({ position: "bottomright" }).addTo(map);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
@@ -525,6 +550,29 @@ function build3dLayers() {
       lineWidthMinPixels: 1.25,
     }));
   }
+  if (state.selectedLocation) {
+    layers.push(new deck.ScatterplotLayer({
+      ...shared,
+      id: "location-briefing-selection-3d",
+      data: [{
+        position: [
+          state.selectedLocation.longitude,
+          state.selectedLocation.latitude,
+          SURFACE_HEIGHT_METERS_PER_PERCENT * 75,
+        ],
+      }],
+      radiusUnits: "pixels",
+      stroked: true,
+      filled: true,
+      pickable: false,
+      getPosition: (item) => item.position,
+      getRadius: 8,
+      getLineColor: [255, 255, 255, 255],
+      getFillColor: [9, 11, 13, 245],
+      getLineWidth: 3,
+      lineWidthUnits: "pixels",
+    }));
+  }
   return layers;
 }
 
@@ -557,6 +605,15 @@ function schedule3dRender() {
   state.render3dFrame = requestAnimationFrame(render3d);
 }
 
+function updateUrl(mode = "replace") {
+  const parameters = new URLSearchParams();
+  parameters.set("view", state.siteView);
+  if (state.data?.date) parameters.set("date", state.data.date);
+  if (state.viewMode === "3d") parameters.set("map", "3d");
+  const method = mode === "push" ? "pushState" : "replaceState";
+  history[method]({ view: state.siteView }, "", `?${parameters}`);
+}
+
 function initialize3dMap() {
   if (state.map3d) return;
   if (!window.maplibregl || !window.deck?.MapboxOverlay) throw new Error("The 3D map libraries did not load");
@@ -585,6 +642,9 @@ function initialize3dMap() {
   state.map3d.on("load", () => {
     add3dStateLines();
     render3d();
+  });
+  state.map3d.on("click", (event) => {
+    selectBriefingLocation(event.lngLat.lat, event.lngLat.lng);
   });
   state.map3d.on("error", (event) => {
     console.error("3D map error", event.error || event);
@@ -646,7 +706,7 @@ function setViewMode(mode) {
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
   }
-  if (state.data?.date) history.replaceState(null, "", `?date=${state.data.date}${mode === "3d" ? "&view=3d" : ""}`);
+  if (state.data?.date) updateUrl();
 }
 
 function riskColor(encodedValue) {
@@ -663,6 +723,329 @@ function riskLabel(encodedValue) {
   if (encodedValue >= 150) return ">15%";
   if (encodedValue >= 50) return ">5%";
   return "<5%";
+}
+
+function formatBriefingProbability(value) {
+  return window.XGBFFPBriefing.formatProbability(value);
+}
+
+function pointInRing(longitude, latitude, ring) {
+  let inside = false;
+  for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
+    const [x, y] = ring[index];
+    const [previousX, previousY] = ring[previous];
+    const intersects = ((y > latitude) !== (previousY > latitude))
+      && (longitude < (previousX - x) * (latitude - y) / ((previousY - y) || Number.EPSILON) + x);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInPolygon(longitude, latitude, polygon) {
+  if (!polygon?.length || !pointInRing(longitude, latitude, polygon[0])) return false;
+  return !polygon.slice(1).some((hole) => pointInRing(longitude, latitude, hole));
+}
+
+function geometryContains(geometry, latitude, longitude) {
+  if (geometry?.type === "Polygon") return pointInPolygon(longitude, latitude, geometry.coordinates);
+  if (geometry?.type === "MultiPolygon") {
+    return geometry.coordinates.some((polygon) => pointInPolygon(longitude, latitude, polygon));
+  }
+  return false;
+}
+
+function nearbyItems(items, latitude, longitude, radiusKm = BRIEFING_SEARCH_RADIUS_KM) {
+  return items.map((item) => ({
+    ...item,
+    distanceKm: window.XGBFFPBriefing.haversineKm(latitude, longitude, item.lat, item.lon),
+  })).filter((item) => item.distanceKm <= radiusKm).sort((left, right) => left.distanceKm - right.distanceKm);
+}
+
+function currentAlertContext(latitude, longitude) {
+  if (state.floodAlertAvailability !== "available") {
+    return { watch: "Not available", warning: "Not available", matches: [] };
+  }
+  const matches = state.floodAlerts.filter((feature) => geometryContains(feature.geometry, latitude, longitude));
+  return {
+    watch: matches.some((feature) => feature.properties.kind === "watch") ? "Yes" : "No",
+    warning: matches.some((feature) => feature.properties.kind === "warning") ? "Yes" : "No",
+    matches,
+  };
+}
+
+function selectedPredictorDiagnostics(index) {
+  const radiusKey = `r${state.selectedPredictorRadius}`;
+  return Object.values(state.data?.predictors?.[radiusKey] || {})
+    .sort((left, right) => left.rank - right.rank)
+    .map((predictor) => {
+      const decoded = window.XGBFFPBriefing.decodePredictor(predictor, index);
+      return decoded ? { ...predictor, ...decoded } : null;
+    })
+    .filter(Boolean);
+}
+
+function observationContext(latitude, longitude) {
+  const results = [];
+  for (const [key, source] of Object.entries(state.data?.observations || {})) {
+    const points = (source.points || []).map(([lat, lon]) => ({ lat, lon }));
+    const nearest = nearbyItems(points, latitude, longitude)[0];
+    if (nearest) results.push({
+      key,
+      label: OBSERVATION_META[key]?.label || source.label || key,
+      distanceKm: nearest.distanceKm,
+    });
+  }
+  return results;
+}
+
+function reportContext(latitude, longitude) {
+  const lsr = state.lsrAvailability === "available"
+    ? nearbyItems(state.lsrReports, latitude, longitude)
+    : [];
+  const mping = state.mpingAvailability === "available"
+    ? nearbyItems(state.mpingReports, latitude, longitude)
+    : [];
+  return { lsr, mping };
+}
+
+function productProbabilityRows(index) {
+  const keys = ["ml_r40", "ml_r60", "ml_r60v2", "ml_r75", "ml_r100", "ml_mean", "wpc", "pp"];
+  return keys.map((key) => {
+    const probability = window.XGBFFPBriefing.probabilityPercent(state.data?.layers?.[key], index);
+    return {
+      key,
+      label: PRODUCT_META[key]?.short || key,
+      probability,
+      category: window.XGBFFPBriefing.riskCategory(probability),
+      active: state.selected === key,
+    };
+  });
+}
+
+function deterministicBriefingInterpretation(agreement, wpcCategory, ppProbability) {
+  if (!agreement) {
+    return "Standard ML radius guidance is not available at this archived grid point.";
+  }
+  const mlCategory = window.XGBFFPBriefing.riskCategory(agreement.mean);
+  const exceedance = agreement.exceedanceCounts[15];
+  let text = `${exceedance} of ${agreement.count} standard ML neighborhood configurations meet or exceed Slight-level guidance. `;
+  text += `Their mean is ${mlCategory.label}, with ${agreement.qualitative.toLowerCase()} agreement under the documented spread/category rule. `;
+  if (wpcCategory.rank >= 0 && wpcCategory.rank !== mlCategory.rank) {
+    const direction = wpcCategory.rank < mlCategory.rank ? "lower" : "higher";
+    text += `The WPC outlook is ${wpcCategory.label}, ${direction} than the standard-ML mean category. `;
+  } else if (wpcCategory.rank >= 0) {
+    text += `The WPC outlook is in the same ${wpcCategory.label} category as the standard-ML mean. `;
+  }
+  if (Number.isFinite(ppProbability)) {
+    text += `Post-event Practically Perfect context is ${formatBriefingProbability(ppProbability)} at the nearest grid point. `;
+  }
+  return `${text}This is experimental guidance, not an official NWS forecast, watch, or warning.`;
+}
+
+function addDefinitionListRow(list, term, value, className = "") {
+  const wrapper = document.createElement("div");
+  if (className) wrapper.className = className;
+  const dt = document.createElement("dt");
+  const dd = document.createElement("dd");
+  dt.textContent = term;
+  dd.textContent = value;
+  wrapper.append(dt, dd);
+  list.append(wrapper);
+}
+
+function renderLocationBriefing() {
+  const panel = document.getElementById("location-briefing");
+  const content = document.getElementById("location-briefing-content");
+  if (!state.selectedLocation || !state.data) {
+    panel.hidden = true;
+    content.replaceChildren();
+    return;
+  }
+  panel.hidden = false;
+  content.replaceChildren();
+  const { latitude, longitude, index, distanceKm } = state.selectedLocation;
+  const rows = productProbabilityRows(index);
+  const agreement = window.XGBFFPBriefing.agreementSummary(state.data, index);
+  const wpc = rows.find((row) => row.key === "wpc");
+  const pp = rows.find((row) => row.key === "pp");
+  const alertContext = currentAlertContext(latitude, longitude);
+  const reports = reportContext(latitude, longitude);
+  const observations = observationContext(latitude, longitude);
+
+  const location = document.createElement("p");
+  location.className = "briefing-location";
+  location.textContent = `${Math.abs(latitude).toFixed(3)}°${latitude >= 0 ? "N" : "S"}, ${Math.abs(longitude).toFixed(3)}°${longitude >= 0 ? "E" : "W"} · nearest grid point ${distanceKm.toFixed(1)} km away`;
+  const valid = document.createElement("p");
+  valid.className = "briefing-valid";
+  valid.textContent = `Valid ${state.data.valid_period_label}`;
+  content.append(location, valid);
+
+  const probabilitySection = document.createElement("section");
+  const probabilityHeading = document.createElement("h3");
+  probabilityHeading.textContent = "Forecast probabilities";
+  const probabilityList = document.createElement("dl");
+  probabilityList.className = "briefing-data-list";
+  for (const row of rows) {
+    const suffix = row.category.rank >= 0 ? ` · ${row.category.label}` : "";
+    addDefinitionListRow(
+      probabilityList,
+      `${row.label}${row.active ? " (displayed)" : ""}`,
+      `${formatBriefingProbability(row.probability)}${suffix}`,
+      row.active ? "active-product-row" : "",
+    );
+  }
+  probabilitySection.append(probabilityHeading, probabilityList);
+  content.append(probabilitySection);
+
+  const agreementSection = document.createElement("section");
+  const agreementHeading = document.createElement("h3");
+  agreementHeading.textContent = "Standard ML agreement";
+  const agreementList = document.createElement("dl");
+  agreementList.className = "briefing-data-list";
+  if (agreement) {
+    addDefinitionListRow(agreementList, "Agreement", agreement.qualitative);
+    addDefinitionListRow(agreementList, "Minimum / maximum", `${agreement.minimum.toFixed(1)}% / ${agreement.maximum.toFixed(1)}%`);
+    addDefinitionListRow(agreementList, "Probability range", `${agreement.range.toFixed(1)} percentage points`);
+    addDefinitionListRow(agreementList, "Mean / standard deviation", `${agreement.mean.toFixed(1)}% / ${agreement.standardDeviation.toFixed(1)} points`);
+    for (const threshold of [5, 15, 40, 70]) {
+      addDefinitionListRow(agreementList, `At or above ${threshold}%`, `${agreement.exceedanceCounts[threshold]} of ${agreement.count}`);
+    }
+  } else {
+    addDefinitionListRow(agreementList, "Agreement", "Not available");
+  }
+  const agreementRule = document.createElement("p");
+  agreementRule.className = "briefing-note";
+  agreementRule.textContent = "High: all four members share a category and span ≤10 points. Moderate: adjacent categories or span ≤20 points. Otherwise Low. r60kmV2 is excluded.";
+  agreementSection.append(agreementHeading, agreementList, agreementRule);
+  content.append(agreementSection);
+
+  const interpretationSection = document.createElement("section");
+  const interpretationHeading = document.createElement("h3");
+  interpretationHeading.textContent = "Interpretation";
+  const interpretation = document.createElement("p");
+  interpretation.textContent = deterministicBriefingInterpretation(agreement, wpc?.category || { rank: -1 }, pp?.probability);
+  interpretationSection.append(interpretationHeading, interpretation);
+  content.append(interpretationSection);
+
+  const predictorSection = document.createElement("section");
+  const predictorHeading = document.createElement("h3");
+  predictorHeading.textContent = `${state.selectedPredictorRadius}-km predictor diagnostics`;
+  const predictors = selectedPredictorDiagnostics(index);
+  const predictorList = document.createElement("dl");
+  predictorList.className = "briefing-data-list";
+  for (const predictor of predictors) {
+    addDefinitionListRow(
+      predictorList,
+      `#${predictor.rank} ${predictor.label}`,
+      `${predictor.value.toFixed(3)} ${predictor.units} · ${predictor.percentilePosition.toFixed(0)}% of published display scale`,
+    );
+  }
+  if (!predictors.length) addDefinitionListRow(predictorList, "Predictors", "Not available for this archive");
+  const predictorNote = document.createElement("p");
+  predictorNote.className = "briefing-note";
+  predictorNote.textContent = "These are raw predictor values and normalized display positions, not local SHAP contributions.";
+  predictorSection.append(predictorHeading, predictorList, predictorNote);
+  content.append(predictorSection);
+
+  const contextSection = document.createElement("section");
+  const contextHeading = document.createElement("h3");
+  contextHeading.textContent = `Alerts and observations within ${BRIEFING_SEARCH_RADIUS_KM} km`;
+  const contextList = document.createElement("dl");
+  contextList.className = "briefing-data-list";
+  addDefinitionListRow(contextList, "Inside active flood watch", alertContext.watch);
+  addDefinitionListRow(contextList, "Inside active flood warning", alertContext.warning);
+  for (const kind of ["flash_flood", "flood", "rain"]) {
+    const rainThreshold = Number(document.getElementById("rain-threshold").value);
+    const nearest = reports.lsr.find((report) => (
+      report.kind === kind
+      && (kind !== "rain" || (Number.isFinite(report.amount) && report.amount >= rainThreshold))
+    ));
+    addDefinitionListRow(
+      contextList,
+      `Nearby ${LSR_META[kind].label}`,
+      nearest ? `${nearest.distanceKm.toFixed(1)} km${nearest.valid ? ` · ${new Date(nearest.valid).toLocaleString()}` : ""}` : (state.lsrAvailability === "available" ? "None found" : "Not available"),
+    );
+  }
+  const nearestMping = reports.mping[0];
+  addDefinitionListRow(contextList, "Nearby mPING flood impact", nearestMping ? `${nearestMping.distanceKm.toFixed(1)} km` : (state.mpingAvailability === "available" ? "None found" : "Not available"));
+  addDefinitionListRow(contextList, "Nearby UFVS flood proxy", observations.length ? observations.map((item) => `${item.label} ${item.distanceKm.toFixed(1)} km`).join("; ") : (state.data.layers.pp ? "None found" : "Not available"));
+  contextSection.append(contextHeading, contextList);
+  content.append(contextSection);
+
+  if (state.data.layers.pp) {
+    const active = rows.find((row) => row.key === state.selected);
+    const activeThreshold = [70, 40, 15, 5].find((threshold) => active?.probability >= threshold);
+    const localVerification = document.createElement("p");
+    localVerification.className = "briefing-note";
+    localVerification.textContent = activeThreshold
+      ? `Displayed-product ${THRESHOLD_LABELS_CLIENT[activeThreshold]} threshold verified locally against Practically Perfect: ${pp.probability >= activeThreshold ? "Yes" : "No"}.`
+      : "The displayed product is below the Marginal threshold at this grid point; categorical local verification is not applicable.";
+    content.append(localVerification);
+    const verificationNote = document.createElement("p");
+    verificationNote.className = "warning-callout";
+    verificationNote.textContent = "This location-level result is event context, not a statistically complete measure of overall model performance.";
+    content.append(verificationNote);
+  }
+
+  state.briefingText = window.XGBFFPBriefing.copyBriefingText({
+    latitude,
+    longitude,
+    validPeriod: state.data.valid_period_label,
+    ensembleMean: rows.find((row) => row.key === "ml_mean")?.probability,
+    agreement,
+    wpcCategory: wpc?.category?.label,
+    activeWarning: alertContext.warning,
+  });
+}
+
+function updateLocationBriefing() {
+  if (!state.selectedLocation || !state.data) return;
+  const nearest = window.XGBFFPBriefing.nearestGridPoint(
+    state.data.grid,
+    state.selectedLocation.clickedLatitude,
+    state.selectedLocation.clickedLongitude,
+    BRIEFING_MAX_GRID_DISTANCE_KM,
+  );
+  if (!nearest) {
+    clearBriefingLocation();
+    document.getElementById("product-message").textContent = "That point is outside the XGBFFP forecast grid.";
+    return;
+  }
+  state.selectedLocation = {
+    ...nearest,
+    clickedLatitude: state.selectedLocation.clickedLatitude,
+    clickedLongitude: state.selectedLocation.clickedLongitude,
+  };
+  if (state.selectedLocationMarker) map.removeLayer(state.selectedLocationMarker);
+  state.selectedLocationMarker = L.circleMarker([nearest.latitude, nearest.longitude], {
+    pane: "briefingPane",
+    radius: 8,
+    color: "#ffffff",
+    weight: 3,
+    fillColor: "#090b0d",
+    fillOpacity: 0.95,
+  }).addTo(map);
+  renderLocationBriefing();
+  schedule3dRender();
+}
+
+function selectBriefingLocation(latitude, longitude) {
+  if (state.siteView !== "forecast" || !state.data) return;
+  state.selectedLocation = {
+    clickedLatitude: Number(latitude),
+    clickedLongitude: Number(longitude),
+  };
+  updateLocationBriefing();
+}
+
+function clearBriefingLocation() {
+  state.selectedLocation = null;
+  state.briefingText = "";
+  if (state.selectedLocationMarker) map.removeLayer(state.selectedLocationMarker);
+  state.selectedLocationMarker = null;
+  document.getElementById("location-briefing").hidden = true;
+  document.getElementById("location-briefing-content").replaceChildren();
+  schedule3dRender();
 }
 
 function predictorColor(encodedValue) {
@@ -1088,6 +1471,7 @@ async function fetchLsrs(date, scheduleRefresh = false) {
   });
   const status = document.getElementById("lsr-status");
   state.lsrReports = [];
+  state.lsrAvailability = "loading";
   renderLsrs();
   status.textContent = "Loading NWS local storm reports via Iowa Environmental Mesonet…";
   try {
@@ -1101,16 +1485,19 @@ async function fetchLsrs(date, scheduleRefresh = false) {
       const valid = Date.parse(report.valid);
       return Number.isFinite(valid) && valid >= window.start.getTime() && valid < window.end.getTime();
     });
+    state.lsrAvailability = "available";
     renderLsrs();
     const counts = Object.fromEntries(Object.keys(LSR_META).map((key) => [key, state.lsrReports.filter((report) => report.kind === key).length]));
     status.textContent = `Preliminary: ${counts.flash_flood} flash flood, ${counts.flood} flood, ${counts.rain} rain reports. Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
   } catch (error) {
     if (request !== state.lsrRequest) return;
     state.lsrReports = [];
+    state.lsrAvailability = "unavailable";
     renderLsrs();
     status.textContent = "Local storm reports are temporarily unavailable.";
     console.error(error);
   }
+  updateLocationBriefing();
   clearTimeout(state.lsrTimer);
   if (scheduleRefresh) state.lsrTimer = setTimeout(() => fetchLsrs(date, true), LSR_REFRESH_MS);
 }
@@ -1191,6 +1578,7 @@ async function alertPolygonFeatures(alert) {
 async function fetchFloodAlerts(scheduleRefresh = false) {
   const request = ++state.floodAlertRequest;
   const status = document.getElementById("flood-alert-status");
+  state.floodAlertAvailability = "loading";
   status.textContent = "Loading active NWS flood alerts…";
   try {
     const response = await fetch(NWS_ALERTS_URL, {
@@ -1203,6 +1591,7 @@ async function fetchFloodAlerts(scheduleRefresh = false) {
     const groups = await Promise.all(floodAlerts.map(alertPolygonFeatures));
     if (request !== state.floodAlertRequest) return;
     state.floodAlerts = groups.flat();
+    state.floodAlertAvailability = "available";
     renderFloodAlerts();
     const watchCount = floodAlerts.filter((feature) => floodAlertKind(feature.properties?.event) === "watch").length;
     const warningCount = floodAlerts.length - watchCount;
@@ -1211,10 +1600,12 @@ async function fetchFloodAlerts(scheduleRefresh = false) {
   } catch (error) {
     if (request !== state.floodAlertRequest) return;
     state.floodAlerts = [];
+    state.floodAlertAvailability = "unavailable";
     renderFloodAlerts();
     status.textContent = "NWS flood alerts are temporarily unavailable.";
     console.error(error);
   }
+  updateLocationBriefing();
   clearTimeout(state.floodAlertTimer);
   if (scheduleRefresh) state.floodAlertTimer = setTimeout(() => fetchFloodAlerts(true), FLOOD_ALERT_REFRESH_MS);
 }
@@ -1223,12 +1614,15 @@ async function fetchMping(date) {
   const request = ++state.mpingRequest;
   const status = document.getElementById("mping-status");
   state.mpingReports = [];
+  state.mpingAvailability = "loading";
   renderLsrs();
   status.textContent = "Loading mPING flood reports…";
   try {
     const response = await fetch(`archive/${date}/mping.json?v=${Date.now()}`, { cache: "no-store" });
     if (response.status === 404) {
+      state.mpingAvailability = "unavailable";
       status.textContent = "mPING flood reports are not available for this valid period.";
+      updateLocationBriefing();
       return;
     }
     if (!response.ok) throw new Error(`mPING report file unavailable (${response.status})`);
@@ -1243,15 +1637,18 @@ async function fetchMping(date) {
       valid: report.valid || "",
       remark: report.description || "",
     })).filter((report) => Number.isFinite(report.lat) && Number.isFinite(report.lon));
+    state.mpingAvailability = "available";
     renderLsrs();
     status.textContent = `${state.mpingReports.length} mPING flood impact report${state.mpingReports.length === 1 ? "" : "s"} during this valid period.`;
   } catch (error) {
     if (request !== state.mpingRequest) return;
     state.mpingReports = [];
+    state.mpingAvailability = "unavailable";
     renderLsrs();
     status.textContent = "mPING flood reports are temporarily unavailable.";
     console.error(error);
   }
+  updateLocationBriefing();
 }
 
 function showProductInfo(key) {
@@ -1285,6 +1682,7 @@ function buildLayerControls() {
       state.selected = key;
       buildLayerControls();
       renderFilledLayer();
+      renderLocationBriefing();
     });
     const infoButton = document.createElement("button");
     infoButton.type = "button";
@@ -1434,7 +1832,8 @@ async function loadDate(date, fit = false) {
     fetchLsrs(state.data.date, isLatest);
     fetchMping(state.data.date);
     if (fit) map.fitBounds([[30, -105], [50, -80.5]], { padding: [15, 15] });
-    history.replaceState(null, "", `?date=${state.data.date}${state.viewMode === "3d" ? "&view=3d" : ""}`);
+    updateLocationBriefing();
+    updateUrl();
   } catch (error) {
     document.getElementById("product-message").textContent = `Interactive data are unavailable for ${date}. Use the PNG link or archive.`;
     console.error(error);
@@ -1510,6 +1909,269 @@ function populateArchive() {
   }
 }
 
+function metricValueText(value) {
+  return Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "Not available";
+}
+
+function renderSkillFrequency() {
+  const chart = document.getElementById("skill-frequency-chart");
+  const answer = document.getElementById("skill-frequency-answer");
+  chart.replaceChildren();
+  const threshold = document.getElementById("skill-frequency-threshold").value;
+  const products = state.riskFrequency?.products || {};
+  const rows = Object.entries(products)
+    .map(([label, values]) => ({ label, ...(values[threshold] || {}) }))
+    .filter((row) => Number.isInteger(row.forecast_day_count));
+  if (!rows.length) {
+    chart.textContent = "Final risk-frequency counts are not available.";
+    answer.textContent = "";
+    return;
+  }
+  const maximum = Math.max(...rows.flatMap((row) => [row.forecast_day_count, row.observed_day_count || 0]), 1);
+  for (const row of rows) {
+    const group = document.createElement("div");
+    group.className = "bar-group";
+    const label = document.createElement("strong");
+    label.textContent = row.label;
+    const forecast = document.createElement("div");
+    forecast.className = "bar-row";
+    forecast.innerHTML = `<span>Forecast</span><i style="--bar-width:${row.forecast_day_count / maximum * 100}%"></i><b>${row.forecast_day_count}</b>`;
+    const observed = document.createElement("div");
+    observed.className = "bar-row observed";
+    observed.innerHTML = `<span>Observed PP</span><i style="--bar-width:${(row.observed_day_count || 0) / maximum * 100}%"></i><b>${row.observed_day_count ?? "—"}</b>`;
+    group.append(label, forecast, observed);
+    chart.append(group);
+  }
+  const ml = rows.find((row) => /ML r60(?:km)?$/i.test(row.label)) || rows.find((row) => /^ML/i.test(row.label));
+  const wpc = rows.find((row) => /WPC/i.test(row.label));
+  if (ml && wpc) {
+    const difference = ml.forecast_day_count - wpc.forecast_day_count;
+    answer.textContent = `${ml.label} issued ${Math.abs(difference)} ${difference >= 0 ? "more" : "fewer"} ${THRESHOLD_LABELS_CLIENT[threshold].toLowerCase()} day${Math.abs(difference) === 1 ? "" : "s"} than WPC in the common 2024–2025 test set. This frequency difference is not, by itself, a skill score.`;
+  } else {
+    answer.textContent = "Compare issuance counts with ETS, POD, FAR, and frequency bias before drawing a performance conclusion.";
+  }
+}
+
+const THRESHOLD_LABELS_CLIENT = {
+  5: "Marginal-or-greater",
+  15: "Slight-or-greater",
+  40: "Moderate-or-greater",
+  70: "High",
+};
+
+function renderSkillDashboard() {
+  const status = document.getElementById("skill-status");
+  const container = document.getElementById("skill-figures");
+  container.replaceChildren();
+  const figures = state.skillManifest?.figures || [];
+  if (!figures.length) {
+    status.textContent = "Finalized model-skill figures are not available.";
+    return;
+  }
+  status.textContent = `${figures.length} finalized 2024–2025 test-set figures · formal test set only`;
+  for (const figure of figures) {
+    const card = document.createElement("figure");
+    card.className = "dashboard-figure";
+    const image = document.createElement("img");
+    image.src = figure.path;
+    image.alt = figure.title;
+    image.loading = "lazy";
+    const caption = document.createElement("figcaption");
+    const title = document.createElement("strong");
+    title.textContent = figure.title;
+    const detail = document.createElement("span");
+    const direction = figure.metric === "Brier Score" ? "Lower is better."
+      : figure.metric === "Brier Skill Score" || figure.metric === "ETS" ? "Higher is better."
+        : "Frequency and spatial coverage are descriptive, not standalone skill.";
+    detail.textContent = `${figure.target} · ${figure.test_period} · ${figure.test_case_count || "Unknown"} test days. ${direction}`;
+    caption.append(title, detail);
+    card.append(image, caption);
+    container.append(card);
+  }
+  renderSkillFrequency();
+}
+
+async function loadSkillDashboard() {
+  if (state.skillManifest && state.riskFrequency) {
+    renderSkillDashboard();
+    return;
+  }
+  try {
+    const [manifestResponse, frequencyResponse] = await Promise.all([
+      fetch("model-skill/manifest.json"),
+      fetch("model-skill/risk-frequency.json"),
+    ]);
+    if (!manifestResponse.ok || !frequencyResponse.ok) throw new Error("Model-skill assets unavailable");
+    [state.skillManifest, state.riskFrequency] = await Promise.all([
+      manifestResponse.json(),
+      frequencyResponse.json(),
+    ]);
+    renderSkillDashboard();
+  } catch (error) {
+    document.getElementById("skill-status").textContent = "Final model-skill outputs are not available in this build.";
+    console.error(error);
+  }
+}
+
+function renderRunningDashboard() {
+  const windowName = document.getElementById("running-window").value;
+  const metric = document.getElementById("running-metric").value;
+  const threshold = document.getElementById("running-threshold").value;
+  const windowData = state.runningVerification?.windows?.[windowName];
+  const status = document.getElementById("running-status");
+  const summary = document.getElementById("running-summary");
+  const chart = document.getElementById("running-chart");
+  const table = document.getElementById("running-table");
+  const warning = document.getElementById("running-warning");
+  const download = document.getElementById("running-json-download");
+  chart.replaceChildren();
+  table.replaceChildren();
+  summary.replaceChildren();
+  download.href = `verification/rolling/${windowName}.json`;
+  if (!windowData) {
+    status.textContent = "No completed issued-forecast verification is available for this window.";
+    warning.hidden = true;
+    return;
+  }
+  status.textContent = `${windowData.definition} · ${windowData.verification_target}`;
+  for (const [label, value] of [
+    ["Verified forecasts", windowData.verified_forecast_count],
+    ["Date range", `${windowData.start_date}–${windowData.end_date}`],
+    ["Missing days", windowData.missing_day_count],
+    ["Completeness", `${windowData.completeness_percent}%`],
+  ]) {
+    const item = document.createElement("div");
+    item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    summary.append(item);
+  }
+  warning.hidden = windowData.verified_forecast_count >= 10;
+  warning.textContent = `Only ${windowData.verified_forecast_count} verified forecasts are available in this window. Interpret this running statistic cautiously.`;
+  const rows = Object.entries(windowData.products || {}).map(([key, thresholds]) => ({
+    key,
+    label: PRODUCT_META[key]?.short || key,
+    values: thresholds[threshold],
+  })).filter((row) => row.values);
+  const finiteValues = rows.map((row) => Number(row.values[metric])).filter(Number.isFinite);
+  const maximum = Math.max(...finiteValues.map(Math.abs), metric === "frequency_bias" ? 1 : 0.0001);
+  const direction = METRIC_META[metric];
+  const heading = document.createElement("div");
+  heading.className = "chart-heading";
+  heading.textContent = `${direction.label} · ${THRESHOLD_LABELS_CLIENT[threshold]} · ${direction.direction}`;
+  chart.append(heading);
+  for (const row of rows) {
+    const value = Number(row.values[metric]);
+    const bar = document.createElement("div");
+    bar.className = "metric-bar-row";
+    const width = Number.isFinite(value) ? Math.min(100, Math.abs(value) / maximum * 100) : 0;
+    bar.innerHTML = `<span>${row.label}</span><i style="--bar-width:${width}%"></i><b>${metricValueText(value)}</b>`;
+    chart.append(bar);
+    const tr = document.createElement("tr");
+    for (const cellValue of [
+      row.label,
+      metricValueText(value),
+      row.values.verified_forecast_count,
+      row.values.sample_count,
+      row.values.hits,
+      row.values.misses,
+      row.values.false_alarms,
+    ]) {
+      const td = document.createElement("td");
+      td.textContent = cellValue ?? "—";
+      tr.append(td);
+    }
+    table.append(tr);
+  }
+}
+
+async function loadRunningDashboard() {
+  if (state.runningVerification) {
+    renderRunningDashboard();
+    return;
+  }
+  try {
+    const response = await fetch("verification/rolling/latest.json");
+    if (!response.ok) throw new Error("Running verification unavailable");
+    state.runningVerification = await response.json();
+    renderRunningDashboard();
+  } catch (error) {
+    document.getElementById("running-status").textContent = "Running verification is not available yet; formal test-set cases have not been substituted.";
+    console.error(error);
+  }
+}
+
+function renderExplainabilityDashboard() {
+  const model = document.getElementById("shap-model").value;
+  const kind = document.getElementById("shap-kind").value;
+  const figures = (state.explainabilityManifest?.figures || [])
+    .filter((figure) => figure.model === model && figure.kind === kind);
+  const status = document.getElementById("explainability-status");
+  const figure = document.getElementById("shap-figure");
+  if (!figures.length) {
+    figure.hidden = true;
+    status.textContent = kind === "dependence"
+      ? `Final pre-rendered dependence plots are not available for ${model}; r100 dependence panels are available.`
+      : `Final ${kind} output is not available for ${model}.`;
+    return;
+  }
+  const selected = figures[0];
+  const image = document.getElementById("shap-image");
+  image.src = selected.path;
+  image.alt = selected.title;
+  document.getElementById("shap-caption").textContent = `${selected.title} · independent ${selected.test_period} test set`;
+  figure.hidden = false;
+  status.textContent = figures.length > 1
+    ? `${figures.length} finalized ${kind} figures are indexed; displaying ${selected.title}.`
+    : `Finalized ${kind} figure · ${selected.test_period} test set`;
+}
+
+async function loadExplainabilityDashboard() {
+  if (state.explainabilityManifest) {
+    renderExplainabilityDashboard();
+    return;
+  }
+  try {
+    const response = await fetch("explainability/manifest.json");
+    if (!response.ok) throw new Error("Explainability manifest unavailable");
+    state.explainabilityManifest = await response.json();
+    renderExplainabilityDashboard();
+  } catch (error) {
+    document.getElementById("explainability-status").textContent = "Finalized SHAP figures are not available in this build.";
+    console.error(error);
+  }
+}
+
+function setSiteView(view, updateHistory = true) {
+  const normalized = SITE_VIEWS.has(view) ? view : "forecast";
+  state.siteView = normalized;
+  const forecast = normalized === "forecast";
+  document.body.classList.toggle("dashboard-active", !forecast);
+  document.getElementById("dashboard").hidden = forecast;
+  document.getElementById("location-briefing").hidden = !forecast || !state.selectedLocation;
+  document.querySelectorAll("[data-dashboard-view]").forEach((section) => {
+    section.hidden = section.dataset.dashboardView !== normalized;
+  });
+  document.querySelectorAll("[data-site-view]").forEach((link) => {
+    if (link.dataset.siteView === normalized) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  if (forecast) {
+    if (state.viewMode === "2d") {
+      document.getElementById("map").hidden = false;
+      map.invalidateSize();
+    } else {
+      document.getElementById("map-3d").hidden = false;
+      state.map3d?.resize();
+    }
+  } else if (normalized === "skill") {
+    loadSkillDashboard();
+  } else if (normalized === "running") {
+    loadRunningDashboard();
+  } else if (normalized === "explainability") {
+    loadExplainabilityDashboard();
+  }
+  if (updateHistory) updateUrl("push");
+}
+
 function setupDialogs() {
   document.getElementById("about-button").addEventListener("click", () => document.getElementById("about-dialog").showModal());
   document.getElementById("archive-button").addEventListener("click", () => document.getElementById("archive-dialog").showModal());
@@ -1560,6 +2222,39 @@ function setupResponsiveControls() {
   });
 }
 
+document.querySelectorAll("[data-site-view]").forEach((link) => {
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    setSiteView(link.dataset.siteView);
+  });
+});
+document.getElementById("clear-location").addEventListener("click", clearBriefingLocation);
+document.getElementById("copy-briefing").addEventListener("click", async () => {
+  const status = document.getElementById("copy-briefing-status");
+  if (!state.briefingText) {
+    status.textContent = "Select a valid map location first.";
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(state.briefingText);
+    status.textContent = "Briefing copied.";
+  } catch (_) {
+    const area = document.createElement("textarea");
+    area.value = state.briefingText;
+    document.body.append(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+    status.textContent = "Briefing copied.";
+  }
+});
+document.getElementById("skill-frequency-threshold").addEventListener("change", renderSkillFrequency);
+for (const id of ["running-window", "running-metric", "running-threshold"]) {
+  document.getElementById(id).addEventListener("change", renderRunningDashboard);
+}
+document.getElementById("shap-model").addEventListener("change", renderExplainabilityDashboard);
+document.getElementById("shap-kind").addEventListener("change", renderExplainabilityDashboard);
+
 document.getElementById("collapse-layers").addEventListener("click", (event) => {
   const content = document.getElementById("layer-panel-content");
   content.hidden = !content.hidden;
@@ -1593,6 +2288,7 @@ document.getElementById("predictor-radius").addEventListener("change", (event) =
   state.selectedPredictor = null;
   buildLayerControls();
   renderPredictorLayer();
+  renderLocationBriefing();
 });
 document.querySelectorAll(".flood-alert-options input").forEach((checkbox) => {
   checkbox.addEventListener("change", () => {
@@ -1626,6 +2322,14 @@ map.on("zoomend", () => {
   renderObservations();
   renderLsrs();
 });
+map.on("click", (event) => selectBriefingLocation(event.latlng.lat, event.latlng.lng));
+window.addEventListener("popstate", () => {
+  const parameters = new URLSearchParams(location.search);
+  const requestedView = parameters.get("view");
+  setSiteView(requestedView === "3d" ? "forecast" : requestedView, false);
+  const requestedMap = parameters.get("map") || (requestedView === "3d" ? "3d" : "2d");
+  if (requestedMap !== state.viewMode) setViewMode(requestedMap);
+});
 
 async function init() {
   setupDialogs();
@@ -1644,7 +2348,11 @@ async function init() {
       || state.archive[0];
     if (!initial) throw new Error("No forecasts are available");
     await loadDate(initial.date, true);
-    if (parameters.get("view") === "3d") setViewMode("3d");
+    const requestedView = parameters.get("view");
+    const requestedMap = parameters.get("map") || (requestedView === "3d" ? "3d" : "2d");
+    if (requestedMap === "3d") setViewMode("3d");
+    setSiteView(requestedView === "3d" ? "forecast" : requestedView, false);
+    updateUrl();
     setRadarEnabled(document.getElementById("radar-loop-toggle").checked);
     fetchFloodAlerts(true);
   } catch (error) {
