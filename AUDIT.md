@@ -50,11 +50,11 @@ Final 2024–2025 test-set assets and their case tables are already saved under:
 - `fall_2025_ml_proj/paper_shap_figures/`
 - `fall_2025_ml_proj/shap_dependence_r100/`
 
-The website publisher copies the ETS, Practically Perfect ETS, and
-including/excluding-Marginal Brier Score figures from
+The website publisher copies the Any Flood Proxy ETS, Practically Perfect ETS,
+and Any Flood Proxy including/excluding-Marginal Brier Score figures from
 `paper_verification_bs_ets_final` into stable `docs/` locations. It does not
-publish a Brier Skill Score or common-case risk-area figure, and it does not
-retrain a model.
+publish MRMS > FFG statistics, a Brier Skill Score, or a common-case risk-area
+figure, and it does not retrain a model.
 
 ## Verification outputs
 

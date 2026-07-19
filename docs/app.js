@@ -1921,15 +1921,20 @@ function renderSkillFrequency() {
   const products = state.riskFrequency?.products || {};
   const rows = Object.entries(products)
     .map(([label, values]) => ({ label, ...(values[threshold] || {}) }))
-    .filter((row) => Number.isInteger(row.false_alarm_grid_cell_count)
+    .filter((row) => Number.isInteger(row.hit_grid_cell_count)
+      && Number.isInteger(row.false_alarm_grid_cell_count)
       && Number.isInteger(row.miss_grid_cell_count));
   if (!rows.length) {
-    chart.textContent = "Final false-alarm and miss counts are not available.";
+    chart.textContent = "Final hit, false-alarm, and miss counts are not available.";
     answer.textContent = "";
     return;
   }
   const maximum = Math.max(
-    ...rows.flatMap((row) => [row.false_alarm_grid_cell_count, row.miss_grid_cell_count]),
+    ...rows.flatMap((row) => [
+      row.hit_grid_cell_count,
+      row.false_alarm_grid_cell_count,
+      row.miss_grid_cell_count,
+    ]),
     1,
   );
   for (const row of rows) {
@@ -1937,16 +1942,19 @@ function renderSkillFrequency() {
     group.className = "bar-group";
     const label = document.createElement("strong");
     label.textContent = row.label;
+    const hits = document.createElement("div");
+    hits.className = "bar-row hits";
+    hits.innerHTML = `<span>Hits</span><i style="--bar-width:${row.hit_grid_cell_count / maximum * 100}%"></i><b>${row.hit_grid_cell_count.toLocaleString()}</b>`;
     const falseAlarms = document.createElement("div");
     falseAlarms.className = "bar-row false-alarms";
     falseAlarms.innerHTML = `<span>False alarms</span><i style="--bar-width:${row.false_alarm_grid_cell_count / maximum * 100}%"></i><b>${row.false_alarm_grid_cell_count.toLocaleString()}</b>`;
     const misses = document.createElement("div");
     misses.className = "bar-row misses";
     misses.innerHTML = `<span>Misses</span><i style="--bar-width:${row.miss_grid_cell_count / maximum * 100}%"></i><b>${row.miss_grid_cell_count.toLocaleString()}</b>`;
-    group.append(label, falseAlarms, misses);
+    group.append(label, hits, falseAlarms, misses);
     chart.append(group);
   }
-  answer.textContent = `${THRESHOLD_LABELS_CLIENT[threshold]} false alarms and misses are pooled grid-cell contingency counts across the same 45 independent test cases. Lower counts are better, but compare both error types with ETS before judging overall skill.`;
+  answer.textContent = `${THRESHOLD_LABELS_CLIENT[threshold]} hits, false alarms, and misses are pooled grid-cell contingency counts against Practically Perfect truth across the same 45 independent test cases. More hits and fewer errors are favorable, but compare the full balance with ETS.`;
 }
 
 const THRESHOLD_LABELS_CLIENT = {

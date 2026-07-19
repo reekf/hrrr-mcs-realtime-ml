@@ -24,10 +24,11 @@ Relevant dated commits include:
 - click-to-select Location Briefing with actual grid probabilities
 - standard-member agreement, deterministic interpretation, predictor values,
   nearby alert/report/proxy context, and Copy Briefing
-- finalized 2024–2025 ETS, PP ETS, including/excluding-Marginal Brier Score,
-  and SHAP assets with machine-readable manifests
-- pooled false-alarm and miss comparison excluding Local PMM, ensemble maximum,
-  and r100kmV2
+- finalized 2024–2025 Any Flood Proxy ETS, PP ETS,
+  including/excluding-Marginal Any Flood Proxy Brier Score, and SHAP assets
+  with machine-readable manifests
+- pooled hit, false-alarm, and miss comparison excluding Local PMM, ensemble
+  maximum, and r100kmV2
 - daily and pooled weekly/monthly/seasonal issued-forecast verification JSON
 - automated manifest/schema/unit validation and publisher integration
 - responsive/mobile dashboard and briefing layouts

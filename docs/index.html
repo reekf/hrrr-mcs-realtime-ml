@@ -225,8 +225,8 @@
       <section class="dashboard-card">
         <div class="card-heading">
           <div>
-            <span class="eyebrow">Contingency errors</span>
-            <h3>False alarms and misses by product</h3>
+            <span class="eyebrow">Contingency counts</span>
+            <h3>Hits, false alarms, and misses by product</h3>
           </div>
           <label>Threshold
             <select id="skill-frequency-threshold">
@@ -237,8 +237,8 @@
             </select>
           </label>
         </div>
-        <p>Counts are pooled over the same 45 independent test cases. A false alarm is a forecast-positive grid cell without Practically Perfect truth; a miss is a truth-positive grid cell without a forecast.</p>
-        <div id="skill-frequency-chart" class="bar-chart" aria-label="False-alarm and miss comparison"></div>
+        <p>Counts are pooled over the same 45 independent test cases. A hit is a forecast-positive grid cell matching Practically Perfect truth; a false alarm lacks matching truth; a miss is a truth-positive grid cell without a forecast.</p>
+        <div id="skill-frequency-chart" class="bar-chart" aria-label="Hit, false-alarm, and miss comparison"></div>
         <div id="skill-frequency-answer" class="callout"></div>
       </section>
     </section>
