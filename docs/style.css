@@ -824,6 +824,35 @@ body:has(.location-briefing:not([hidden])) .predictor-legend { right: 420px; }
 .bar-row.misses i { background: linear-gradient(90deg, #d7c169 var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row.correct-negatives i { background: linear-gradient(90deg, #818b91 var(--bar-width), #1b2329 var(--bar-width)); }
 .risk-case-row i { background: linear-gradient(90deg, #7a5bc7 var(--bar-width), #1b2329 var(--bar-width)); }
+.metric-bar-row i.signed-metric {
+  position: relative;
+  background: #1b2329;
+}
+.metric-bar-row i.signed-metric::after {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 50%;
+  width: 1px;
+  content: "";
+  background: #9aa5ab;
+}
+.metric-bar-row i.signed-positive {
+  background: linear-gradient(
+    90deg,
+    #1b2329 0 50%,
+    #427ca1 50% calc(50% + var(--bar-half-width)),
+    #1b2329 calc(50% + var(--bar-half-width)) 100%
+  );
+}
+.metric-bar-row i.signed-negative {
+  background: linear-gradient(
+    90deg,
+    #1b2329 0 calc(50% - var(--bar-half-width)),
+    #b65a4c calc(50% - var(--bar-half-width)) 50%,
+    #1b2329 50% 100%
+  );
+}
 .bar-row b, .metric-bar-row b { text-align: right; }
 .best-performing {
   border-color: #65c987;

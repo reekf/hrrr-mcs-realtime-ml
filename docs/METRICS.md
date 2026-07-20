@@ -73,6 +73,12 @@ dashboard defaults to day-level ETS and highlights the best value for the
 selected window and threshold. These occurrence scores measure whether risk
 was issued on the correct days, not its pixel-by-pixel placement.
 
+If every observed risk day is hit and there are no misses or false alarms, the
+usual day-level ETS expression degenerates to `0 / 0` because the expected
+random hits equal the observed hits. The website reports this perfect
+occurrence agreement as ETS `1.0`. This convention applies only to the
+day-level occurrence ETS; it does not alter pooled pixel ETS.
+
 The verification target is `Practically Perfect: Any flood proxy`. Formal
 2024–2025 test cases and realtime-issued forecasts remain separate datasets.
 

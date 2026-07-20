@@ -109,6 +109,7 @@ const METRIC_META = {
   frequency_bias: { label: "Pixel frequency bias", direction: "Closer to 1 is better", optimum: "one" },
   brier_score: { label: "Brier Score", direction: "Lower is better", optimum: "min" },
 };
+const SIGNED_METRICS = new Set(["ets", "risk_occurrence_ets"]);
 
 const state = {
   archive: [],
@@ -2051,19 +2052,24 @@ function dashboardProductLabel(label) {
   return label === "ML r60kmV2" ? "ML r60kmV2 (Beta)" : label;
 }
 
-function bestRowForMetric(rows, metric) {
+function bestRowsForMetric(rows, metric) {
   const meta = METRIC_META[metric] || { optimum: "max" };
-  return rows.reduce((best, row) => {
+  const candidates = rows.map((row) => {
     const rawValue = row.values?.[metric] ?? row[metric];
-    if (rawValue === null || rawValue === undefined || rawValue === "") return best;
+    if (rawValue === null || rawValue === undefined || rawValue === "") return null;
     const value = Number(rawValue);
-    if (!Number.isFinite(value)) return best;
-    if (!best) return { row, value };
-    if (meta.optimum === "min" && value < best.value) return { row, value };
-    if (meta.optimum === "one" && Math.abs(value - 1) < Math.abs(best.value - 1)) return { row, value };
-    if (meta.optimum === "max" && value > best.value) return { row, value };
-    return best;
-  }, null)?.row || null;
+    return Number.isFinite(value) ? { row, value } : null;
+  }).filter(Boolean);
+  if (!candidates.length) return [];
+  const score = (candidate) => {
+    if (meta.optimum === "min") return -candidate.value;
+    if (meta.optimum === "one") return -Math.abs(candidate.value - 1);
+    return candidate.value;
+  };
+  const bestScore = Math.max(...candidates.map(score));
+  return candidates
+    .filter((candidate) => Math.abs(score(candidate) - bestScore) < 1e-10)
+    .map((candidate) => candidate.row);
 }
 
 function renderSkillOccurrence() {
@@ -2086,7 +2092,7 @@ function renderSkillOccurrence() {
     answer.textContent = "";
     return;
   }
-  const best = bestRowForMetric(rows, metric);
+  const bestRows = bestRowsForMetric(rows, metric);
   const maximum = Math.max(
     ...rows.flatMap((row) => [
       row.hit_day_count,
@@ -2097,10 +2103,11 @@ function renderSkillOccurrence() {
     1,
   );
   for (const row of rows) {
+    const isBest = bestRows.includes(row);
     const group = document.createElement("div");
-    group.className = `bar-group${row === best ? " best-performing" : ""}`;
+    group.className = `bar-group${isBest ? " best-performing" : ""}`;
     const label = document.createElement("strong");
-    label.textContent = row === best
+    label.textContent = isBest
       ? `${row.label} · Best ${metric.toUpperCase()}`
       : row.label;
     const hits = document.createElement("div");
@@ -2118,9 +2125,9 @@ function renderSkillOccurrence() {
     group.append(label, hits, misses, falseAlarms, correctNegatives);
     chart.append(group);
     const tr = document.createElement("tr");
-    if (row === best) tr.className = "best-performing";
+    if (isBest) tr.className = "best-performing";
     for (const cellValue of [
-      row === best ? `${row.label} · Best ${metric.toUpperCase()}` : row.label,
+      isBest ? `${row.label} · Best ${metric.toUpperCase()}` : row.label,
       row.hit_day_count,
       row.miss_day_count,
       row.false_alarm_day_count,
@@ -2136,9 +2143,10 @@ function renderSkillOccurrence() {
     }
     table.append(tr);
   }
-  const bestValue = best ? metricValueText(best[metric]) : "Not available";
-  answer.textContent = best
-    ? `${best.label} has the highest day-level ${metric.toUpperCase()} (${bestValue}) for ${THRESHOLD_LABELS_CLIENT[threshold]} occurrence across the 45 independent test days. This ranking evaluates whether a risk existed anywhere in the forecast domain on each day; it does not measure the risk area's pixel-by-pixel placement.`
+  const bestValue = bestRows.length ? metricValueText(bestRows[0][metric]) : "Not available";
+  const bestLabels = bestRows.map((row) => row.label).join(", ");
+  answer.textContent = bestRows.length
+    ? `${bestLabels} ${bestRows.length === 1 ? "has" : "tie for"} the highest day-level ${metric.toUpperCase()} (${bestValue}) for ${THRESHOLD_LABELS_CLIENT[threshold]} occurrence across the 45 independent test days. This ranking evaluates whether a risk existed anywhere in the forecast domain on each day; it does not measure the risk area's pixel-by-pixel placement.`
     : `Day-level ${metric.toUpperCase()} is unavailable for this threshold.`;
 }
 
@@ -2256,7 +2264,7 @@ function renderRunningDashboard() {
     label: PRODUCT_META[key]?.short || key,
     values: thresholds[threshold],
   })).filter((row) => row.values);
-  const best = bestRowForMetric(rows, metric);
+  const bestRows = bestRowsForMetric(rows, metric);
   const maximumCases = Math.max(
     ...rows.map((row) => Number(row.values.verified_forecast_count) || 0),
     1,
@@ -2266,10 +2274,11 @@ function renderRunningDashboard() {
   caseHeading.textContent = `Cases issuing ${THRESHOLD_LABELS_CLIENT[threshold]}`;
   caseChart.append(caseHeading);
   for (const row of rows) {
+    const isBest = bestRows.includes(row);
     const riskCases = Number(row.values.risk_case_count) || 0;
     const verifiedCases = Number(row.values.verified_forecast_count) || 0;
     const bar = document.createElement("div");
-    bar.className = `metric-bar-row risk-case-row${row === best ? " best-performing" : ""}`;
+    bar.className = `metric-bar-row risk-case-row${isBest ? " best-performing" : ""}`;
     bar.innerHTML = `<span>${row.label}</span><i style="--bar-width:${Math.min(100, riskCases / maximumCases * 100)}%"></i><b>${riskCases}/${verifiedCases}</b>`;
     caseChart.append(bar);
   }
@@ -2280,25 +2289,33 @@ function renderRunningDashboard() {
     .filter(Number.isFinite);
   const maximum = Math.max(...finiteValues.map(Math.abs), metric === "frequency_bias" ? 1 : 0.0001);
   const direction = METRIC_META[metric];
+  const signedScale = SIGNED_METRICS.has(metric);
   const heading = document.createElement("div");
   heading.className = "chart-heading";
-  heading.textContent = `${direction.label} · ${THRESHOLD_LABELS_CLIENT[threshold]} · ${direction.direction}`;
+  heading.textContent = `${direction.label} · ${THRESHOLD_LABELS_CLIENT[threshold]} · ${direction.direction}${signedScale ? " · Zero centered" : ""}`;
   chart.append(heading);
   for (const row of rows) {
+    const isBest = bestRows.includes(row);
     const rawValue = row.values[metric];
     const value = rawValue === null || rawValue === undefined || rawValue === ""
       ? Number.NaN
       : Number(rawValue);
     const bar = document.createElement("div");
-    bar.className = `metric-bar-row${row === best ? " best-performing" : ""}`;
+    bar.className = `metric-bar-row${isBest ? " best-performing" : ""}`;
     const width = Number.isFinite(value) ? Math.min(100, Math.abs(value) / maximum * 100) : 0;
-    const bestSuffix = row === best ? ` · Best ${direction.label}` : "";
-    bar.innerHTML = `<span>${row.label}${bestSuffix}</span><i style="--bar-width:${width}%"></i><b>${metricValueText(value)}</b>`;
+    const trackClass = signedScale
+      ? `signed-metric ${value < 0 ? "signed-negative" : "signed-positive"}`
+      : "";
+    const trackStyle = signedScale
+      ? `--bar-half-width:${width / 2}%`
+      : `--bar-width:${width}%`;
+    const bestSuffix = isBest ? ` · Best ${direction.label}` : "";
+    bar.innerHTML = `<span>${row.label}${bestSuffix}</span><i class="${trackClass}" style="${trackStyle}"></i><b>${metricValueText(value)}</b>`;
     chart.append(bar);
     const tr = document.createElement("tr");
-    if (row === best) tr.className = "best-performing";
+    if (isBest) tr.className = "best-performing";
     for (const cellValue of [
-      row === best ? `${row.label} · Best ${direction.label}` : row.label,
+      isBest ? `${row.label} · Best ${direction.label}` : row.label,
       metricValueText(value),
       row.values.risk_case_count,
       row.values.truth_risk_case_count,

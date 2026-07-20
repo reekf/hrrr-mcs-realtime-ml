@@ -25,6 +25,13 @@ def test_categorical_metrics_zero_denominators_are_null():
     assert metrics["frequency_bias"] is None
 
 
+def test_perfect_all_event_occurrence_ets_is_one():
+    metrics = dashboard.risk_occurrence_metrics(45, 0, 0, 0)
+    assert metrics["ets"] == 1.0
+    assert metrics["csi"] == 1.0
+    assert dashboard.categorical_metrics(45, 0, 0, 0)["ets"] is None
+
+
 def test_threshold_boundaries_are_inclusive():
     truth = [50, 150, 400, 700]
     for threshold, index in zip(dashboard.THRESHOLDS, range(4)):
@@ -151,6 +158,8 @@ def test_published_manifests_and_verification_contracts():
     }
     assert max(moderate, key=lambda product: moderate[product]["ets"]) == "ML r60km"
     assert max(moderate, key=lambda product: moderate[product]["csi"]) == "ML r60kmV2"
+    for product, thresholds in contingency["products"].items():
+        assert thresholds["5"]["ets"] is not None, product
 
     index = json.loads((docs / "verification/index.json").read_text())
     assert index["dataset_class"] == "realtime-issued-verification"
@@ -226,6 +235,7 @@ def test_published_manifests_and_verification_contracts():
 
 if __name__ == "__main__":
     test_categorical_metrics_zero_denominators_are_null()
+    test_perfect_all_event_occurrence_ets_is_one()
     test_threshold_boundaries_are_inclusive()
     test_december_is_assigned_to_following_djf()
     test_pooled_counts_are_recalculated()

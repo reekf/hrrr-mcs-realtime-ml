@@ -76,6 +76,21 @@ def categorical_metrics(hits: int, misses: int, false_alarms: int, correct_negat
     }
 
 
+def risk_occurrence_metrics(
+    hits: int, misses: int, false_alarms: int, correct_negatives: int
+) -> dict:
+    """Categorical metrics with a defined ETS for perfect all-event agreement."""
+    metrics = categorical_metrics(hits, misses, false_alarms, correct_negatives)
+    if (
+        metrics["ets"] is None
+        and hits > 0
+        and misses == 0
+        and false_alarms == 0
+    ):
+        metrics["ets"] = 1.0
+    return metrics
+
+
 def daily_product(values: list[int], truth_values: list[int], threshold: int) -> dict:
     encoded_threshold = threshold * 10
     hits = misses = false_alarms = correct_negatives = 0
@@ -249,7 +264,7 @@ def aggregate_window(
                 and int(row["truth_positive_count"]) == 0
                 for row in rows
             )
-            occurrence_metrics = categorical_metrics(
+            occurrence_metrics = risk_occurrence_metrics(
                 occurrence_hits,
                 occurrence_misses,
                 occurrence_false_alarms,
@@ -408,7 +423,7 @@ def publish_risk_occurrence(project_dir: Path, docs_dir: Path, generated: str) -
                 grouped[key]["correct_negatives"] += 1
     products: dict[str, dict] = defaultdict(dict)
     for (source_label, threshold), values in sorted(grouped.items()):
-        metrics = categorical_metrics(
+        metrics = risk_occurrence_metrics(
             values["hits"],
             values["misses"],
             values["false_alarms"],
