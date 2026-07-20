@@ -216,6 +216,11 @@ def test_published_manifests_and_verification_contracts():
                 )
 
     index_html = (docs / "index.html").read_text()
+    logo_path = docs / "assets/xgbffp-logo.png"
+    assert logo_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    assert 'class="brand-mark" src="assets/xgbffp-logo.png' in index_html
+    assert 'rel="icon" type="image/png" href="assets/xgbffp-logo.png' in index_html
+    assert 'rel="apple-touch-icon" href="assets/xgbffp-logo.png' in index_html
     assert '<option value="40" selected>Moderate or greater</option>' in index_html
     assert '<option value="risk_occurrence_ets" selected>Day-level ETS</option>' in index_html
     assert 'id="fill-opacity" type="range" min="5" max="100" value="100"' in index_html
