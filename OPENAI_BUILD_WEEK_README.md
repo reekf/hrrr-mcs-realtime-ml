@@ -50,14 +50,47 @@ decision-support and evaluation website. Codex-assisted work included:
   Pages updates; and
 - adding automated JavaScript, Python, JSON, shell, schema, and unit checks.
 
-Recent human-directed refinements implemented with Codex included:
+### Recent Codex-assisted website changes
 
-- showing pooled Hits, False Alarms, and Misses against Practically Perfect
-  truth;
-- adding per-product running counts of verified cases that actually contained
-  the selected ML/WPC risk area;
-- separating selected-risk case counts from total verified cases; and
-- defaulting verification threshold controls to Moderate-or-greater.
+The following July 20 refinements were specified and scientifically reviewed
+by the human project lead, then traced through the existing data publisher,
+browser code, tests, Git history, and public deployment by Codex:
+
+- replaced the first verification page's pooled pixel contingency display
+  with one day-level risk-occurrence outcome per product and threshold;
+- defined day-level Hits as days when both a forecast and Practically Perfect
+  contained the selected risk, Misses as PP-only days, False Alarms as
+  forecast-only days, and Correct Negatives as days when neither contained it;
+- calculated internal day-level CSI and ETS from those occurrence counts and
+  highlighted every configuration tied for the best selected score;
+- updated Running Verification to show how many verified forecasts each ML
+  member and WPC issued the selected risk, the corresponding PP risk-day
+  count, all four day-level contingency counts, CSI, and ETS;
+- defaulted both verification views to Moderate-or-greater and removed Brier
+  Skill Score from the published interface;
+- corrected the running ETS graphic to use a signed, zero-centered scale, with
+  positive ETS extending right and negative ETS extending left;
+- handled the perfect all-event day-level ETS edge case explicitly. For
+  example, the formal Marginal comparison has 45 Hits and no Misses or False
+  Alarms for the ML configurations, so the documented occurrence convention
+  reports ETS 1.0 instead of leaving a `0 / 0` result blank;
+- restricted the formal comparison to the requested ML radius members,
+  ensemble mean, and WPC, excluding Local PMM, ensemble maximum, and
+  r100kmV2;
+- connected only the authoritative finalized ETS and Brier Score figures,
+  retaining Brier Score including/excluding Marginal while omitting Brier
+  Skill Score, the common-case risk-area plot, and standalone MRMS-over-FFG
+  descriptive statistics;
+- made r60kmV2 the default map member, labeled it Beta/testing, and set the
+  default forecast opacity to 100%;
+- made 2D and 3D zooming more granular and fixed the selected forecast so it
+  renders immediately when switching from 2D to 3D;
+- added a dashed gray XGBFFP forecast-domain outline in 2D and 3D, then moved
+  its label just outside the northern boundary so it does not cover forecast
+  risk areas; and
+- regenerated the machine-readable verification assets, ran Python/JavaScript/
+  JSON and contract tests, reviewed focused diffs, pushed scoped commits, and
+  monitored GitHub Pages until the new public bundles and JSON were live.
 
 ### Improving ML-code efficiency
 
@@ -112,6 +145,26 @@ sanitization, rolling-verification aggregation, selected-risk case counts, and
 live deployment checks. These checks reduce the chance that an incomplete or
 stale run is presented as the latest forecast.
 
+### Separate Day-2 training and verification workflow
+
+Under the human-defined forecast and target contract, Codex also developed a
+separate Day-2 workflow rather than changing the existing Day-1 models:
+
+- generated four XGBoost classification programs for 40-, 60-, 75-, and
+  100-km MRMS-over-FFG targets;
+- retained the existing 0–24-hour RAP features and added distinct 24–48-hour
+  instantaneous, precipitation-accumulation, maximum-accumulation, and
+  QPF/FFG-ratio features;
+- aligned the target to the D+1 12Z through D+2 12Z period following the RAP
+  initialization, with explicit guards against reusing incomplete Day-1
+  feature chunks or future-observation target features;
+- created a separate Day-2 verification viewer that retrieves WPC Day-2 ERO
+  products for the exact valid window and compares them with each ML radius;
+- kept Day-2 model tags, caches, manifests, verification output, and viewer
+  artifacts separate from Day 1; and
+- added contract tests and a dedicated
+  `DAY2_XGBFFP_TRAINING_AND_VERIFICATION.md` runbook.
+
 ## Human scientific and product responsibility
 
 GPT-5.6/Codex supported software implementation, refactoring, testing,
@@ -139,8 +192,9 @@ The Build Week collaboration followed a reviewable engineering loop:
 4. regenerate affected data and figures;
 5. run proportional static, unit, schema, and numerical checks;
 6. review the staged diff;
-7. commit and open a GitHub pull request; and
-8. merge, monitor GitHub Pages, and verify the public files.
+7. commit and publish the scoped changes through the repository's selected
+   GitHub workflow; and
+8. monitor GitHub Pages and verify the public HTML, JavaScript, and JSON files.
 
 This workflow let the human project lead give rapid scientific and product
 feedback while GPT-5.6/Codex handled much of the repository-scale inspection,
@@ -156,6 +210,7 @@ implementation, consistency checking, and deployment verification.
 | Publishing | `publish_latest_ml_output.sh`, `publish_verification_output.sh`, `realtime_ml.crontab` |
 | Efficient training | `hazard_ml_training_v28_r100km_singletarget_radiusstats_regression_MEMSAFE_V3.py` |
 | Radius workflows | `run_hazard_ml_v33_radius_sensitivity_from_WORKING_v28_radiusstats_SLIMMASTER_ROWSAMPLE.sh` and its generator |
+| Day-2 workflow | `run_hazard_ml_v33_day2_radius_sensitivity_from_WORKING_v28_radiusstats_SLIMMASTER_ROWSAMPLE.sh`, its generator, `hazard_ml_v33_day2_verification_viewer.py`, and `DAY2_XGBFFP_TRAINING_AND_VERIFICATION.md` |
 | Validation | `tests/test_dashboard_data.py`, `tests/test_briefing.js`, publisher schema checks |
 
 ## Representative development milestones
@@ -171,6 +226,11 @@ implementation, consistency checking, and deployment verification.
 - `03988de`: corrected authoritative model-skill figures
 - `764030f`: added Hits and removed unneeded MRMS-over-FFG skill figures
 - `cc1c2da`: added selected-risk case totals and removed Brier Skill Score
+- `c06201c`: replaced pixel contingency display with day-level occurrence
+  verification and added the map defaults/domain outline
+- `3d2c8d8`: moved the forecast-domain label outside the dashed boundary
+- `8f3ebd5`: corrected signed ETS bars and populated the perfect Marginal
+  occurrence ETS case
 
 ## Disclaimer
 
