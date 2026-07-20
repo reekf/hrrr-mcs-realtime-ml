@@ -77,6 +77,13 @@ def test_pooled_counts_are_recalculated():
     assert result["false_alarms"] == 2
     assert result["sample_count"] == 30
     assert result["risk_case_count"] == 2
+    assert result["truth_risk_case_count"] == 3
+    assert result["risk_occurrence_hits"] == 2
+    assert result["risk_occurrence_misses"] == 1
+    assert result["risk_occurrence_false_alarms"] == 0
+    assert result["risk_occurrence_correct_negatives"] == 0
+    assert result["risk_occurrence_csi"] == round(2 / 3, 8)
+    assert result["risk_occurrence_ets"] == 0.0
     assert result["verified_forecast_count"] == 3
     assert "brier_skill_score" not in result
 
@@ -110,8 +117,9 @@ def test_published_manifests_and_verification_contracts():
                 "Excluding Marginal",
             ]
 
-    contingency = json.loads((docs / "model-skill/risk-frequency.json").read_text())
-    assert contingency["schema_version"] == 3
+    contingency = json.loads((docs / "model-skill/risk-occurrence.json").read_text())
+    assert contingency["schema_version"] == 1
+    assert "forecast-day" in contingency["count_unit"]
     assert set(contingency["excluded_products"]) == {
         "ML Local PMM 100km",
         "ML Ensemble Max",
@@ -120,12 +128,29 @@ def test_published_manifests_and_verification_contracts():
     assert not set(contingency["excluded_products"]) & set(contingency["products"])
     for thresholds in contingency["products"].values():
         for counts in thresholds.values():
-            assert isinstance(counts["hit_grid_cell_count"], int)
-            assert isinstance(counts["false_alarm_grid_cell_count"], int)
-            assert isinstance(counts["miss_grid_cell_count"], int)
-            assert counts["hit_grid_cell_count"] >= 0
-            assert counts["false_alarm_grid_cell_count"] >= 0
-            assert counts["miss_grid_cell_count"] >= 0
+            for count_name in [
+                "hit_day_count",
+                "miss_day_count",
+                "false_alarm_day_count",
+                "correct_negative_day_count",
+            ]:
+                assert isinstance(counts[count_name], int)
+                assert counts[count_name] >= 0
+            assert counts["verified_day_count"] == 45
+            assert counts["forecast_risk_day_count"] == (
+                counts["hit_day_count"] + counts["false_alarm_day_count"]
+            )
+            assert counts["pp_risk_day_count"] == (
+                counts["hit_day_count"] + counts["miss_day_count"]
+            )
+            for metric in ["csi", "ets"]:
+                assert counts[metric] is None or math.isfinite(counts[metric])
+    moderate = {
+        product: thresholds["40"]
+        for product, thresholds in contingency["products"].items()
+    }
+    assert max(moderate, key=lambda product: moderate[product]["ets"]) == "ML r60km"
+    assert max(moderate, key=lambda product: moderate[product]["csi"]) == "ML r60kmV2"
 
     index = json.loads((docs / "verification/index.json").read_text())
     assert index["dataset_class"] == "realtime-issued-verification"
@@ -151,10 +176,10 @@ def test_published_manifests_and_verification_contracts():
                 assert "brier_skill_score" not in metrics
 
     rolling = json.loads((docs / "verification/rolling/latest.json").read_text())
-    assert rolling["schema_version"] == 2
+    assert rolling["schema_version"] == 3
     assert rolling["dataset_class"] == "realtime-issued-verification"
     for window in rolling["windows"].values():
-        assert window["schema_version"] == 2
+        assert window["schema_version"] == 3
         assert set(window["verified_dates"]).issubset(daily_dates)
         assert window["missing_day_count"] >= 0
         assert window["start_date"] <= window["end_date"]
@@ -162,10 +187,41 @@ def test_published_manifests_and_verification_contracts():
             for metrics in thresholds.values():
                 assert "brier_skill_score" not in metrics
                 assert 0 <= metrics["risk_case_count"] <= metrics["verified_forecast_count"]
+                assert 0 <= metrics["truth_risk_case_count"] <= metrics["verified_forecast_count"]
+                assert sum(
+                    metrics[name]
+                    for name in [
+                        "risk_occurrence_hits",
+                        "risk_occurrence_misses",
+                        "risk_occurrence_false_alarms",
+                        "risk_occurrence_correct_negatives",
+                    ]
+                ) == metrics["verified_forecast_count"]
+                assert metrics["risk_case_count"] == (
+                    metrics["risk_occurrence_hits"]
+                    + metrics["risk_occurrence_false_alarms"]
+                )
+                assert metrics["truth_risk_case_count"] == (
+                    metrics["risk_occurrence_hits"]
+                    + metrics["risk_occurrence_misses"]
+                )
 
     index_html = (docs / "index.html").read_text()
     assert '<option value="40" selected>Moderate or greater</option>' in index_html
+    assert '<option value="risk_occurrence_ets" selected>Day-level ETS</option>' in index_html
+    assert 'id="fill-opacity" type="range" min="5" max="100" value="100"' in index_html
     assert "Brier Skill Score" not in index_html
+    assert "risk-frequency" not in index_html
+
+    app_javascript = (docs / "app.js").read_text()
+    assert 'selected: "ml_r60v2"' in app_javascript
+    assert "zoomSnap: 0.25" in app_javascript
+    assert "wheelPxPerZoomLevel: 180" in app_javascript
+    assert "XGBFFP forecast domain" in app_javascript
+    assert app_javascript.index('state.viewMode = "3d";') < app_javascript.index(
+        "initialize3dMap();",
+        app_javascript.index("function setViewMode"),
+    )
 
 
 if __name__ == "__main__":

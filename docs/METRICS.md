@@ -52,13 +52,26 @@ where recorded by the source table. The website does not reinterpret them.
 ## Realtime pooling
 
 For ETS, CSI, POD, FAR, and frequency bias, XGBFFP sums `H`, `M`, `F`, and `C`
-across verified dates and recalculates each metric. It does not average daily
-scores.
+across verified dates and recalculates each pixel metric. It does not average
+daily scores.
 
 For Brier Score, squared-error sums and sample counts are pooled. Every metric
 reports verified forecast count and grid sample count. Each product/threshold
 also reports the number of verified cases containing at least one forecast
 grid cell at or above the selected risk threshold.
+
+The website's risk-occurrence contingency is separate from the pixel
+contingency. Each forecast day contributes exactly one outcome:
+
+- Hit: the forecast and Practically Perfect both contain the selected risk.
+- Miss: Practically Perfect contains it and the forecast does not.
+- False alarm: the forecast contains it and Practically Perfect does not.
+- Correct negative: neither contains it.
+
+Day-level CSI and ETS are recalculated from those occurrence counts. The
+dashboard defaults to day-level ETS and highlights the best value for the
+selected window and threshold. These occurrence scores measure whether risk
+was issued on the correct days, not its pixel-by-pixel placement.
 
 The verification target is `Practically Perfect: Any flood proxy`. Formal
 2024–2025 test cases and realtime-issued forecasts remain separate datasets.

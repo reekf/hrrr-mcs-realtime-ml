@@ -44,10 +44,13 @@ entry records title, metric, target, threshold list, test period, model,
 source script/function, generation timestamp, and repo-relative image `path`.
 The publisher fails if a referenced path is missing.
 
-`model-skill/risk-frequency.json` contains pooled hit, false-alarm, and miss
-grid-cell counts derived from the final PP ETS contingency-count table. Local PMM,
-ensemble maximum, and r100kmV2 are intentionally excluded from this comparison.
-It remains labeled as formal test-set data.
+`model-skill/risk-occurrence.json` contains one categorical outcome per product,
+threshold, and test day, derived from the final PP ETS contingency-count table.
+A hit day has the selected risk in both the forecast and Practically Perfect; a
+miss day has it only in Practically Perfect; a false-alarm day has it only in the
+forecast; and a correct-negative day has it in neither. Day-level CSI and ETS
+are recalculated from those 45 outcomes. Local PMM, ensemble maximum, and
+r100kmV2 are intentionally excluded. It remains formal test-set data.
 
 ## Explainability manifest — schema version 1
 
@@ -78,7 +81,7 @@ bias, and Brier Score. Undefined metrics are `null`.
 Only maps with `source_class == "realtime"` and an actual `layers.pp` array are
 eligible.
 
-## Rolling realtime verification — schema version 2
+## Rolling realtime verification — schema version 3
 
 Paths:
 
@@ -91,10 +94,11 @@ verification/rolling/seasonal.json
 
 Each window records its definition, start/end dates, verified dates and count,
 expected calendar days, missing-day count, completeness, target, and pooled
-product/threshold metrics. Each product/threshold also records
-`risk_case_count`, the number of verified forecasts containing at least one
-grid cell at or above that threshold. `latest.json` embeds all three windows
-for one browser request.
+product/threshold metrics. Each product/threshold also records forecast and PP
+risk-day totals; day-level hits, misses, false alarms, and correct negatives;
+and day-level CSI and ETS. `risk_case_count` is the number of verified forecasts
+containing at least one grid cell at or above that threshold. `latest.json`
+embeds all three windows for one browser request.
 
 `verification/index.json` lists available daily dates and paths.
 

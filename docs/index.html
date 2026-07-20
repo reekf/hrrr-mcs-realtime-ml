@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" crossorigin="">
-  <link rel="stylesheet" href="style.css?v=20260719-xgbffp-4">
+  <link rel="stylesheet" href="style.css?v=20260720-occurrence-map-1">
 </head>
 <body>
   <div id="map" aria-label="Interactive ML flash-flood probability map"></div>
@@ -166,8 +166,8 @@
           <div class="opacity-control">
             <label id="opacity-control-label" for="fill-opacity">Forecast opacity</label>
             <div>
-              <input id="fill-opacity" type="range" min="5" max="100" value="68" step="1">
-              <output id="fill-opacity-value" for="fill-opacity">68%</output>
+              <input id="fill-opacity" type="range" min="5" max="100" value="100" step="1">
+              <output id="fill-opacity-value" for="fill-opacity">100%</output>
             </div>
           </div>
         </div>
@@ -225,21 +225,35 @@
       <section class="dashboard-card">
         <div class="card-heading">
           <div>
-            <span class="eyebrow">Contingency counts</span>
-            <h3>Hits, false alarms, and misses by product</h3>
+            <span class="eyebrow">Day-level risk occurrence</span>
+            <h3>Risk-occurrence contingency by product</h3>
           </div>
-          <label>Threshold
-            <select id="skill-frequency-threshold">
-              <option value="5">Marginal or greater</option>
-              <option value="15">Slight or greater</option>
-              <option value="40" selected>Moderate or greater</option>
-              <option value="70">High</option>
-            </select>
-          </label>
+          <div class="card-controls">
+            <label>Rank by
+              <select id="skill-occurrence-metric">
+                <option value="ets" selected>Day-level ETS</option>
+                <option value="csi">Day-level CSI</option>
+              </select>
+            </label>
+            <label>Threshold
+              <select id="skill-occurrence-threshold">
+                <option value="5">Marginal or greater</option>
+                <option value="15">Slight or greater</option>
+                <option value="40" selected>Moderate or greater</option>
+                <option value="70">High</option>
+              </select>
+            </label>
+          </div>
         </div>
-        <p>Counts are pooled over the same 45 independent test cases. A hit is a forecast-positive grid cell matching Practically Perfect truth; a false alarm lacks matching truth; a miss is a truth-positive grid cell without a forecast.</p>
-        <div id="skill-frequency-chart" class="bar-chart" aria-label="Hit, false-alarm, and miss comparison"></div>
-        <div id="skill-frequency-answer" class="callout"></div>
+        <p>Each of the 45 test days contributes one outcome per product and threshold. A hit means the forecast and Practically Perfect both contained the selected risk; a miss means only Practically Perfect did; a false alarm means only the forecast did; and a correct negative means neither did.</p>
+        <div id="skill-occurrence-chart" class="bar-chart" aria-label="Day-level hit, miss, false-alarm, and correct-negative comparison"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Product</th><th>Hits</th><th>Misses</th><th>False alarms</th><th>Correct negatives</th><th>CSI</th><th>ETS</th><th>Forecast risk days</th><th>PP risk days</th></tr></thead>
+            <tbody id="skill-occurrence-table"></tbody>
+          </table>
+        </div>
+        <div id="skill-occurrence-answer" class="callout"></div>
       </section>
     </section>
 
@@ -259,11 +273,13 @@
         </label>
         <label>Metric
           <select id="running-metric">
-            <option value="ets">ETS</option>
-            <option value="csi">CSI</option>
-            <option value="pod">POD</option>
-            <option value="far">FAR</option>
-            <option value="frequency_bias">Frequency bias</option>
+            <option value="risk_occurrence_ets" selected>Day-level ETS</option>
+            <option value="risk_occurrence_csi">Day-level CSI</option>
+            <option value="ets">Pixel ETS</option>
+            <option value="csi">Pixel CSI</option>
+            <option value="pod">Pixel POD</option>
+            <option value="far">Pixel FAR</option>
+            <option value="frequency_bias">Pixel frequency bias</option>
             <option value="brier_score">Brier Score</option>
           </select>
         </label>
@@ -285,7 +301,7 @@
         <div id="running-chart" class="bar-chart metric-chart" aria-label="Running metric comparison"></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Product</th><th>Value</th><th>Risk cases</th><th>Verified cases</th><th>Samples</th><th>Hits</th><th>Misses</th><th>False alarms</th></tr></thead>
+            <thead><tr><th>Product</th><th>Selected metric</th><th>Forecast risk days</th><th>PP risk days</th><th>Verified days</th><th>Hits</th><th>Misses</th><th>False alarms</th><th>Correct negatives</th><th>Day CSI</th><th>Day ETS</th></tr></thead>
             <tbody id="running-table"></tbody>
           </table>
         </div>
@@ -334,7 +350,7 @@
       <div class="about-grid">
         <section class="dashboard-card">
           <h3>Forecast guidance</h3>
-          <p>The map displays 40-, 60-, 75-, and 100-km neighborhood configurations, an experimental 60-km V2 member, an ensemble mean, and the official WPC ERO reference.</p>
+          <p>The map displays 40-, 60-, 75-, and 100-km neighborhood configurations, a beta/testing 60-km V2 member, an ensemble mean, and the official WPC ERO reference.</p>
         </section>
         <section class="dashboard-card">
           <h3>Three evaluation populations</h3>
@@ -407,6 +423,6 @@
   <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js" crossorigin=""></script>
   <script src="briefing.js?v=20260719-xgbffp-1"></script>
-  <script src="app.js?v=20260719-xgbffp-4"></script>
+  <script src="app.js?v=20260720-occurrence-map-1"></script>
 </body>
 </html>

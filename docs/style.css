@@ -59,6 +59,17 @@ button { cursor: pointer; }
 }
 
 .leaflet-control-attribution a { color: #a9d8ff; }
+.leaflet-tooltip.domain-label {
+  padding: 4px 7px;
+  color: #d8dfe3;
+  background: rgba(24, 29, 33, 0.9);
+  border: 1px solid #89949a;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
+.leaflet-tooltip-top.domain-label::before { border-top-color: #89949a; }
 
 .leaflet-radar-pane .leaflet-layer {
   transition: opacity 260ms linear;
@@ -783,6 +794,7 @@ body:has(.location-briefing:not([hidden])) .predictor-legend { right: 420px; }
 .dashboard-card > p { color: #b7c1c7; line-height: 1.6; }
 .card-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; }
 .card-heading h3 { margin-top: 4px; }
+.card-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 .dashboard-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -803,15 +815,25 @@ body:has(.location-briefing:not([hidden])) .predictor-legend { right: 420px; }
 .warning-callout { margin: 12px 0; }
 .callout { margin-top: 15px; }
 .bar-chart { display: grid; gap: 14px; margin-top: 18px; }
-.bar-group { display: grid; gap: 5px; }
+.bar-group { display: grid; gap: 5px; padding: 7px; border: 1px solid transparent; }
 .bar-group > strong { font-size: 0.72rem; }
 .bar-row, .metric-bar-row { display: grid; grid-template-columns: 120px minmax(80px, 1fr) 75px; align-items: center; gap: 9px; font-size: 0.68rem; }
 .bar-row i, .metric-bar-row i { height: 13px; display: block; background: linear-gradient(90deg, #427ca1 var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row.hits i { background: linear-gradient(90deg, #4d9b68 var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row.false-alarms i { background: linear-gradient(90deg, #b65a4c var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row.misses i { background: linear-gradient(90deg, #d7c169 var(--bar-width), #1b2329 var(--bar-width)); }
+.bar-row.correct-negatives i { background: linear-gradient(90deg, #818b91 var(--bar-width), #1b2329 var(--bar-width)); }
 .risk-case-row i { background: linear-gradient(90deg, #7a5bc7 var(--bar-width), #1b2329 var(--bar-width)); }
 .bar-row b, .metric-bar-row b { text-align: right; }
+.best-performing {
+  border-color: #65c987;
+  background: rgba(77, 155, 104, 0.12);
+}
+.metric-bar-row.best-performing { padding: 7px; }
+tr.best-performing td {
+  color: #e7fff0;
+  background: rgba(77, 155, 104, 0.13);
+}
 .chart-heading { color: #fff; font-size: 0.78rem; }
 .metric-chart { margin-bottom: 22px; }
 .table-wrap { overflow-x: auto; }

@@ -229,13 +229,44 @@ def aggregate_window(
                 summed["correct_negatives"],
             )
             brier = safe_ratio(squared_error_sum, summed["sample_count"])
+            occurrence_hits = sum(
+                int(row["forecast_positive_count"]) > 0
+                and int(row["truth_positive_count"]) > 0
+                for row in rows
+            )
+            occurrence_misses = sum(
+                int(row["forecast_positive_count"]) == 0
+                and int(row["truth_positive_count"]) > 0
+                for row in rows
+            )
+            occurrence_false_alarms = sum(
+                int(row["forecast_positive_count"]) > 0
+                and int(row["truth_positive_count"]) == 0
+                for row in rows
+            )
+            occurrence_correct_negatives = sum(
+                int(row["forecast_positive_count"]) == 0
+                and int(row["truth_positive_count"]) == 0
+                for row in rows
+            )
+            occurrence_metrics = categorical_metrics(
+                occurrence_hits,
+                occurrence_misses,
+                occurrence_false_alarms,
+                occurrence_correct_negatives,
+            )
             metrics.update(summed)
             metrics.update(
                 {
                     "brier_score": brier,
-                    "risk_case_count": sum(
-                        int(row["forecast_positive_count"]) > 0 for row in rows
-                    ),
+                    "risk_case_count": occurrence_hits + occurrence_false_alarms,
+                    "truth_risk_case_count": occurrence_hits + occurrence_misses,
+                    "risk_occurrence_hits": occurrence_hits,
+                    "risk_occurrence_misses": occurrence_misses,
+                    "risk_occurrence_false_alarms": occurrence_false_alarms,
+                    "risk_occurrence_correct_negatives": occurrence_correct_negatives,
+                    "risk_occurrence_csi": occurrence_metrics["csi"],
+                    "risk_occurrence_ets": occurrence_metrics["ets"],
                     "verified_forecast_count": len(rows),
                 }
             )
@@ -244,7 +275,7 @@ def aggregate_window(
             products[product] = threshold_payload
     expected_days = (end - start).days + 1
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "dataset_class": "realtime-issued-verification",
         "verification_target": "Practically Perfect: Any flood proxy",
         "window": window_name,
@@ -349,13 +380,13 @@ def publish_skill_assets(project_dir: Path, docs_dir: Path, generated: str) -> d
     return manifest
 
 
-def publish_risk_frequency(project_dir: Path, docs_dir: Path, generated: str) -> dict:
+def publish_risk_occurrence(project_dir: Path, docs_dir: Path, generated: str) -> dict:
     source = project_dir / "paper_verification_bs_ets_final/ets_pp_any_flood_proxy_metrics.csv"
     if not source.is_file():
         raise FileNotFoundError(source)
     excluded_sources = {"ML Local PMM 100km", "ML Ensemble Max", "ML r100kmV2"}
     grouped: dict[tuple[str, int], dict[str, int]] = defaultdict(
-        lambda: {"hits": 0, "false_alarms": 0, "misses": 0}
+        lambda: {"hits": 0, "misses": 0, "false_alarms": 0, "correct_negatives": 0}
     )
     with source.open(newline="") as handle:
         for row in csv.DictReader(handle):
@@ -365,29 +396,54 @@ def publish_risk_frequency(project_dir: Path, docs_dir: Path, generated: str) ->
             if threshold not in THRESHOLDS:
                 continue
             key = (row["Source"], threshold)
-            grouped[key]["hits"] += int(row["Hits"])
-            grouped[key]["false_alarms"] += int(row["False Alarms"])
-            grouped[key]["misses"] += int(row["Misses"])
+            forecast_has_risk = int(row["Hits"]) + int(row["False Alarms"]) > 0
+            truth_has_risk = int(row["Hits"]) + int(row["Misses"]) > 0
+            if forecast_has_risk and truth_has_risk:
+                grouped[key]["hits"] += 1
+            elif truth_has_risk:
+                grouped[key]["misses"] += 1
+            elif forecast_has_risk:
+                grouped[key]["false_alarms"] += 1
+            else:
+                grouped[key]["correct_negatives"] += 1
     products: dict[str, dict] = defaultdict(dict)
     for (source_label, threshold), values in sorted(grouped.items()):
+        metrics = categorical_metrics(
+            values["hits"],
+            values["misses"],
+            values["false_alarms"],
+            values["correct_negatives"],
+        )
         products[source_label][str(threshold)] = {
             "threshold_label": THRESHOLD_LABELS[threshold],
-            "hit_grid_cell_count": values["hits"],
-            "false_alarm_grid_cell_count": values["false_alarms"],
-            "miss_grid_cell_count": values["misses"],
+            "hit_day_count": values["hits"],
+            "miss_day_count": values["misses"],
+            "false_alarm_day_count": values["false_alarms"],
+            "correct_negative_day_count": values["correct_negatives"],
+            "forecast_risk_day_count": values["hits"] + values["false_alarms"],
+            "pp_risk_day_count": values["hits"] + values["misses"],
+            "verified_day_count": sum(values.values()),
+            "csi": metrics["csi"],
+            "ets": metrics["ets"],
         }
     payload = {
-        "schema_version": 3,
+        "schema_version": 1,
         "dataset_class": "formal-independent-test-set",
         "test_period": "2024–2025",
         "verification_target": "Practically Perfect: Any flood proxy",
-        "count_unit": "summed grid-cell contingency counts across 45 test cases",
+        "count_unit": "forecast-day risk-occurrence contingency counts across 45 test cases",
+        "definition": (
+            "For each test day and threshold, hit means both the forecast and Practically "
+            "Perfect contain the selected risk; miss means only Practically Perfect does; "
+            "false alarm means only the forecast does; correct negative means neither does."
+        ),
         "excluded_products": sorted(excluded_sources),
         "generated_utc": generated,
         "products": dict(products),
         "source_table": "paper_verification_bs_ets_final/ets_pp_any_flood_proxy_metrics.csv",
     }
-    write_json(docs_dir / "model-skill/risk-frequency.json", payload)
+    write_json(docs_dir / "model-skill/risk-occurrence.json", payload)
+    (docs_dir / "model-skill/risk-frequency.json").unlink(missing_ok=True)
     return payload
 
 
@@ -445,14 +501,14 @@ def publish_realtime_verification(docs_dir: Path, generated: str) -> dict:
         windows[name] = window
         write_json(output_root / f"rolling/{name}.json", window)
     latest = {
-        "schema_version": 2,
+        "schema_version": 3,
         "dataset_class": "realtime-issued-verification",
         "generated_utc": generated,
         "windows": windows,
     }
     write_json(output_root / "rolling/latest.json", latest)
     index = {
-        "schema_version": 2,
+        "schema_version": 3,
         "dataset_class": "realtime-issued-verification",
         "generated_utc": generated,
         "daily_record_count": len(records),
@@ -485,7 +541,7 @@ def main() -> int:
     generated = utc_now()
     if not args.verification_only:
         skill = publish_skill_assets(args.project_dir, args.docs_dir, generated)
-        publish_risk_frequency(args.project_dir, args.docs_dir, generated)
+        publish_risk_occurrence(args.project_dir, args.docs_dir, generated)
         validate_manifest_paths(args.docs_dir, skill)
         if not args.skill_only:
             explainability = publish_explainability_assets(args.project_dir, args.docs_dir, generated)

@@ -24,10 +24,10 @@ const PRODUCT_META = {
     dash: "8 4",
   },
   ml_r60v2: {
-    short: "ML r60kmV2",
-    title: "60-km V2 density-weighted ML",
-    note: "r60kmV2 emphasizes dense clusters of observed flood proxies during training.",
-    detail: "Uses the same 60-km forecast-predictor neighborhoods as the regular r60 model, but its binary loss penalizes low probabilities more strongly where many MRMS-over-FFG grid points or multiple flood/flash-flood reports occurred within 60 km. Because it is cost-sensitive, its raw probabilities may be less frequency-calibrated than an unweighted model.",
+    short: "ML r60kmV2 (Beta)",
+    title: "60-km V2 beta/testing ML",
+    note: "r60kmV2 is a beta/testing configuration that can issue risk too often, while its risk-area placement remains useful for evaluation.",
+    detail: "Uses the same 60-km forecast-predictor neighborhoods as the regular r60 model, but its binary loss penalizes low probabilities more strongly where many MRMS-over-FFG grid points or multiple flood/flash-flood reports occurred within 60 km. This cost-sensitive testing member can over-issue risk and its raw probabilities may be less frequency-calibrated than an unweighted model.",
     dash: "14 4 2 4",
   },
   ml_r75: {
@@ -100,22 +100,25 @@ const BRIEFING_SEARCH_RADIUS_KM = 40;
 const BRIEFING_MAX_GRID_DISTANCE_KM = 100;
 const SITE_VIEWS = new Set(["forecast", "skill", "running", "explainability", "about"]);
 const METRIC_META = {
-  ets: { label: "ETS", direction: "Higher is better" },
-  csi: { label: "CSI", direction: "Higher is better" },
-  pod: { label: "POD", direction: "Higher is better" },
-  far: { label: "FAR", direction: "Lower is better" },
-  frequency_bias: { label: "Frequency bias", direction: "Closer to 1 is better" },
-  brier_score: { label: "Brier Score", direction: "Lower is better" },
+  risk_occurrence_ets: { label: "Day-level ETS", direction: "Higher is better", optimum: "max" },
+  risk_occurrence_csi: { label: "Day-level CSI", direction: "Higher is better", optimum: "max" },
+  ets: { label: "Pixel ETS", direction: "Higher is better", optimum: "max" },
+  csi: { label: "Pixel CSI", direction: "Higher is better", optimum: "max" },
+  pod: { label: "Pixel POD", direction: "Higher is better", optimum: "max" },
+  far: { label: "Pixel FAR", direction: "Lower is better", optimum: "min" },
+  frequency_bias: { label: "Pixel frequency bias", direction: "Closer to 1 is better", optimum: "one" },
+  brier_score: { label: "Brier Score", direction: "Lower is better", optimum: "min" },
 };
 
 const state = {
   archive: [],
   data: null,
-  selected: "ml_r60",
+  selected: "ml_r60v2",
   contours: new Set(),
   observations: new Set(),
-  fillOpacity: 0.68,
+  fillOpacity: 1,
   fillLayer: null,
+  domainLayer: null,
   contourLayer: null,
   observationLayer: null,
   lsrReports: [],
@@ -151,6 +154,7 @@ const state = {
   map3d: null,
   deckOverlay: null,
   render3dFrame: null,
+  render3dWaiting: false,
   surface3dCache: new Map(),
   separated3dPoints: false,
   showExpansionRings: false,
@@ -159,7 +163,7 @@ const state = {
   selectedLocationMarker: null,
   briefingText: "",
   skillManifest: null,
-  riskFrequency: null,
+  riskOccurrence: null,
   runningVerification: null,
   explainabilityManifest: null,
 };
@@ -169,6 +173,10 @@ const map = L.map("map", {
   preferCanvas: true,
   minZoom: 3,
   maxZoom: 9,
+  zoomSnap: 0.25,
+  zoomDelta: 0.25,
+  wheelPxPerZoomLevel: 180,
+  wheelDebounceTime: 20,
 }).setView([39.5, -92.5], 5);
 
 map.createPane("forecastPane");
@@ -182,6 +190,9 @@ map.getPane("predictorPane").style.pointerEvents = "none";
 map.createPane("statePane");
 map.getPane("statePane").style.zIndex = 430;
 map.getPane("statePane").style.pointerEvents = "none";
+map.createPane("domainPane");
+map.getPane("domainPane").style.zIndex = 440;
+map.getPane("domainPane").style.pointerEvents = "none";
 map.createPane("contourPane");
 map.getPane("contourPane").style.zIndex = 450;
 map.createPane("labelPane");
@@ -249,6 +260,53 @@ function continuousRiskColor(probability, alpha = 255) {
     ];
   }
   return [...stops.at(-1).color.slice(0, 3), alpha];
+}
+
+function forecastDomainBounds() {
+  const latitudes = state.data?.grid?.lat || [];
+  const longitudes = state.data?.grid?.lon || [];
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  for (let index = 0; index < Math.min(latitudes.length, longitudes.length); index += 1) {
+    const latitude = Number(latitudes[index]);
+    const longitude = Number(longitudes[index]);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+    minLat = Math.min(minLat, latitude);
+    maxLat = Math.max(maxLat, latitude);
+    minLon = Math.min(minLon, longitude);
+    maxLon = Math.max(maxLon, longitude);
+  }
+  return [minLat, maxLat, minLon, maxLon].every(Number.isFinite)
+    ? { minLat, maxLat, minLon, maxLon }
+    : null;
+}
+
+function renderForecastDomain() {
+  if (state.domainLayer) map.removeLayer(state.domainLayer);
+  state.domainLayer = null;
+  const bounds = forecastDomainBounds();
+  if (!bounds) return;
+  const rectangle = L.rectangle(
+    [[bounds.minLat, bounds.minLon], [bounds.maxLat, bounds.maxLon]],
+    {
+      pane: "domainPane",
+      color: "#aeb8be",
+      weight: 1.7,
+      opacity: 0.9,
+      fill: false,
+      dashArray: "7 6",
+      interactive: false,
+    },
+  );
+  rectangle.bindTooltip("XGBFFP forecast domain", {
+    permanent: true,
+    direction: "top",
+    className: "domain-label",
+    opacity: 0.92,
+  });
+  state.domainLayer = L.layerGroup([rectangle]).addTo(map);
 }
 
 function add3dStateLines() {
@@ -447,6 +505,52 @@ function build3dLayers() {
     getFillColor: (point) => continuousRiskColor(point.probability),
     transitions: { getElevation: 350 },
   })];
+  const domain = forecastDomainBounds();
+  if (domain) {
+    const domainHeight = 2500;
+    const path = [
+      [domain.minLon, domain.minLat, domainHeight],
+      [domain.maxLon, domain.minLat, domainHeight],
+      [domain.maxLon, domain.maxLat, domainHeight],
+      [domain.minLon, domain.maxLat, domainHeight],
+      [domain.minLon, domain.minLat, domainHeight],
+    ];
+    layers.push(new deck.PathLayer({
+      ...shared,
+      id: `xgbffp-domain-3d-${state.data.date}`,
+      data: [{ path, domainBoundary: true }],
+      getPath: (item) => item.path,
+      getColor: [174, 184, 190, 235],
+      getWidth: 3000,
+      widthUnits: "meters",
+      widthMinPixels: 2,
+      getDashArray: [10000, 7500],
+      dashJustified: true,
+      extensions: [new deck.PathStyleExtension({ dash: true })],
+      pickable: true,
+    }));
+    layers.push(new deck.TextLayer({
+      ...shared,
+      id: `xgbffp-domain-label-3d-${state.data.date}`,
+      data: [{
+        position: [(domain.minLon + domain.maxLon) / 2, domain.maxLat, domainHeight + 2000],
+        text: "XGBFFP forecast domain",
+        domainBoundary: true,
+      }],
+      getPosition: (item) => item.position,
+      getText: (item) => item.text,
+      getColor: [218, 224, 228, 255],
+      getSize: 14,
+      sizeUnits: "pixels",
+      getTextAnchor: "middle",
+      getAlignmentBaseline: "bottom",
+      background: true,
+      getBackgroundColor: [25, 30, 34, 220],
+      backgroundPadding: [5, 3],
+      billboard: true,
+      pickable: true,
+    }));
+  }
 
   for (const key of state.contours) {
     const source = state.data.contours?.[key];
@@ -576,11 +680,23 @@ function build3dLayers() {
 }
 
 function render3d() {
-  if (state.viewMode !== "3d" || !state.deckOverlay || !state.map3d?.isStyleLoaded()) return;
+  if (state.viewMode !== "3d" || !state.deckOverlay || !state.map3d) return;
+  if (!state.map3d.isStyleLoaded()) {
+    if (!state.render3dWaiting) {
+      state.render3dWaiting = true;
+      state.map3d.once("idle", () => {
+        state.render3dWaiting = false;
+        render3d();
+      });
+    }
+    return;
+  }
+  state.render3dWaiting = false;
   state.deckOverlay.setProps({
     layers: build3dLayers(),
     getTooltip: ({ object, x, y }) => {
       if (!object) return null;
+      if (object.domainBoundary) return "XGBFFP forecast domain";
       if (object.expansionRing) return `${object.meta.label} · 40-km expansion`;
       if (object.probability) {
         const city = nearestVisibleCity(object.position, x, y);
@@ -635,12 +751,15 @@ function initialize3dMap() {
     attributionControl: true,
   });
   state.map3d.touchZoomRotate.disableRotation();
+  state.map3d.scrollZoom.setWheelZoomRate?.(1 / 900);
+  state.map3d.scrollZoom.setZoomRate?.(1 / 180);
+  state.map3d.touchZoomRotate.setZoomRate?.(0.5);
   state.map3d.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
   state.deckOverlay = new deck.MapboxOverlay({ interleaved: true, layers: [] });
   state.map3d.addControl(state.deckOverlay);
   state.map3d.on("load", () => {
     add3dStateLines();
-    render3d();
+    schedule3dRender();
   });
   state.map3d.on("click", (event) => {
     selectBriefingLocation(event.lngLat.lat, event.lngLat.lng);
@@ -663,9 +782,11 @@ function setViewMode(mode) {
   const map3dElement = document.getElementById("map-3d");
   if (mode === "3d") {
     map3dElement.hidden = false;
+    state.viewMode = "3d";
     try {
       initialize3dMap();
     } catch (error) {
+      state.viewMode = "2d";
       map3dElement.hidden = true;
       document.getElementById("product-message").textContent = "This browser could not start the 3D map. The standard 2D view remains available.";
       console.error(error);
@@ -673,13 +794,12 @@ function setViewMode(mode) {
     }
     const center = map.getCenter();
     state.map3d.jumpTo({ center: [center.lng, center.lat], zoom: map.getZoom(), pitch: 20, bearing: 0 });
-    state.viewMode = "3d";
     map2dElement.hidden = true;
     clearInterval(state.radarTimer);
     state.radarTimer = null;
     clearRadarLayer();
     state.map3d.resize();
-    render3d();
+    schedule3dRender();
   } else {
     const center = state.map3d.getCenter();
     map.setView([center.lat, center.lng], state.map3d.getZoom(), { animate: false });
@@ -692,6 +812,7 @@ function setViewMode(mode) {
     renderObservations();
     renderLsrs();
     renderPredictorLayer();
+    renderForecastDomain();
     if (state.radarEnabled && state.radarFrames.length) preloadRadarLayers();
   }
   document.getElementById("height-legend").hidden = mode !== "3d";
@@ -1813,7 +1934,11 @@ async function loadDate(date, fit = false) {
     state.data = await response.json();
     state.surface3dCache.clear();
     if (!state.data.layers[state.selected]) {
-      state.selected = state.data.layers.ml_r60 ? "ml_r60" : Object.keys(state.data.layers)[0];
+      state.selected = state.data.layers.ml_r60v2
+        ? "ml_r60v2"
+        : state.data.layers.ml_r60
+          ? "ml_r60"
+          : Object.keys(state.data.layers)[0];
     }
     state.contours = new Set([...state.contours].filter((key) => state.data.layers[key]));
     state.observations = new Set([...state.observations].filter((key) => state.data.observations?.[key]));
@@ -1825,6 +1950,7 @@ async function loadDate(date, fit = false) {
     renderPredictorLayer();
     renderContours();
     renderObservations();
+    renderForecastDomain();
     updateDateUI(entry);
     const isLatest = String(state.archive[0]?.date) === String(state.data.date);
     clearTimeout(state.lsrTimer);
@@ -1909,51 +2035,104 @@ function populateArchive() {
 }
 
 function metricValueText(value) {
-  return Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "Not available";
+  return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value))
+    ? Number(value).toFixed(3)
+    : "Not available";
 }
 
-function renderSkillFrequency() {
-  const chart = document.getElementById("skill-frequency-chart");
-  const answer = document.getElementById("skill-frequency-answer");
+function dashboardProductLabel(label) {
+  return label === "ML r60kmV2" ? "ML r60kmV2 (Beta)" : label;
+}
+
+function bestRowForMetric(rows, metric) {
+  const meta = METRIC_META[metric] || { optimum: "max" };
+  return rows.reduce((best, row) => {
+    const rawValue = row.values?.[metric] ?? row[metric];
+    if (rawValue === null || rawValue === undefined || rawValue === "") return best;
+    const value = Number(rawValue);
+    if (!Number.isFinite(value)) return best;
+    if (!best) return { row, value };
+    if (meta.optimum === "min" && value < best.value) return { row, value };
+    if (meta.optimum === "one" && Math.abs(value - 1) < Math.abs(best.value - 1)) return { row, value };
+    if (meta.optimum === "max" && value > best.value) return { row, value };
+    return best;
+  }, null)?.row || null;
+}
+
+function renderSkillOccurrence() {
+  const chart = document.getElementById("skill-occurrence-chart");
+  const table = document.getElementById("skill-occurrence-table");
+  const answer = document.getElementById("skill-occurrence-answer");
   chart.replaceChildren();
-  const threshold = document.getElementById("skill-frequency-threshold").value;
-  const products = state.riskFrequency?.products || {};
+  table.replaceChildren();
+  const threshold = document.getElementById("skill-occurrence-threshold").value;
+  const metric = document.getElementById("skill-occurrence-metric").value;
+  const products = state.riskOccurrence?.products || {};
   const rows = Object.entries(products)
-    .map(([label, values]) => ({ label, ...(values[threshold] || {}) }))
-    .filter((row) => Number.isInteger(row.hit_grid_cell_count)
-      && Number.isInteger(row.false_alarm_grid_cell_count)
-      && Number.isInteger(row.miss_grid_cell_count));
+    .map(([label, values]) => ({ label: dashboardProductLabel(label), ...(values[threshold] || {}) }))
+    .filter((row) => Number.isInteger(row.hit_day_count)
+      && Number.isInteger(row.miss_day_count)
+      && Number.isInteger(row.false_alarm_day_count)
+      && Number.isInteger(row.correct_negative_day_count));
   if (!rows.length) {
-    chart.textContent = "Final hit, false-alarm, and miss counts are not available.";
+    chart.textContent = "Final day-level risk-occurrence counts are not available.";
     answer.textContent = "";
     return;
   }
+  const best = bestRowForMetric(rows, metric);
   const maximum = Math.max(
     ...rows.flatMap((row) => [
-      row.hit_grid_cell_count,
-      row.false_alarm_grid_cell_count,
-      row.miss_grid_cell_count,
+      row.hit_day_count,
+      row.miss_day_count,
+      row.false_alarm_day_count,
+      row.correct_negative_day_count,
     ]),
     1,
   );
   for (const row of rows) {
     const group = document.createElement("div");
-    group.className = "bar-group";
+    group.className = `bar-group${row === best ? " best-performing" : ""}`;
     const label = document.createElement("strong");
-    label.textContent = row.label;
+    label.textContent = row === best
+      ? `${row.label} · Best ${metric.toUpperCase()}`
+      : row.label;
     const hits = document.createElement("div");
     hits.className = "bar-row hits";
-    hits.innerHTML = `<span>Hits</span><i style="--bar-width:${row.hit_grid_cell_count / maximum * 100}%"></i><b>${row.hit_grid_cell_count.toLocaleString()}</b>`;
-    const falseAlarms = document.createElement("div");
-    falseAlarms.className = "bar-row false-alarms";
-    falseAlarms.innerHTML = `<span>False alarms</span><i style="--bar-width:${row.false_alarm_grid_cell_count / maximum * 100}%"></i><b>${row.false_alarm_grid_cell_count.toLocaleString()}</b>`;
+    hits.innerHTML = `<span>Hits</span><i style="--bar-width:${row.hit_day_count / maximum * 100}%"></i><b>${row.hit_day_count}</b>`;
     const misses = document.createElement("div");
     misses.className = "bar-row misses";
-    misses.innerHTML = `<span>Misses</span><i style="--bar-width:${row.miss_grid_cell_count / maximum * 100}%"></i><b>${row.miss_grid_cell_count.toLocaleString()}</b>`;
-    group.append(label, hits, falseAlarms, misses);
+    misses.innerHTML = `<span>Misses</span><i style="--bar-width:${row.miss_day_count / maximum * 100}%"></i><b>${row.miss_day_count}</b>`;
+    const falseAlarms = document.createElement("div");
+    falseAlarms.className = "bar-row false-alarms";
+    falseAlarms.innerHTML = `<span>False alarms</span><i style="--bar-width:${row.false_alarm_day_count / maximum * 100}%"></i><b>${row.false_alarm_day_count}</b>`;
+    const correctNegatives = document.createElement("div");
+    correctNegatives.className = "bar-row correct-negatives";
+    correctNegatives.innerHTML = `<span>Correct negatives</span><i style="--bar-width:${row.correct_negative_day_count / maximum * 100}%"></i><b>${row.correct_negative_day_count}</b>`;
+    group.append(label, hits, misses, falseAlarms, correctNegatives);
     chart.append(group);
+    const tr = document.createElement("tr");
+    if (row === best) tr.className = "best-performing";
+    for (const cellValue of [
+      row === best ? `${row.label} · Best ${metric.toUpperCase()}` : row.label,
+      row.hit_day_count,
+      row.miss_day_count,
+      row.false_alarm_day_count,
+      row.correct_negative_day_count,
+      metricValueText(row.csi),
+      metricValueText(row.ets),
+      `${row.forecast_risk_day_count}/${row.verified_day_count}`,
+      `${row.pp_risk_day_count}/${row.verified_day_count}`,
+    ]) {
+      const td = document.createElement("td");
+      td.textContent = cellValue;
+      tr.append(td);
+    }
+    table.append(tr);
   }
-  answer.textContent = `${THRESHOLD_LABELS_CLIENT[threshold]} hits, false alarms, and misses are pooled grid-cell contingency counts against Practically Perfect truth across the same 45 independent test cases. More hits and fewer errors are favorable, but compare the full balance with ETS.`;
+  const bestValue = best ? metricValueText(best[metric]) : "Not available";
+  answer.textContent = best
+    ? `${best.label} has the highest day-level ${metric.toUpperCase()} (${bestValue}) for ${THRESHOLD_LABELS_CLIENT[threshold]} occurrence across the 45 independent test days. This ranking evaluates whether a risk existed anywhere in the forecast domain on each day; it does not measure the risk area's pixel-by-pixel placement.`
+    : `Day-level ${metric.toUpperCase()} is unavailable for this threshold.`;
 }
 
 const THRESHOLD_LABELS_CLIENT = {
@@ -2005,23 +2184,23 @@ function renderSkillDashboard() {
     card.append(imageLink, caption);
     container.append(card);
   }
-  renderSkillFrequency();
+  renderSkillOccurrence();
 }
 
 async function loadSkillDashboard() {
-  if (state.skillManifest && state.riskFrequency) {
+  if (state.skillManifest && state.riskOccurrence) {
     renderSkillDashboard();
     return;
   }
   try {
-    const [manifestResponse, frequencyResponse] = await Promise.all([
+    const [manifestResponse, occurrenceResponse] = await Promise.all([
       fetch("model-skill/manifest.json"),
-      fetch("model-skill/risk-frequency.json"),
+      fetch("model-skill/risk-occurrence.json"),
     ]);
-    if (!manifestResponse.ok || !frequencyResponse.ok) throw new Error("Model-skill assets unavailable");
-    [state.skillManifest, state.riskFrequency] = await Promise.all([
+    if (!manifestResponse.ok || !occurrenceResponse.ok) throw new Error("Model-skill assets unavailable");
+    [state.skillManifest, state.riskOccurrence] = await Promise.all([
       manifestResponse.json(),
-      frequencyResponse.json(),
+      occurrenceResponse.json(),
     ]);
     renderSkillDashboard();
   } catch (error) {
@@ -2070,6 +2249,7 @@ function renderRunningDashboard() {
     label: PRODUCT_META[key]?.short || key,
     values: thresholds[threshold],
   })).filter((row) => row.values);
+  const best = bestRowForMetric(rows, metric);
   const maximumCases = Math.max(
     ...rows.map((row) => Number(row.values.verified_forecast_count) || 0),
     1,
@@ -2082,11 +2262,15 @@ function renderRunningDashboard() {
     const riskCases = Number(row.values.risk_case_count) || 0;
     const verifiedCases = Number(row.values.verified_forecast_count) || 0;
     const bar = document.createElement("div");
-    bar.className = "metric-bar-row risk-case-row";
+    bar.className = `metric-bar-row risk-case-row${row === best ? " best-performing" : ""}`;
     bar.innerHTML = `<span>${row.label}</span><i style="--bar-width:${Math.min(100, riskCases / maximumCases * 100)}%"></i><b>${riskCases}/${verifiedCases}</b>`;
     caseChart.append(bar);
   }
-  const finiteValues = rows.map((row) => Number(row.values[metric])).filter(Number.isFinite);
+  const finiteValues = rows
+    .map((row) => row.values[metric])
+    .filter((value) => value !== null && value !== undefined && value !== "")
+    .map(Number)
+    .filter(Number.isFinite);
   const maximum = Math.max(...finiteValues.map(Math.abs), metric === "frequency_bias" ? 1 : 0.0001);
   const direction = METRIC_META[metric];
   const heading = document.createElement("div");
@@ -2094,22 +2278,30 @@ function renderRunningDashboard() {
   heading.textContent = `${direction.label} · ${THRESHOLD_LABELS_CLIENT[threshold]} · ${direction.direction}`;
   chart.append(heading);
   for (const row of rows) {
-    const value = Number(row.values[metric]);
+    const rawValue = row.values[metric];
+    const value = rawValue === null || rawValue === undefined || rawValue === ""
+      ? Number.NaN
+      : Number(rawValue);
     const bar = document.createElement("div");
-    bar.className = "metric-bar-row";
+    bar.className = `metric-bar-row${row === best ? " best-performing" : ""}`;
     const width = Number.isFinite(value) ? Math.min(100, Math.abs(value) / maximum * 100) : 0;
-    bar.innerHTML = `<span>${row.label}</span><i style="--bar-width:${width}%"></i><b>${metricValueText(value)}</b>`;
+    const bestSuffix = row === best ? ` · Best ${direction.label}` : "";
+    bar.innerHTML = `<span>${row.label}${bestSuffix}</span><i style="--bar-width:${width}%"></i><b>${metricValueText(value)}</b>`;
     chart.append(bar);
     const tr = document.createElement("tr");
+    if (row === best) tr.className = "best-performing";
     for (const cellValue of [
-      row.label,
+      row === best ? `${row.label} · Best ${direction.label}` : row.label,
       metricValueText(value),
       row.values.risk_case_count,
+      row.values.truth_risk_case_count,
       row.values.verified_forecast_count,
-      row.values.sample_count,
-      row.values.hits,
-      row.values.misses,
-      row.values.false_alarms,
+      row.values.risk_occurrence_hits,
+      row.values.risk_occurrence_misses,
+      row.values.risk_occurrence_false_alarms,
+      row.values.risk_occurrence_correct_negatives,
+      metricValueText(row.values.risk_occurrence_csi),
+      metricValueText(row.values.risk_occurrence_ets),
     ]) {
       const td = document.createElement("td");
       td.textContent = cellValue ?? "—";
@@ -2287,7 +2479,9 @@ document.getElementById("copy-briefing").addEventListener("click", async () => {
     status.textContent = "Briefing copied.";
   }
 });
-document.getElementById("skill-frequency-threshold").addEventListener("change", renderSkillFrequency);
+for (const id of ["skill-occurrence-threshold", "skill-occurrence-metric"]) {
+  document.getElementById(id).addEventListener("change", renderSkillOccurrence);
+}
 for (const id of ["running-window", "running-metric", "running-threshold"]) {
   document.getElementById(id).addEventListener("change", renderRunningDashboard);
 }
