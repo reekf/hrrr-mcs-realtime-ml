@@ -1427,7 +1427,11 @@ function activateSingleRadarStation(stationId) {
 
 function renderRadarStationMarkers() {
   clearRadarStationMarkers();
-  if (state.viewMode !== "2d" || !state.singleRadarStations.length) return;
+  if (
+    state.viewMode !== "2d"
+    || !state.singleRadarEnabled
+    || !state.singleRadarStations.length
+  ) return;
   const markers = state.singleRadarStations.map((station) => {
     const selected = state.singleRadarEnabled && station.id === state.selectedSingleRadar;
     const size = selected ? 16 : 12;

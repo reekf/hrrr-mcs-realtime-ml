@@ -92,8 +92,9 @@ browser code, tests, Git history, and public deployment by Codex:
   base-reflectivity layer sourced from online radar-station metadata and
   timestamped individual-site archive tiles, while retaining the existing
   composite loop as a mutually exclusive option; added distinguishable
-  radar-site points to the 2D map so clicking a site selects it and starts a
-  recent scan loop, with a play/pause control and highlighted active site;
+  radar-site points that appear on the 2D map only when single-site mode is
+  selected, so clicking a site selects it and starts a recent scan loop, with
+  a play/pause control and highlighted active site;
 - temporarily grayed out and disabled the nonfunctional mPING report control,
   stopped its unavailable archive request, and documented that temporary
   state in the map instructions;

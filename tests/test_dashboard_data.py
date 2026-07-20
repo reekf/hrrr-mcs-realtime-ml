@@ -260,6 +260,11 @@ def test_published_manifests_and_verification_contracts():
     assert 'map.createPane("radarStationPane")' in app_javascript
     assert "function activateSingleRadarStation" in app_javascript
     assert "function startSingleRadarAnimation" in app_javascript
+    marker_renderer = app_javascript[
+        app_javascript.index("function renderRadarStationMarkers"):
+        app_javascript.index("async function fetchRadarStations")
+    ]
+    assert "|| !state.singleRadarEnabled" in marker_renderer
     assert 'mpingVisible: false' in app_javascript
     assert "fetchMping" not in app_javascript
     assert 'map.getPane("floodAlertPane").style.pointerEvents = "none"' in app_javascript
