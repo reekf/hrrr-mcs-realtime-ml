@@ -87,10 +87,29 @@ browser code, tests, Git history, and public deployment by Codex:
   renders immediately when switching from 2D to 3D;
 - added a dashed gray XGBFFP forecast-domain outline in 2D and 3D, then moved
   its label just outside the northern boundary so it does not cover forecast
-  risk areas; and
+  risk areas;
+- extended the Reflectivity controls with a selectable single-site NEXRAD N0B
+  base-reflectivity layer sourced from online radar-station metadata and
+  timestamped individual-site archive tiles, while retaining the existing
+  composite loop as a mutually exclusive option; added distinguishable
+  radar-site points to the 2D map so clicking a site selects it and starts a
+  recent scan loop, with a play/pause control and highlighted active site;
+- temporarily grayed out and disabled the nonfunctional mPING report control,
+  stopped its unavailable archive request, and documented that temporary
+  state in the map instructions;
+- rewrote the probability legend to identify the display explicitly as
+  probability of flash flooding and label the four thresholds as Marginal
+  (at least 5%), Slight (at least 15%), Moderate (at least 40%), and High
+  (at least 70%), then changed the legend to a compact vertical stack for
+  easier scanning;
+- fixed warning and watch polygon interaction by making those visual overlays
+  click-through, allowing a user to select the underlying forecast pixel and
+  open its Location Briefing while retaining the alert geometry for the
+  briefing's watch/warning context; and
 - regenerated the machine-readable verification assets, ran Python/JavaScript/
-  JSON and contract tests, reviewed focused diffs, pushed scoped commits, and
-  monitored GitHub Pages until the new public bundles and JSON were live.
+  JSON and contract tests, validated live single-site radar metadata and
+  timestamped archive tiles, reviewed focused diffs, pushed scoped commits,
+  and monitored GitHub Pages until the new public bundles and JSON were live.
 
 ### Improving ML-code efficiency
 
@@ -231,6 +250,9 @@ implementation, consistency checking, and deployment verification.
 - `3d2c8d8`: moved the forecast-domain label outside the dashed boundary
 - `8f3ebd5`: corrected signed ETS bars and populated the perfect Marginal
   occurrence ETS case
+- `ae4f04e`: began the selectable single-site NEXRAD radar work, disabled the
+  nonfunctional mPING control, clarified the flash-flood probability legend,
+  and made flood-alert polygons click-through for Location Briefing selection
 
 ## Disclaimer
 

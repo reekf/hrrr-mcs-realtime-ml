@@ -226,6 +226,8 @@ def test_published_manifests_and_verification_contracts():
     assert 'id="fill-opacity" type="range" min="5" max="100" value="100"' in index_html
     assert 'id="single-radar-toggle" type="checkbox"' in index_html
     assert 'id="radar-station-select" disabled' in index_html
+    assert 'id="single-radar-play-toggle" type="button" disabled' in index_html
+    assert "Click a radar-site point on the 2D map" in index_html
     assert 'id="mping-section" class="layer-section disabled-section" aria-disabled="true"' in index_html
     assert 'id="mping-flood-toggle" type="checkbox" disabled' in index_html
     assert "Probability of flash flooding" in index_html
@@ -240,13 +242,24 @@ def test_published_manifests_and_verification_contracts():
     assert "risk-frequency" not in index_html
 
     app_javascript = (docs / "app.js").read_text()
+    stylesheet = (docs / "style.css").read_text()
+    legend_styles = stylesheet[
+        stylesheet.index(".legend {"):
+        stylesheet.index(".height-legend {")
+    ]
+    assert "grid-template-columns: 1fr" in legend_styles
+    assert "display: flex" not in legend_styles
     assert 'selected: "ml_r60v2"' in app_javascript
     assert "zoomSnap: 0.25" in app_javascript
     assert "wheelPxPerZoomLevel: 180" in app_javascript
     assert "XGBFFP forecast domain" in app_javascript
     assert 'SINGLE_RADAR_PRODUCT = "N0B"' in app_javascript
     assert "geojson/network.py?network=NEXRAD&only_online=1" in app_javascript
-    assert 'layers: "single"' in app_javascript
+    assert "json/radar.py" in app_javascript
+    assert "ridge::${state.selectedSingleRadar}" in app_javascript
+    assert 'map.createPane("radarStationPane")' in app_javascript
+    assert "function activateSingleRadarStation" in app_javascript
+    assert "function startSingleRadarAnimation" in app_javascript
     assert 'mpingVisible: false' in app_javascript
     assert "fetchMping" not in app_javascript
     assert 'map.getPane("floodAlertPane").style.pointerEvents = "none"' in app_javascript

@@ -88,10 +88,14 @@ const RADAR_REFRESH_MS = 10 * 60 * 1000;
 const RADAR_OPACITY = 0.58;
 const RADAR_CROSSFADE_MS = 260;
 const NEXRAD_STATIONS_URL = "https://mesonet.agron.iastate.edu/geojson/network.py?network=NEXRAD&only_online=1";
-const SINGLE_RADAR_WMS_URL = "https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/ridge.cgi";
+const SINGLE_RADAR_SCANS_URL = "https://mesonet.agron.iastate.edu/json/radar.py";
+const SINGLE_RADAR_TMS_URL = "https://mesonet.agron.iastate.edu/c/tile.py/1.0.0";
 const SINGLE_RADAR_PRODUCT = "N0B";
-const SINGLE_RADAR_REFRESH_MS = 2 * 60 * 1000;
+const SINGLE_RADAR_FRAME_MS = 700;
+const SINGLE_RADAR_REFRESH_MS = 5 * 60 * 1000;
 const SINGLE_RADAR_OPACITY = 0.72;
+const SINGLE_RADAR_LOOP_MINUTES = 90;
+const SINGLE_RADAR_MAX_FRAMES = 10;
 const NWS_ALERTS_URL = "https://api.weather.gov/alerts/active?status=actual&message_type=alert";
 const FLOOD_ALERT_REFRESH_MS = 5 * 60 * 1000;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
@@ -146,8 +150,15 @@ const state = {
   singleRadarStations: [],
   selectedSingleRadar: "",
   singleRadarLayer: null,
+  singleRadarLayers: [],
+  singleRadarFrames: [],
+  singleRadarFrameIndex: 0,
+  singleRadarTimer: null,
+  singleRadarPlaying: true,
   singleRadarRefreshTimer: null,
   singleRadarStationRequest: 0,
+  singleRadarRequest: 0,
+  radarStationLayer: null,
   selectedPredictor: null,
   selectedPredictorRadius: 60,
   predictorLayer: null,
@@ -195,6 +206,8 @@ map.getPane("forecastPane").style.zIndex = 350;
 map.createPane("radarPane");
 map.getPane("radarPane").style.zIndex = 365;
 map.getPane("radarPane").style.pointerEvents = "none";
+map.createPane("radarStationPane");
+map.getPane("radarStationPane").style.zIndex = 490;
 map.createPane("predictorPane");
 map.getPane("predictorPane").style.zIndex = 375;
 map.getPane("predictorPane").style.pointerEvents = "none";
@@ -819,7 +832,9 @@ function setViewMode(mode) {
     clearRadarLayer();
     clearTimeout(state.singleRadarRefreshTimer);
     state.singleRadarRefreshTimer = null;
+    stopSingleRadarAnimation();
     clearSingleRadarLayer();
+    clearRadarStationMarkers();
     state.map3d.resize();
     schedule3dRender();
   } else {
@@ -835,8 +850,9 @@ function setViewMode(mode) {
     renderLsrs();
     renderPredictorLayer();
     renderForecastDomain();
+    renderRadarStationMarkers();
     if (state.radarEnabled && state.radarFrames.length) preloadRadarLayers();
-    if (state.singleRadarEnabled) renderSingleRadarLayer();
+    if (state.singleRadarEnabled) fetchSingleRadarFrames(true);
   }
   document.getElementById("height-legend").hidden = mode !== "3d";
   document.getElementById("predictor-legend").hidden = mode !== "2d" || !state.selectedPredictor;
@@ -844,6 +860,7 @@ function setViewMode(mode) {
   if (mode === "3d" && (state.radarEnabled || state.singleRadarEnabled)) {
     document.getElementById("radar-status").textContent = "Radar overlays are available in 2D view.";
   }
+  updateSingleRadarPlaybackControls();
   document.getElementById("opacity-control-label").textContent = mode === "3d" ? "3D point opacity" : "Forecast opacity";
   for (const candidate of ["2d", "3d"]) {
     const button = document.getElementById(`view-${candidate}`);
@@ -1347,14 +1364,29 @@ function setRadarEnabled(enabled) {
 }
 
 function clearSingleRadarLayer() {
-  if (state.singleRadarLayer) map.removeLayer(state.singleRadarLayer);
+  for (const layer of state.singleRadarLayers) map.removeLayer(layer);
+  state.singleRadarLayers = [];
   state.singleRadarLayer = null;
 }
 
+function stopSingleRadarAnimation() {
+  clearInterval(state.singleRadarTimer);
+  state.singleRadarTimer = null;
+}
+
 function stopSingleRadar() {
+  stopSingleRadarAnimation();
   clearTimeout(state.singleRadarRefreshTimer);
   state.singleRadarRefreshTimer = null;
   clearSingleRadarLayer();
+  state.singleRadarFrames = [];
+  state.singleRadarFrameIndex = 0;
+  updateSingleRadarPlaybackControls();
+}
+
+function clearRadarStationMarkers() {
+  if (state.radarStationLayer) map.removeLayer(state.radarStationLayer);
+  state.radarStationLayer = null;
 }
 
 function nearestRadarStation() {
@@ -1384,19 +1416,57 @@ function populateRadarStationSelect() {
   select.disabled = !state.singleRadarEnabled;
 }
 
+function activateSingleRadarStation(stationId) {
+  state.selectedSingleRadar = stationId;
+  document.getElementById("radar-station-select").value = stationId;
+  document.getElementById("radar-loop-toggle").checked = false;
+  document.getElementById("single-radar-toggle").checked = true;
+  setRadarEnabled(false);
+  setSingleRadarEnabled(true);
+}
+
+function renderRadarStationMarkers() {
+  clearRadarStationMarkers();
+  if (state.viewMode !== "2d" || !state.singleRadarStations.length) return;
+  const markers = state.singleRadarStations.map((station) => {
+    const selected = state.singleRadarEnabled && station.id === state.selectedSingleRadar;
+    const size = selected ? 16 : 12;
+    const icon = L.divIcon({
+      className: "radar-site-icon",
+      html: `<span class="radar-site-symbol${selected ? " active" : ""}" aria-hidden="true"></span>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+    const marker = L.marker([station.lat, station.lon], {
+      pane: "radarStationPane",
+      icon,
+      bubblingMouseEvents: false,
+    });
+    marker.bindTooltip(
+      `${station.id} — ${station.name}, ${station.state}<br>Click to start the single-site ${SINGLE_RADAR_PRODUCT} loop.`,
+      { direction: "top", offset: [0, -4] },
+    );
+    marker.on("click", () => activateSingleRadarStation(station.id));
+    return marker;
+  });
+  state.radarStationLayer = L.layerGroup(markers).addTo(map);
+}
+
 async function fetchRadarStations() {
   if (state.singleRadarStations.length) {
     populateRadarStationSelect();
+    renderRadarStationMarkers();
+    if (state.singleRadarEnabled) fetchSingleRadarFrames(true);
     return;
   }
   const request = ++state.singleRadarStationRequest;
   const status = document.getElementById("radar-status");
-  status.textContent = "Loading online NEXRAD stations…";
+  if (state.singleRadarEnabled) status.textContent = "Loading online NEXRAD stations…";
   try {
     const response = await fetch(`${NEXRAD_STATIONS_URL}&v=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) throw new Error(`NEXRAD station request failed (${response.status})`);
     const collection = await response.json();
-    if (request !== state.singleRadarStationRequest || !state.singleRadarEnabled) return;
+    if (request !== state.singleRadarStationRequest) return;
     state.singleRadarStations = (collection.features || []).map((feature) => {
       const [lon, lat] = feature.geometry?.coordinates || [];
       return {
@@ -1421,55 +1491,157 @@ async function fetchRadarStations() {
     ));
     if (!state.singleRadarStations.length) throw new Error("No online NEXRAD stations were returned");
     populateRadarStationSelect();
-    renderSingleRadarLayer();
+    renderRadarStationMarkers();
+    if (state.singleRadarEnabled) fetchSingleRadarFrames(true);
   } catch (error) {
     if (request !== state.singleRadarStationRequest) return;
     state.singleRadarStations = [];
     state.selectedSingleRadar = "";
     document.getElementById("radar-station-select").disabled = true;
-    status.textContent = "Single-site NEXRAD radar is temporarily unavailable.";
+    if (state.singleRadarEnabled) {
+      status.textContent = "Single-site NEXRAD radar is temporarily unavailable.";
+    }
     console.warn(error.message);
   }
 }
 
-function renderSingleRadarLayer(scheduleRefresh = true) {
+function singleRadarTimestamp(frame) {
+  return String(frame.ts || "").replace(/[-:TZ]/g, "").slice(0, 12);
+}
+
+function singleRadarTileUrl(frame) {
+  const layer = `ridge::${state.selectedSingleRadar}-${SINGLE_RADAR_PRODUCT}-${singleRadarTimestamp(frame)}`;
+  return `${SINGLE_RADAR_TMS_URL}/${layer}/{z}/{x}/{y}.png`;
+}
+
+function formatSingleRadarFrameTime(frame) {
+  const timestamp = Date.parse(frame?.ts);
+  if (!Number.isFinite(timestamp)) return "";
+  return new Date(timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function updateSingleRadarPlaybackControls() {
+  const button = document.getElementById("single-radar-play-toggle");
+  const frameTime = document.getElementById("single-radar-frame-time");
+  const available = state.singleRadarEnabled && state.singleRadarFrames.length > 0;
+  button.disabled = !available || state.viewMode !== "2d";
+  button.textContent = available && state.singleRadarPlaying ? "Pause loop" : "Play loop";
+  if (!available) frameTime.textContent = "No single-site loop selected.";
+}
+
+function showSingleRadarFrame() {
+  if (
+    !state.singleRadarEnabled
+    || !state.singleRadarPlaying
+    || state.viewMode !== "2d"
+    || !state.singleRadarLayers.length
+  ) return;
+  const index = state.singleRadarFrameIndex % state.singleRadarLayers.length;
+  const frame = state.singleRadarFrames[index];
+  const nextLayer = state.singleRadarLayers[index];
+  const previousLayer = state.singleRadarLayer;
+  nextLayer.bringToFront();
+  nextLayer.setOpacity(SINGLE_RADAR_OPACITY);
+  state.singleRadarLayer = nextLayer;
+  if (previousLayer && previousLayer !== nextLayer) previousLayer.setOpacity(0);
+  document.getElementById("single-radar-frame-time").textContent = (
+    `${state.selectedSingleRadar} ${formatSingleRadarFrameTime(frame)}`
+  );
+  document.getElementById("radar-status").textContent = (
+    `${state.selectedSingleRadar} single-site NEXRAD ${SINGLE_RADAR_PRODUCT} loop `
+    + `(${state.singleRadarFrames.length} recent scans).`
+  );
+  state.singleRadarFrameIndex = (index + 1) % state.singleRadarLayers.length;
+}
+
+function startSingleRadarAnimation() {
+  stopSingleRadarAnimation();
+  if (!state.singleRadarLayers.length || !state.singleRadarPlaying) return;
+  showSingleRadarFrame();
+  state.singleRadarTimer = setInterval(showSingleRadarFrame, SINGLE_RADAR_FRAME_MS);
+}
+
+function setSingleRadarPlaying(playing) {
+  state.singleRadarPlaying = playing;
+  if (playing) startSingleRadarAnimation();
+  else stopSingleRadarAnimation();
+  updateSingleRadarPlaybackControls();
+}
+
+function preloadSingleRadarLayers() {
+  clearSingleRadarLayer();
+  stopSingleRadarAnimation();
+  let loaded = 0;
+  state.singleRadarLayers = state.singleRadarFrames.map((frame) => {
+    const layer = L.tileLayer(singleRadarTileUrl(frame), {
+      pane: "radarPane",
+      opacity: 0,
+      maxZoom: 12,
+      tileSize: 256,
+      className: "single-radar-frame-layer",
+      attribution: "Single-site NEXRAD &copy; NOAA/NWS via Iowa Environmental Mesonet",
+    });
+    layer.once("load", () => {
+      loaded += 1;
+      if (
+        loaded === state.singleRadarLayers.length
+        && state.singleRadarEnabled
+        && state.viewMode === "2d"
+      ) {
+        startSingleRadarAnimation();
+      }
+    });
+    layer.addTo(map);
+    return layer;
+  });
+  updateSingleRadarPlaybackControls();
+}
+
+async function fetchSingleRadarFrames(scheduleRefresh = false) {
   if (!state.singleRadarEnabled || !state.selectedSingleRadar) return;
   clearTimeout(state.singleRadarRefreshTimer);
   state.singleRadarRefreshTimer = null;
+  const request = ++state.singleRadarRequest;
+  stopSingleRadarAnimation();
   clearSingleRadarLayer();
   const status = document.getElementById("radar-status");
-  if (state.viewMode !== "2d") {
-    status.textContent = "Radar overlays are available in 2D view.";
-    return;
-  }
-  const station = state.singleRadarStations.find((candidate) => candidate.id === state.selectedSingleRadar);
-  status.textContent = `Loading ${state.selectedSingleRadar} single-site NEXRAD ${SINGLE_RADAR_PRODUCT}…`;
-  const query = `sector=${encodeURIComponent(state.selectedSingleRadar)}&prod=${SINGLE_RADAR_PRODUCT}&v=${Date.now()}`;
-  const layer = L.tileLayer.wms(`${SINGLE_RADAR_WMS_URL}?${query}`, {
-    pane: "radarPane",
-    layers: "single",
-    styles: "",
-    format: "image/png",
-    transparent: true,
-    version: "1.1.1",
-    opacity: SINGLE_RADAR_OPACITY,
-    maxZoom: 12,
-    attribution: "Single-site NEXRAD &copy; NOAA/NWS via Iowa Environmental Mesonet",
+  status.textContent = `Loading the recent ${state.selectedSingleRadar} ${SINGLE_RADAR_PRODUCT} loop…`;
+  const end = new Date();
+  const start = new Date(end.getTime() - SINGLE_RADAR_LOOP_MINUTES * 60 * 1000);
+  const parameters = new URLSearchParams({
+    operation: "list",
+    radar: state.selectedSingleRadar,
+    product: SINGLE_RADAR_PRODUCT,
+    start: `${start.toISOString().slice(0, 16)}Z`,
+    end: `${end.toISOString().slice(0, 16)}Z`,
   });
-  layer.once("load", () => {
-    if (layer !== state.singleRadarLayer) return;
-    status.textContent = `${station?.name || state.selectedSingleRadar} (${state.selectedSingleRadar}) single-site NEXRAD ${SINGLE_RADAR_PRODUCT} base reflectivity.`;
-  });
-  layer.once("tileerror", () => {
-    if (layer !== state.singleRadarLayer) return;
-    status.textContent = `${state.selectedSingleRadar} single-site radar is temporarily unavailable.`;
-  });
-  state.singleRadarLayer = layer.addTo(map);
-  if (scheduleRefresh) {
-    state.singleRadarRefreshTimer = setTimeout(
-      () => renderSingleRadarLayer(true),
-      SINGLE_RADAR_REFRESH_MS,
-    );
+  try {
+    const response = await fetch(`${SINGLE_RADAR_SCANS_URL}?${parameters}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`NEXRAD scan request failed (${response.status})`);
+    const payload = await response.json();
+    if (request !== state.singleRadarRequest || !state.singleRadarEnabled) return;
+    state.singleRadarFrames = (payload.scans || [])
+      .filter((frame) => Number.isFinite(Date.parse(frame.ts)))
+      .slice(-SINGLE_RADAR_MAX_FRAMES);
+    if (!state.singleRadarFrames.length) throw new Error("No recent NEXRAD scans were returned");
+    state.singleRadarFrameIndex = 0;
+    if (state.viewMode === "2d") preloadSingleRadarLayers();
+    else status.textContent = "Radar overlays are available in 2D view.";
+  } catch (error) {
+    if (request !== state.singleRadarRequest) return;
+    state.singleRadarFrames = [];
+    clearSingleRadarLayer();
+    status.textContent = `${state.selectedSingleRadar} single-site radar loop is temporarily unavailable.`;
+    console.warn(error.message);
+  } finally {
+    updateSingleRadarPlaybackControls();
+    if (scheduleRefresh && state.singleRadarEnabled) {
+      clearTimeout(state.singleRadarRefreshTimer);
+      state.singleRadarRefreshTimer = setTimeout(
+        () => fetchSingleRadarFrames(true),
+        SINGLE_RADAR_REFRESH_MS,
+      );
+    }
   }
 }
 
@@ -1477,16 +1649,19 @@ function setSingleRadarEnabled(enabled) {
   state.singleRadarEnabled = enabled;
   document.getElementById("radar-station-select").disabled = !enabled || !state.singleRadarStations.length;
   if (!enabled) {
-    state.singleRadarStationRequest += 1;
+    state.singleRadarRequest += 1;
     stopSingleRadar();
+    renderRadarStationMarkers();
     if (!state.radarEnabled) {
       document.getElementById("radar-status").textContent = "Radar overlay is off.";
     }
     return;
   }
+  state.singleRadarPlaying = true;
   if (state.singleRadarStations.length) {
     populateRadarStationSelect();
-    renderSingleRadarLayer();
+    renderRadarStationMarkers();
+    fetchSingleRadarFrames(true);
   } else {
     fetchRadarStations();
   }
@@ -2655,7 +2830,12 @@ document.getElementById("single-radar-toggle").addEventListener("change", (event
 });
 document.getElementById("radar-station-select").addEventListener("change", (event) => {
   state.selectedSingleRadar = event.currentTarget.value;
-  if (state.singleRadarEnabled) renderSingleRadarLayer();
+  state.singleRadarPlaying = true;
+  renderRadarStationMarkers();
+  if (state.singleRadarEnabled) fetchSingleRadarFrames(true);
+});
+document.getElementById("single-radar-play-toggle").addEventListener("click", () => {
+  setSingleRadarPlaying(!state.singleRadarPlaying);
 });
 document.getElementById("predictor-radius").addEventListener("change", (event) => {
   state.selectedPredictorRadius = Number(event.currentTarget.value);
@@ -2729,6 +2909,7 @@ async function init() {
     updateUrl();
     setRadarEnabled(document.getElementById("radar-loop-toggle").checked);
     setSingleRadarEnabled(document.getElementById("single-radar-toggle").checked);
+    fetchRadarStations();
     fetchFloodAlerts(true);
   } catch (error) {
     document.getElementById("product-message").textContent = "Forecast data could not be loaded. Please try again shortly.";

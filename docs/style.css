@@ -502,6 +502,81 @@ button { cursor: pointer; }
   opacity: 0.48;
 }
 
+.radar-site-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 8px 2px 0;
+  color: var(--muted);
+  font-size: 0.64rem;
+  line-height: 1.4;
+}
+
+.radar-site-hint i {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  margin-top: 2px;
+  border: 1px solid #eefaff;
+  background: #38d9ff;
+  box-shadow: 0 0 0 2px rgba(56, 217, 255, 0.2);
+  transform: rotate(45deg);
+}
+
+.radar-site-icon {
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+}
+
+.radar-site-symbol {
+  width: 8px;
+  height: 8px;
+  display: block;
+  border: 1px solid #eefaff;
+  background: #38d9ff;
+  box-shadow: 0 0 0 2px rgba(56, 217, 255, 0.22);
+  transform: rotate(45deg);
+}
+
+.radar-site-symbol.active {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff4dd;
+  background: #ffad33;
+  box-shadow: 0 0 0 3px rgba(255, 173, 51, 0.28);
+}
+
+.single-radar-playback {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.single-radar-playback button {
+  min-height: 30px;
+  padding: 4px 7px;
+  color: var(--text);
+  background: #151c21;
+  border: 1px solid #3b464d;
+  font: inherit;
+  font-size: 0.65rem;
+}
+
+.single-radar-playback button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.single-radar-playback span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  line-height: 1.35;
+}
+
 .expansion-ring-control {
   min-height: 32px;
   display: flex;
@@ -620,9 +695,9 @@ button { cursor: pointer; }
   z-index: 800;
   right: 16px;
   bottom: 92px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
   padding: 13px 16px;
   background: rgba(9, 11, 13, 0.9);
   border: 1px solid var(--line);
@@ -630,7 +705,6 @@ button { cursor: pointer; }
 }
 
 .legend strong {
-  flex-basis: 100%;
   color: #d7dee2;
   font-size: 0.7rem;
   font-weight: 500;
@@ -1085,13 +1159,13 @@ noscript {
     right: 8px;
     bottom: 108px;
     display: grid;
-    grid-template-columns: repeat(2, auto);
-    max-width: none;
-    gap: 5px 9px;
+    grid-template-columns: 1fr;
+    max-width: 210px;
+    gap: 5px;
     padding: 7px 9px;
     font-size: 0.62rem;
   }
-  .legend strong { grid-column: 1 / -1; font-size: 0.58rem; }
+  .legend strong { font-size: 0.58rem; }
   .legend i { width: 15px; height: 11px; }
   .product-nav a { padding: 0 8px; font-size: 0.62rem; }
   .summary-strip { grid-template-columns: 1fr; }
