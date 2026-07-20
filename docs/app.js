@@ -300,13 +300,16 @@ function renderForecastDomain() {
       interactive: false,
     },
   );
-  rectangle.bindTooltip("XGBFFP forecast domain", {
+  const label = L.tooltip({
     permanent: true,
     direction: "top",
     className: "domain-label",
     opacity: 0.92,
-  });
-  state.domainLayer = L.layerGroup([rectangle]).addTo(map);
+    offset: [0, -4],
+  })
+    .setLatLng([bounds.maxLat, (bounds.minLon + bounds.maxLon) / 2])
+    .setContent("XGBFFP forecast domain");
+  state.domainLayer = L.layerGroup([rectangle, label]).addTo(map);
 }
 
 function add3dStateLines() {
@@ -533,7 +536,11 @@ function build3dLayers() {
       ...shared,
       id: `xgbffp-domain-label-3d-${state.data.date}`,
       data: [{
-        position: [(domain.minLon + domain.maxLon) / 2, domain.maxLat, domainHeight + 2000],
+        position: [
+          (domain.minLon + domain.maxLon) / 2,
+          domain.maxLat + 0.12,
+          domainHeight + 2000,
+        ],
         text: "XGBFFP forecast domain",
         domainBoundary: true,
       }],
