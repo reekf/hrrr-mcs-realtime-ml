@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" crossorigin="">
-  <link rel="stylesheet" href="style.css?v=20260720-logo-1">
+  <link rel="stylesheet" href="style.css?v=20260720-radar-alert-1">
 </head>
 <body>
   <div id="map" aria-label="Interactive ML flash-flood probability map"></div>
@@ -129,7 +129,18 @@
           <label class="radar-choice">
             <input id="radar-loop-toggle" type="checkbox" checked>
             <i aria-hidden="true"></i>
-            Current radar loop
+            Current composite radar loop
+          </label>
+          <label class="radar-choice">
+            <input id="single-radar-toggle" type="checkbox">
+            <i aria-hidden="true"></i>
+            Single-site NEXRAD N0B
+          </label>
+          <label class="radar-station-control" for="radar-station-select">
+            Radar station
+            <select id="radar-station-select" disabled>
+              <option value="">Enable single-site radar to choose a station</option>
+            </select>
           </label>
           <p id="radar-status" class="availability-note">Loading current radar loop…</p>
         </div>
@@ -146,15 +157,15 @@
         </div>
       </details>
 
-      <details id="mping-section" class="layer-section">
-        <summary>mPING reports</summary>
+      <details id="mping-section" class="layer-section disabled-section" aria-disabled="true">
+        <summary>mPING reports — unavailable</summary>
         <div class="layer-section-content">
           <label class="mping-choice">
-            <input id="mping-flood-toggle" type="checkbox" checked>
+            <input id="mping-flood-toggle" type="checkbox" disabled>
             <i style="--mping-color:#ff9f43"></i>
             Flood impacts
           </label>
-          <p id="mping-status" class="availability-note">Checking for mPING flood reports…</p>
+          <p id="mping-status" class="availability-note">Temporarily unavailable.</p>
         </div>
       </details>
 
@@ -179,11 +190,12 @@
     </div>
   </aside>
 
-  <div id="probability-legend" class="legend" aria-label="Probability legend">
-    <span><i style="--swatch:#57c84d"></i>&gt;5%</span>
-    <span><i style="--swatch:#f0df35"></i>&gt;15%</span>
-    <span><i style="--swatch:#e14b3f"></i>&gt;40%</span>
-    <span><i style="--swatch:#d94ad7"></i>&gt;70%</span>
+  <div id="probability-legend" class="legend" aria-label="Probability of flash flooding legend">
+    <strong>Probability of flash flooding</strong>
+    <span><i style="--swatch:#57c84d"></i>Marginal (≥5%)</span>
+    <span><i style="--swatch:#f0df35"></i>Slight (≥15%)</span>
+    <span><i style="--swatch:#e14b3f"></i>Moderate (≥40%)</span>
+    <span><i style="--swatch:#d94ad7"></i>High (≥70%)</span>
   </div>
 
   <div id="predictor-legend" class="predictor-legend" aria-label="Predictor value legend" hidden>
@@ -387,7 +399,7 @@
       <p>Practically Perfect is an observation-based benchmark created after the valid period from observed flood-proxy locations. Those observations are expanded and smoothed to show an idealized placement of risk areas. It is not a forecast. It is typically available around 11:10 AM CT the following day.</p>
 
       <h2>Using the map</h2>
-      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. The r60kmV2 member uses the same 60-km forecast neighborhoods as r60 but applies density-weighted training loss to emphasize clustered MRMS-over-FFG exceedances and flood reports. Switch between the standard 2D map and a fixed-angle 3D view where greater height represents greater probability. In 3D, ML and Practically Perfect use their continuous probabilities; WPC categorical areas are displayed as continuous surfaces within their official probability ranges. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. NWS local storm reports are supplied by the Iowa Environmental Mesonet; reports for flooding, flash flooding, and selected rainfall totals are preliminary and update every five minutes for the latest forecast. mPING flood impacts are citizen-submitted reports and should also be treated as preliminary. Use the Archive button to change dates or open the original static graphics.</p>
+      <p>Select one filled product and add contour overlays from any other available forecast or verification layer. The r60kmV2 member uses the same 60-km forecast neighborhoods as r60 but applies density-weighted training loss to emphasize clustered MRMS-over-FFG exceedances and flood reports. Switch between the standard 2D map and a fixed-angle 3D view where greater height represents greater probability. In 3D, ML and Practically Perfect use their continuous probabilities; WPC categorical areas are displayed as continuous surfaces within their official probability ranges. Verified dates also provide toggles for the flood-proxy observations used to construct Practically Perfect. NWS local storm reports are supplied by the Iowa Environmental Mesonet; reports for flooding, flash flooding, and selected rainfall totals are preliminary and update every five minutes for the latest forecast. The mPING layer is temporarily disabled while its data feed is repaired. Use the Archive button to change dates or open the original static graphics.</p>
 
       <button class="primary-button dialog-close" type="button">Enter map</button>
     </div>
@@ -425,6 +437,6 @@
   <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script src="https://unpkg.com/deck.gl@9.1.14/dist.min.js" crossorigin=""></script>
   <script src="briefing.js?v=20260719-xgbffp-1"></script>
-  <script src="app.js?v=20260720-verification-scale-1"></script>
+  <script src="app.js?v=20260720-radar-alert-1"></script>
 </body>
 </html>

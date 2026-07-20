@@ -87,6 +87,11 @@ const RADAR_FRAME_MS = 700;
 const RADAR_REFRESH_MS = 10 * 60 * 1000;
 const RADAR_OPACITY = 0.58;
 const RADAR_CROSSFADE_MS = 260;
+const NEXRAD_STATIONS_URL = "https://mesonet.agron.iastate.edu/geojson/network.py?network=NEXRAD&only_online=1";
+const SINGLE_RADAR_WMS_URL = "https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/ridge.cgi";
+const SINGLE_RADAR_PRODUCT = "N0B";
+const SINGLE_RADAR_REFRESH_MS = 2 * 60 * 1000;
+const SINGLE_RADAR_OPACITY = 0.72;
 const NWS_ALERTS_URL = "https://api.weather.gov/alerts/active?status=actual&message_type=alert";
 const FLOOD_ALERT_REFRESH_MS = 5 * 60 * 1000;
 const SURFACE_HEIGHT_METERS_PER_PERCENT = 1600;
@@ -137,6 +142,12 @@ const state = {
   radarTimer: null,
   radarRefreshTimer: null,
   radarRequest: 0,
+  singleRadarEnabled: false,
+  singleRadarStations: [],
+  selectedSingleRadar: "",
+  singleRadarLayer: null,
+  singleRadarRefreshTimer: null,
+  singleRadarStationRequest: 0,
   selectedPredictor: null,
   selectedPredictorRadius: 60,
   predictorLayer: null,
@@ -148,9 +159,8 @@ const state = {
   floodAlertAvailability: "loading",
   floodZoneCache: new Map(),
   mpingReports: [],
-  mpingVisible: true,
-  mpingRequest: 0,
-  mpingAvailability: "loading",
+  mpingVisible: false,
+  mpingAvailability: "unavailable",
   viewMode: "2d",
   map3d: null,
   deckOverlay: null,
@@ -205,6 +215,7 @@ map.createPane("lsrPane");
 map.getPane("lsrPane").style.zIndex = 485;
 map.createPane("floodAlertPane");
 map.getPane("floodAlertPane").style.zIndex = 470;
+map.getPane("floodAlertPane").style.pointerEvents = "none";
 map.createPane("briefingPane");
 map.getPane("briefingPane").style.zIndex = 520;
 
@@ -806,6 +817,9 @@ function setViewMode(mode) {
     clearInterval(state.radarTimer);
     state.radarTimer = null;
     clearRadarLayer();
+    clearTimeout(state.singleRadarRefreshTimer);
+    state.singleRadarRefreshTimer = null;
+    clearSingleRadarLayer();
     state.map3d.resize();
     schedule3dRender();
   } else {
@@ -822,11 +836,14 @@ function setViewMode(mode) {
     renderPredictorLayer();
     renderForecastDomain();
     if (state.radarEnabled && state.radarFrames.length) preloadRadarLayers();
+    if (state.singleRadarEnabled) renderSingleRadarLayer();
   }
   document.getElementById("height-legend").hidden = mode !== "3d";
   document.getElementById("predictor-legend").hidden = mode !== "2d" || !state.selectedPredictor;
   document.getElementById("point-gap-control").hidden = mode !== "3d";
-  if (mode === "3d" && state.radarEnabled) document.getElementById("radar-status").textContent = "Radar loop is available in 2D view.";
+  if (mode === "3d" && (state.radarEnabled || state.singleRadarEnabled)) {
+    document.getElementById("radar-status").textContent = "Radar overlays are available in 2D view.";
+  }
   document.getElementById("opacity-control-label").textContent = mode === "3d" ? "3D point opacity" : "Forecast opacity";
   for (const candidate of ["2d", "3d"]) {
     const button = document.getElementById(`view-${candidate}`);
@@ -1321,10 +1338,158 @@ function setRadarEnabled(enabled) {
   if (!enabled) {
     state.radarRequest += 1;
     stopRadarLoop();
-    document.getElementById("radar-status").textContent = "Radar overlay is off.";
+    if (!state.singleRadarEnabled) {
+      document.getElementById("radar-status").textContent = "Radar overlay is off.";
+    }
     return;
   }
   fetchRadarFrames(true);
+}
+
+function clearSingleRadarLayer() {
+  if (state.singleRadarLayer) map.removeLayer(state.singleRadarLayer);
+  state.singleRadarLayer = null;
+}
+
+function stopSingleRadar() {
+  clearTimeout(state.singleRadarRefreshTimer);
+  state.singleRadarRefreshTimer = null;
+  clearSingleRadarLayer();
+}
+
+function nearestRadarStation() {
+  const center = map.getCenter();
+  return state.singleRadarStations.reduce((nearest, station) => {
+    const latitudeDifference = station.lat - center.lat;
+    const longitudeDifference = (station.lon - center.lng) * Math.cos(center.lat * Math.PI / 180);
+    const distance = latitudeDifference ** 2 + longitudeDifference ** 2;
+    return !nearest || distance < nearest.distance ? { station, distance } : nearest;
+  }, null)?.station;
+}
+
+function populateRadarStationSelect() {
+  const select = document.getElementById("radar-station-select");
+  select.replaceChildren();
+  for (const station of state.singleRadarStations) {
+    const option = document.createElement("option");
+    option.value = station.id;
+    option.textContent = `${station.id} — ${station.name}, ${station.state}`;
+    select.append(option);
+  }
+  const selected = state.singleRadarStations.find((station) => station.id === state.selectedSingleRadar)
+    || nearestRadarStation()
+    || state.singleRadarStations[0];
+  state.selectedSingleRadar = selected?.id || "";
+  select.value = state.selectedSingleRadar;
+  select.disabled = !state.singleRadarEnabled;
+}
+
+async function fetchRadarStations() {
+  if (state.singleRadarStations.length) {
+    populateRadarStationSelect();
+    return;
+  }
+  const request = ++state.singleRadarStationRequest;
+  const status = document.getElementById("radar-status");
+  status.textContent = "Loading online NEXRAD stations…";
+  try {
+    const response = await fetch(`${NEXRAD_STATIONS_URL}&v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`NEXRAD station request failed (${response.status})`);
+    const collection = await response.json();
+    if (request !== state.singleRadarStationRequest || !state.singleRadarEnabled) return;
+    state.singleRadarStations = (collection.features || []).map((feature) => {
+      const [lon, lat] = feature.geometry?.coordinates || [];
+      return {
+        id: String(feature.properties?.sid || feature.id || "").toUpperCase(),
+        name: feature.properties?.sname || "NEXRAD",
+        state: feature.properties?.state || feature.properties?.country || "",
+        lat: Number(lat),
+        lon: Number(lon),
+      };
+    }).filter((station) => (
+      station.id
+      && Number.isFinite(station.lat)
+      && Number.isFinite(station.lon)
+      && station.lat >= 27
+      && station.lat <= 53
+      && station.lon >= -109
+      && station.lon <= -76
+    )).sort((left, right) => (
+      left.state.localeCompare(right.state)
+      || left.name.localeCompare(right.name)
+      || left.id.localeCompare(right.id)
+    ));
+    if (!state.singleRadarStations.length) throw new Error("No online NEXRAD stations were returned");
+    populateRadarStationSelect();
+    renderSingleRadarLayer();
+  } catch (error) {
+    if (request !== state.singleRadarStationRequest) return;
+    state.singleRadarStations = [];
+    state.selectedSingleRadar = "";
+    document.getElementById("radar-station-select").disabled = true;
+    status.textContent = "Single-site NEXRAD radar is temporarily unavailable.";
+    console.warn(error.message);
+  }
+}
+
+function renderSingleRadarLayer(scheduleRefresh = true) {
+  if (!state.singleRadarEnabled || !state.selectedSingleRadar) return;
+  clearTimeout(state.singleRadarRefreshTimer);
+  state.singleRadarRefreshTimer = null;
+  clearSingleRadarLayer();
+  const status = document.getElementById("radar-status");
+  if (state.viewMode !== "2d") {
+    status.textContent = "Radar overlays are available in 2D view.";
+    return;
+  }
+  const station = state.singleRadarStations.find((candidate) => candidate.id === state.selectedSingleRadar);
+  status.textContent = `Loading ${state.selectedSingleRadar} single-site NEXRAD ${SINGLE_RADAR_PRODUCT}…`;
+  const query = `sector=${encodeURIComponent(state.selectedSingleRadar)}&prod=${SINGLE_RADAR_PRODUCT}&v=${Date.now()}`;
+  const layer = L.tileLayer.wms(`${SINGLE_RADAR_WMS_URL}?${query}`, {
+    pane: "radarPane",
+    layers: "single",
+    styles: "",
+    format: "image/png",
+    transparent: true,
+    version: "1.1.1",
+    opacity: SINGLE_RADAR_OPACITY,
+    maxZoom: 12,
+    attribution: "Single-site NEXRAD &copy; NOAA/NWS via Iowa Environmental Mesonet",
+  });
+  layer.once("load", () => {
+    if (layer !== state.singleRadarLayer) return;
+    status.textContent = `${station?.name || state.selectedSingleRadar} (${state.selectedSingleRadar}) single-site NEXRAD ${SINGLE_RADAR_PRODUCT} base reflectivity.`;
+  });
+  layer.once("tileerror", () => {
+    if (layer !== state.singleRadarLayer) return;
+    status.textContent = `${state.selectedSingleRadar} single-site radar is temporarily unavailable.`;
+  });
+  state.singleRadarLayer = layer.addTo(map);
+  if (scheduleRefresh) {
+    state.singleRadarRefreshTimer = setTimeout(
+      () => renderSingleRadarLayer(true),
+      SINGLE_RADAR_REFRESH_MS,
+    );
+  }
+}
+
+function setSingleRadarEnabled(enabled) {
+  state.singleRadarEnabled = enabled;
+  document.getElementById("radar-station-select").disabled = !enabled || !state.singleRadarStations.length;
+  if (!enabled) {
+    state.singleRadarStationRequest += 1;
+    stopSingleRadar();
+    if (!state.radarEnabled) {
+      document.getElementById("radar-status").textContent = "Radar overlay is off.";
+    }
+    return;
+  }
+  if (state.singleRadarStations.length) {
+    populateRadarStationSelect();
+    renderSingleRadarLayer();
+  } else {
+    fetchRadarStations();
+  }
 }
 
 function setMessage(key) {
@@ -1637,25 +1802,12 @@ function floodAlertKind(event) {
   return null;
 }
 
-function floodAlertPopup(properties) {
-  const container = document.createElement("div");
-  container.className = "lsr-popup";
-  const heading = document.createElement("strong");
-  heading.textContent = properties.event || "NWS flood alert";
-  const headline = document.createElement("div");
-  headline.textContent = properties.headline || properties.areaDesc || "";
-  const expires = document.createElement("div");
-  const expiresAt = Date.parse(properties.expires);
-  expires.textContent = Number.isFinite(expiresAt) ? `Expires ${new Date(expiresAt).toLocaleString()}` : "";
-  container.append(heading, headline, expires);
-  return container;
-}
-
 function renderFloodAlerts() {
   if (state.floodAlertLayer) map.removeLayer(state.floodAlertLayer);
   const features = state.floodAlerts.filter((feature) => state.floodAlertTypes.has(feature.properties.kind));
   state.floodAlertLayer = L.geoJSON({ type: "FeatureCollection", features }, {
     pane: "floodAlertPane",
+    interactive: false,
     style: (feature) => {
       const warning = feature.properties.kind === "warning";
       return {
@@ -1666,10 +1818,6 @@ function renderFloodAlerts() {
         fillColor: warning ? "#ff4f4f" : "#f0df35",
         fillOpacity: warning ? 0.10 : 0.06,
       };
-    },
-    onEachFeature: (feature, layer) => {
-      layer.bindPopup(floodAlertPopup(feature.properties), { maxWidth: 360 });
-      layer.bindTooltip(feature.properties.event || "NWS flood alert", { sticky: true });
     },
   }).addTo(map);
 }
@@ -1736,47 +1884,6 @@ async function fetchFloodAlerts(scheduleRefresh = false) {
   updateLocationBriefing();
   clearTimeout(state.floodAlertTimer);
   if (scheduleRefresh) state.floodAlertTimer = setTimeout(() => fetchFloodAlerts(true), FLOOD_ALERT_REFRESH_MS);
-}
-
-async function fetchMping(date) {
-  const request = ++state.mpingRequest;
-  const status = document.getElementById("mping-status");
-  state.mpingReports = [];
-  state.mpingAvailability = "loading";
-  renderLsrs();
-  status.textContent = "Loading mPING flood reports…";
-  try {
-    const response = await fetch(`archive/${date}/mping.json?v=${Date.now()}`, { cache: "no-store" });
-    if (response.status === 404) {
-      state.mpingAvailability = "unavailable";
-      status.textContent = "mPING flood reports are not available for this valid period.";
-      updateLocationBriefing();
-      return;
-    }
-    if (!response.ok) throw new Error(`mPING report file unavailable (${response.status})`);
-    const data = await response.json();
-    if (request !== state.mpingRequest) return;
-    state.mpingReports = (data.reports || []).map((report) => ({
-      kind: "mping_flood",
-      provider: "mping",
-      type: report.description || "Flood impact",
-      lat: Number(report.lat),
-      lon: Number(report.lon),
-      valid: report.valid || "",
-      remark: report.description || "",
-    })).filter((report) => Number.isFinite(report.lat) && Number.isFinite(report.lon));
-    state.mpingAvailability = "available";
-    renderLsrs();
-    status.textContent = `${state.mpingReports.length} mPING flood impact report${state.mpingReports.length === 1 ? "" : "s"} during this valid period.`;
-  } catch (error) {
-    if (request !== state.mpingRequest) return;
-    state.mpingReports = [];
-    state.mpingAvailability = "unavailable";
-    renderLsrs();
-    status.textContent = "mPING flood reports are temporarily unavailable.";
-    console.error(error);
-  }
-  updateLocationBriefing();
 }
 
 function showProductInfo(key) {
@@ -1963,7 +2070,6 @@ async function loadDate(date, fit = false) {
     const isLatest = String(state.archive[0]?.date) === String(state.data.date);
     clearTimeout(state.lsrTimer);
     fetchLsrs(state.data.date, isLatest);
-    fetchMping(state.data.date);
     if (fit) map.fitBounds([[30, -105], [50, -80.5]], { padding: [15, 15] });
     updateLocationBriefing();
     updateUrl();
@@ -2525,10 +2631,6 @@ document.getElementById("point-gap-toggle").addEventListener("change", (event) =
   state.separated3dPoints = event.currentTarget.checked;
   schedule3dRender();
 });
-document.getElementById("mping-flood-toggle").addEventListener("change", (event) => {
-  state.mpingVisible = event.currentTarget.checked;
-  renderLsrs();
-});
 document.getElementById("expansion-ring-toggle").addEventListener("change", (event) => {
   state.showExpansionRings = event.currentTarget.checked;
   if (state.viewMode === "3d") schedule3dRender();
@@ -2538,7 +2640,22 @@ document.getElementById("expansion-ring-toggle").addEventListener("change", (eve
   }
 });
 document.getElementById("radar-loop-toggle").addEventListener("change", (event) => {
+  if (event.currentTarget.checked) {
+    document.getElementById("single-radar-toggle").checked = false;
+    setSingleRadarEnabled(false);
+  }
   setRadarEnabled(event.currentTarget.checked);
+});
+document.getElementById("single-radar-toggle").addEventListener("change", (event) => {
+  if (event.currentTarget.checked) {
+    document.getElementById("radar-loop-toggle").checked = false;
+    setRadarEnabled(false);
+  }
+  setSingleRadarEnabled(event.currentTarget.checked);
+});
+document.getElementById("radar-station-select").addEventListener("change", (event) => {
+  state.selectedSingleRadar = event.currentTarget.value;
+  if (state.singleRadarEnabled) renderSingleRadarLayer();
 });
 document.getElementById("predictor-radius").addEventListener("change", (event) => {
   state.selectedPredictorRadius = Number(event.currentTarget.value);
@@ -2611,6 +2728,7 @@ async function init() {
     setSiteView(requestedView === "3d" ? "forecast" : requestedView, false);
     updateUrl();
     setRadarEnabled(document.getElementById("radar-loop-toggle").checked);
+    setSingleRadarEnabled(document.getElementById("single-radar-toggle").checked);
     fetchFloodAlerts(true);
   } catch (error) {
     document.getElementById("product-message").textContent = "Forecast data could not be loaded. Please try again shortly.";
