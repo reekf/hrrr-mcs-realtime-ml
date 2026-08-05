@@ -19,6 +19,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.spatial import cKDTree
 
 PROJECT_DIR = Path("/home/tyreekfrazier/ISU_Research_LOCAL_RUN/fall_2025_ml_proj")
 REALTIME_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "verified"
@@ -28,11 +29,9 @@ HISTORICAL_PREDICTIONS = PROJECT_DIR / "v33_singletarget_radius_sensitivity_view
 OBSERVATION_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "ufvs_raw"
 REALTIME_FEATURE_DIR = PROJECT_DIR / "v33_realtime_radiusstats_forecasts" / "features"
 RADII = (40, 60, 75, 100)
-R60KM_V2_PREDICTION = HISTORICAL_PREDICTIONS / "v33_singletarget_radius_sensitivity_predictions_r60kmV2_expanded40union.parquet"
 MODEL_MEMBER_COLUMNS = (
     "ML_r40_Prob",
     "ML_r60_Prob",
-    "ML_r60kmV2_Prob",
     "ML_r75_Prob",
     "ML_r100_Prob",
 )
@@ -77,7 +76,6 @@ OBSERVATION_SPECS = {
 LAYER_SPECS = {
     "ml_r40": ("ML r40 km", "ML_r40_Prob", "forecast"),
     "ml_r60": ("ML r60 km", "ML_r60_Prob", "forecast"),
-    "ml_r60v2": ("ML r60kmV2 density-weighted", "ML_r60kmV2_Prob", "forecast"),
     "ml_r75": ("ML r75 km", "ML_r75_Prob", "forecast"),
     "ml_r100": ("ML r100 km", "ML_r100_Prob", "forecast"),
     "ml_mean": ("ML Ensemble Mean", "ML_Ensemble_Mean", "forecast"),
@@ -137,25 +135,13 @@ def load_historical(date: str) -> pd.DataFrame:
         pred = _read_date(path, date, ["Date", "Lat", "Lon", "ML_Forecast_Prob"])
         pred = pred.rename(columns={"ML_Forecast_Prob": f"ML_r{radius}_Prob"})
         base = _merge_aligned(base, pred, [f"ML_r{radius}_Prob"])
-    r60v2 = _read_date(
-        R60KM_V2_PREDICTION,
-        date,
-        ["Date", "Lat", "Lon", "ML_Forecast_Prob"],
-    ).rename(columns={"ML_Forecast_Prob": "ML_r60kmV2_Prob"})
-    if r60v2.empty:
-        raise RuntimeError(f"No historical r60kmV2 prediction rows for {date}")
-    base = _merge_aligned(base, r60v2, ["ML_r60kmV2_Prob"])
     return base
 
 
 def _preferred_realtime_forecast(date: str) -> Path:
-    # Verification output is a superset of the day-zero forecast: it carries
-    # the same member probabilities (including label-aware variants such as
-    # r60kmV2) plus the PP fields.  Prefer it when present so a verification
-    # publish cannot fall back to an older pre-V2 multi-radius cache.
-    verification = _realtime_verification(date)
-    if verification is not None:
-        return verification
+    # Keep the issued forecast as the authoritative source for forecast and
+    # WPC layers. Verification parquets intentionally contain PP/UFVS fields
+    # but do not necessarily repeat WPC_ERO_Risk.
     exact = REALTIME_DIR / f"realtime_verified_v33_multiradius_r40_r60_r75_r100_{date}.parquet"
     if exact.exists():
         return exact
@@ -164,9 +150,12 @@ def _preferred_realtime_forecast(date: str) -> Path:
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
-    if not candidates:
-        raise RuntimeError(f"No realtime multi-radius forecast parquet for {date}")
-    return candidates[0]
+    if candidates:
+        return candidates[0]
+    verification = _realtime_verification(date)
+    if verification is not None:
+        return verification
+    raise RuntimeError(f"No realtime multi-radius forecast parquet for {date}")
 
 
 def _realtime_verification(date: str) -> Path | None:
@@ -186,14 +175,22 @@ def load_realtime(date: str) -> pd.DataFrame:
     verification_path = _realtime_verification(date)
     if verification_path is not None:
         verification = pd.read_parquet(verification_path)
-        pp_columns = [column for column in verification.columns if column == "PP_Any flood proxy"]
-        if pp_columns:
-            base = _merge_aligned(base, verification, pp_columns)
+        verification_columns = [
+            column
+            for column in ("PP_Any flood proxy", "UFVS_ANY")
+            if column in verification.columns
+        ]
+        if verification_columns:
+            base = _merge_aligned(base, verification, verification_columns)
     if "WPC_ERO_Risk" not in base.columns:
+        wpc_candidates = []
+        for pattern in (
+            f"wpc_ero_day1_issue{date}_valid{date}_12to12_*rows.parquet",
+            f"wpc_ero_risk_grid_{date}_valid12to12_*rows.parquet",
+        ):
+            wpc_candidates.extend(REALTIME_WPC_DIR.glob(pattern))
         wpc_candidates = sorted(
-            REALTIME_WPC_DIR.glob(f"wpc_ero_risk_grid_{date}_valid12to12_*rows.parquet"),
-            key=lambda path: path.stat().st_mtime,
-            reverse=True,
+            set(wpc_candidates), key=lambda path: path.stat().st_mtime, reverse=True
         )
         if wpc_candidates:
             wpc = pd.read_parquet(wpc_candidates[0])
@@ -215,6 +212,23 @@ def probability_millipercent(values: pd.Series) -> list[int]:
     numeric = pd.to_numeric(values, errors="coerce").fillna(0.0).clip(0.0, 1.0).to_numpy(float)
     # 0..1000 represents probability percent to one decimal place in the browser.
     return np.rint(numeric * 1000.0).astype(np.uint16).tolist()
+
+
+def expand_binary_40km(frame: pd.DataFrame, column: str) -> np.ndarray:
+    """Expand event points on the exact map grid for UFVS verification."""
+    mask = pd.to_numeric(frame[column], errors="coerce").fillna(0).to_numpy(float) > 0
+    if not mask.any():
+        return np.zeros(len(frame), dtype=np.uint16)
+    lat = np.deg2rad(pd.to_numeric(frame["Lat"], errors="coerce").to_numpy(float))
+    lon = np.deg2rad(pd.to_numeric(frame["Lon"], errors="coerce").to_numpy(float))
+    xyz = np.column_stack((np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)))
+    tree = cKDTree(xyz)
+    chord = 2.0 * np.sin((40.0 / 6371.0) / 2.0)
+    expanded = np.zeros(len(frame), dtype=bool)
+    for neighbors in tree.query_ball_point(xyz[np.flatnonzero(mask)], r=chord):
+        if neighbors:
+            expanded[np.asarray(neighbors, dtype=np.int64)] = True
+    return expanded.astype(np.uint16) * 1000
 
 
 def load_top_predictors(date: str, base: pd.DataFrame) -> dict:
@@ -306,7 +320,14 @@ def load_observations(date: str) -> dict:
     return observations
 
 
-def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
+def build_payload(
+    frame: pd.DataFrame,
+    date: str,
+    source: str,
+    *,
+    forecast_day: int = 1,
+    issue_date: str | None = None,
+) -> dict:
     required = ["Date", "Lat", "Lon"]
     missing = [column for column in required if column not in frame.columns]
     if missing:
@@ -339,9 +360,26 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
 
     start = datetime.strptime(date + "12", "%Y%m%d%H").replace(tzinfo=timezone.utc)
     end = start + timedelta(days=1)
+    day = int(forecast_day)
+    issue = date8(issue_date) if issue_date else (
+        (datetime.strptime(date, "%Y%m%d") - timedelta(days=day - 1)).strftime("%Y%m%d")
+    )
+    verification_truths = {}
+    if "PP_Any flood proxy" in frame:
+        verification_truths["pp"] = {
+            "label": "Practically Perfect: Any flood proxy",
+            "values": probability_millipercent(frame["PP_Any flood proxy"]),
+        }
+    if "UFVS_ANY" in frame:
+        verification_truths["ufvs"] = {
+            "label": "UFVS Any flood proxy expanded 40 km",
+            "values": expand_binary_40km(frame, "UFVS_ANY").tolist(),
+        }
     return {
         "schema_version": 5,
         "date": date,
+        "issue_date": issue,
+        "forecast_day": day,
         "valid_period_label": f"{start:%Y-%m-%d} 12Z to {end:%Y-%m-%d} 12Z",
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source_class": source,
@@ -354,13 +392,28 @@ def build_payload(frame: pd.DataFrame, date: str, source: str) -> dict:
         "layers": layers,
         "contours": contours,
         "observations": load_observations(date) if "pp" in layers else {},
-        "predictors": load_top_predictors(date, frame) if source == "realtime" else {},
+        "verification_truths": verification_truths,
+        "predictors": load_top_predictors(date, frame) if source == "realtime" and day == 1 else {},
     }
 
 
-def write_frame_map_data(frame: pd.DataFrame, date: str, output: Path, source: str) -> Path:
+def write_frame_map_data(
+    frame: pd.DataFrame,
+    date: str,
+    output: Path,
+    source: str,
+    *,
+    forecast_day: int = 1,
+    issue_date: str | None = None,
+) -> Path:
     date = date8(date)
-    payload = build_payload(frame, date, source)
+    payload = build_payload(
+        frame,
+        date,
+        source,
+        forecast_day=forecast_day,
+        issue_date=issue_date,
+    )
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, separators=(",", ":")) + "\n")
@@ -372,10 +425,29 @@ def write_frame_map_data(frame: pd.DataFrame, date: str, output: Path, source: s
     return output
 
 
-def write_map_data(date: str, output: Path, source: str = "auto") -> Path:
+def write_map_data(
+    date: str,
+    output: Path,
+    source: str = "auto",
+    *,
+    forecast_day: int = 1,
+    issue_date: str | None = None,
+    input_parquet: Path | None = None,
+) -> Path:
     date = date8(date)
-    frame, selected_source = load_case(date, source=source)
-    return write_frame_map_data(frame, date, output, selected_source)
+    if input_parquet is not None:
+        frame = pd.read_parquet(input_parquet)
+        selected_source = source if source != "auto" else "realtime"
+    else:
+        frame, selected_source = load_case(date, source=source)
+    return write_frame_map_data(
+        frame,
+        date,
+        output,
+        selected_source,
+        forecast_day=forecast_day,
+        issue_date=issue_date,
+    )
 
 
 def main() -> int:
@@ -383,8 +455,18 @@ def main() -> int:
     parser.add_argument("--date", required=True, help="Forecast valid-start date YYYYMMDD")
     parser.add_argument("--output", required=True, help="Destination map.json")
     parser.add_argument("--source", choices=("auto", "realtime", "historical"), default="auto")
+    parser.add_argument("--forecast-day", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--issue-date", default=None, help="Forecast issuance/RAP initialization date")
+    parser.add_argument("--input-parquet", type=Path, default=None, help="Explicit forecast/verification dataframe")
     args = parser.parse_args()
-    write_map_data(args.date, Path(args.output), source=args.source)
+    write_map_data(
+        args.date,
+        Path(args.output),
+        source=args.source,
+        forecast_day=args.forecast_day,
+        issue_date=args.issue_date,
+        input_parquet=args.input_parquet,
+    )
     return 0
 
 

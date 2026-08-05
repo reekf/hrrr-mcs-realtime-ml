@@ -130,6 +130,7 @@ def test_published_manifests_and_verification_contracts():
     assert set(contingency["excluded_products"]) == {
         "ML Local PMM 100km",
         "ML Ensemble Max",
+        "ML r60kmV2",
         "ML r100kmV2",
     }
     assert not set(contingency["excluded_products"]) & set(contingency["products"])
@@ -143,7 +144,7 @@ def test_published_manifests_and_verification_contracts():
             ]:
                 assert isinstance(counts[count_name], int)
                 assert counts[count_name] >= 0
-            assert counts["verified_day_count"] == 45
+            assert counts["verified_day_count"] == contingency["test_case_count"]
             assert counts["forecast_risk_day_count"] == (
                 counts["hit_day_count"] + counts["false_alarm_day_count"]
             )
@@ -156,8 +157,8 @@ def test_published_manifests_and_verification_contracts():
         product: thresholds["40"]
         for product, thresholds in contingency["products"].items()
     }
-    assert max(moderate, key=lambda product: moderate[product]["ets"]) == "ML r60km"
-    assert max(moderate, key=lambda product: moderate[product]["csi"]) == "ML r60kmV2"
+    assert max(moderate, key=lambda product: moderate[product]["ets"]) == "ML r40km"
+    assert max(moderate, key=lambda product: moderate[product]["csi"]) == "ML r40km"
     for product, thresholds in contingency["products"].items():
         assert thresholds["5"]["ets"] is not None, product
 
@@ -185,7 +186,7 @@ def test_published_manifests_and_verification_contracts():
                 assert "brier_skill_score" not in metrics
 
     rolling = json.loads((docs / "verification/rolling/latest.json").read_text())
-    assert rolling["schema_version"] == 3
+    assert rolling["schema_version"] == 4
     assert rolling["dataset_class"] == "realtime-issued-verification"
     for window in rolling["windows"].values():
         assert window["schema_version"] == 3
@@ -249,7 +250,8 @@ def test_published_manifests_and_verification_contracts():
     ]
     assert "grid-template-columns: 1fr" in legend_styles
     assert "display: flex" not in legend_styles
-    assert 'selected: "ml_r60v2"' in app_javascript
+    assert 'selected: "ml_r60"' in app_javascript
+    assert "ml_r60v2" not in app_javascript
     assert "zoomSnap: 0.25" in app_javascript
     assert "wheelPxPerZoomLevel: 180" in app_javascript
     assert "XGBFFP forecast domain" in app_javascript
