@@ -273,8 +273,32 @@ function colorRgba(hex, alpha = 255) {
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255, alpha];
 }
 
-function continuousRiskColor(probability, alpha = 255) {
-  const stops = THRESHOLDS.map((threshold) => ({ threshold, color: colorRgba(RISK_COLORS[threshold]) }));
+function productRiskThresholds(key = state.selected) {
+  const configured = state.data?.layers?.[key]?.risk_threshold_percent;
+  return Array.isArray(configured) && configured.length === THRESHOLDS.length ? configured : THRESHOLDS;
+}
+
+function categoryRiskColor(index) {
+  return RISK_COLORS[THRESHOLDS[index]];
+}
+
+function updateProbabilityLegend(key = state.selected) {
+  const categoryNames = ["Marginal", "Slight", "Moderate", "High"];
+  const thresholds = productRiskThresholds(key);
+  document.querySelectorAll("#probability-legend [data-risk-rank]").forEach((element) => {
+    const index = Number(element.dataset.riskRank);
+    const swatch = element.querySelector("i");
+    element.replaceChildren();
+    if (swatch) element.appendChild(swatch);
+    element.append(`${categoryNames[index]} (≥${thresholds[index]}%)`);
+  });
+}
+
+function continuousRiskColor(probability, alpha = 255, key = state.selected) {
+  const stops = productRiskThresholds(key).map((threshold, index) => ({
+    threshold,
+    color: colorRgba(categoryRiskColor(index)),
+  }));
   if (probability <= stops[0].threshold) return [...stops[0].color.slice(0, 3), alpha];
   if (probability >= stops.at(-1).threshold) return [...stops.at(-1).color.slice(0, 3), alpha];
   for (let index = 1; index < stops.length; index += 1) {
@@ -535,7 +559,7 @@ function build3dLayers() {
     pickable: true,
     getPosition: (point) => point.position,
     getElevation: (point) => point.probability * SURFACE_HEIGHT_METERS_PER_PERCENT,
-    getFillColor: (point) => continuousRiskColor(point.probability),
+    getFillColor: (point) => continuousRiskColor(point.probability, 255, state.selected),
     transitions: { getElevation: 350 },
   })];
   const domain = forecastDomainBounds();
@@ -592,7 +616,9 @@ function build3dLayers() {
   for (const key of state.contours) {
     const source = state.data.contours?.[key];
     if (!source) continue;
-    for (const threshold of THRESHOLDS) {
+    const thresholds = productRiskThresholds(key);
+    for (let thresholdIndex = 0; thresholdIndex < thresholds.length; thresholdIndex += 1) {
+      const threshold = thresholds[thresholdIndex];
       const paths = (source[String(threshold)] || []).map((line) => ({
         path: line.map(([lat, lon]) => [lon, lat, referenceHeight + threshold * 180]),
         key,
@@ -604,7 +630,7 @@ function build3dLayers() {
         id: `contour-3d-${key}-${threshold}`,
         data: paths,
         getPath: (item) => item.path,
-        getColor: colorRgba(RISK_COLORS[threshold]),
+        getColor: colorRgba(categoryRiskColor(thresholdIndex)),
         getWidth: key === "pp" ? 5200 : 4200,
         widthUnits: "meters",
         widthMinPixels: key === "pp" ? 3 : 2,
@@ -877,19 +903,19 @@ function setViewMode(mode) {
   if (state.data?.date) updateUrl();
 }
 
-function riskColor(encodedValue) {
-  if (encodedValue >= 700) return RISK_COLORS[70];
-  if (encodedValue >= 400) return RISK_COLORS[40];
-  if (encodedValue >= 150) return RISK_COLORS[15];
-  if (encodedValue >= 50) return RISK_COLORS[5];
+function riskColor(encodedValue, key = state.selected) {
+  const thresholds = productRiskThresholds(key);
+  for (let index = thresholds.length - 1; index >= 0; index -= 1) {
+    if (encodedValue >= thresholds[index] * 10) return categoryRiskColor(index);
+  }
   return null;
 }
 
-function riskLabel(encodedValue) {
-  if (encodedValue >= 700) return ">70%";
-  if (encodedValue >= 400) return ">40%";
-  if (encodedValue >= 150) return ">15%";
-  if (encodedValue >= 50) return ">5%";
+function riskLabel(encodedValue, key = state.selected) {
+  const thresholds = productRiskThresholds(key);
+  for (let index = thresholds.length - 1; index >= 0; index -= 1) {
+    if (encodedValue >= thresholds[index] * 10) return `>${thresholds[index]}%`;
+  }
   return "<5%";
 }
 
@@ -1694,6 +1720,7 @@ function renderFilledLayer() {
   }
   const probabilityLegend = document.getElementById("probability-legend");
   probabilityLegend.hidden = Boolean(state.selectedPredictor);
+  updateProbabilityLegend(state.selected);
   if (state.selectedPredictor) return;
   if (!state.data || !state.data.layers[state.selected]) return;
   if (state.viewMode === "3d") {
@@ -1709,7 +1736,7 @@ function renderFilledLayer() {
   const radius = Math.max(2.2, Math.min(4.2, 2.2 + (map.getZoom() - 4) * 0.35));
 
   for (let index = 0; index < values.length; index += 1) {
-    const color = riskColor(values[index]);
+    const color = riskColor(values[index], state.selected);
     if (!color) continue;
     L.circleMarker([lat[index], lon[index]], {
       pane: "forecastPane",
@@ -1775,7 +1802,9 @@ function renderContours() {
   for (const key of state.contours) {
     const layerContours = state.data?.contours?.[key];
     if (!layerContours) continue;
-    for (const threshold of THRESHOLDS) {
+    const thresholds = productRiskThresholds(key);
+    for (let thresholdIndex = 0; thresholdIndex < thresholds.length; thresholdIndex += 1) {
+      const threshold = thresholds[thresholdIndex];
       const lines = layerContours[String(threshold)] || [];
       for (const line of lines) {
         L.polyline(line, {
@@ -1787,7 +1816,7 @@ function renderContours() {
         }).addTo(group);
         const polyline = L.polyline(line, {
           pane: "contourPane",
-          color: RISK_COLORS[threshold],
+          color: categoryRiskColor(thresholdIndex),
           weight: key === "pp" ? 3.8 : 3.3,
           opacity: 1,
           dashArray: PRODUCT_META[key]?.dash,

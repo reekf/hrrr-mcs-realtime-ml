@@ -15,9 +15,13 @@ from wpc_practically_perfect import (  # noqa: E402
     WPC_PP_MAX_MATCH_DISTANCE_KM,
     WPC_PP_COLUMN,
     WPC_PP_PRODUCT,
+    WPC_PP_RISK_THRESHOLDS,
+    WPC_PP_THRESHOLD_BY_FORECAST_LABEL,
     read_wpc_pp_netcdf,
     replace_pp_with_official_wpc,
     sample_wpc_pp_dataset,
+    wpc_pp_category_ids,
+    wpc_pp_threshold_for_forecast_label,
     wpc_pp_file_info,
 )
 
@@ -27,6 +31,19 @@ def test_filename_uses_month_of_ending_valid_time():
     assert info["month"] == "202407"
     assert info["filename"] == "pp_co_2p5km_s2024063012_e2024070112.nc"
     assert info["url"].endswith("/202407/" + info["filename"])
+
+
+def test_official_pp_categories_follow_noaa_reference_5_10_20_40_breaks():
+    values = np.array([0.0499, 0.05, 0.0999, 0.10, 0.1999, 0.20, 0.3999, 0.40])
+    np.testing.assert_array_equal(wpc_pp_category_ids(values), [0, 1, 1, 2, 2, 3, 3, 4])
+    assert WPC_PP_RISK_THRESHOLDS == (
+        (0.05, "Marginal"),
+        (0.10, "Slight"),
+        (0.20, "Moderate"),
+        (0.40, "High"),
+    )
+    assert WPC_PP_THRESHOLD_BY_FORECAST_LABEL[">15%"] == 0.10
+    assert wpc_pp_threshold_for_forecast_label(">40%") == 0.20
 
 
 def test_crop_and_nearest_sampling_preserve_official_values():

@@ -2,7 +2,10 @@
 
 The WPC files cover CONUS on a curvilinear Lambert grid.  This module preserves
 the published PP probabilities by using nearest-neighbor sampling onto a viewer
-grid after cropping the source arrays to the requested geographic extent.
+grid after cropping the source arrays to the requested geographic extent.  The
+official PP risk categories use 5/10/20/40-percent breaks, matching WPC's NOAA
+reference plotter; they are intentionally different from the Day-1 ERO forecast
+breaks of 5/15/40/70 percent.
 """
 
 from __future__ import annotations
@@ -26,14 +29,50 @@ import xarray as xr
 WPC_PP_BASE_URL = "https://ftp-wpc.ncep.noaa.gov/ffair/PP_2p5km"
 WPC_PP_COLUMN = "PP_Any flood proxy"
 WPC_PP_PRODUCT = "WPC official PP_2p5km"
-WPC_PP_MAPPING_VERSION = "noaa-reference-reader-v2"
+WPC_PP_MAPPING_VERSION = "noaa-reference-reader-v3"
 WPC_PP_NATIVE_SPACING_KM = 2.539703
 WPC_PP_MAX_MATCH_DISTANCE_KM = 1.8 * WPC_PP_NATIVE_SPACING_KM
+WPC_PP_RISK_THRESHOLDS = (
+    (0.05, "Marginal"),
+    (0.10, "Slight"),
+    (0.20, "Moderate"),
+    (0.40, "High"),
+)
+# Forecast-category labels retained by the viewer.  Each label maps to the
+# corresponding official PP category threshold, rather than reusing the
+# forecast probability threshold on the PP field.
+WPC_PP_THRESHOLD_BY_FORECAST_LABEL = {
+    ">5%": 0.05,
+    ">15%": 0.10,
+    ">40%": 0.20,
+    ">70%": 0.40,
+}
 EARTH_RADIUS_KM = 6371.2
 
 
 class WPCPracticallyPerfectUnavailable(RuntimeError):
     """Raised when WPC has no official PP file for a requested valid period."""
+
+
+def wpc_pp_category_ids(values) -> np.ndarray:
+    """Classify official PP fractions using NOAA's 5/10/20/40% breaks."""
+    probability = np.asarray(values, dtype=np.float64)
+    categories = np.zeros(probability.shape, dtype=np.int16)
+    finite = np.isfinite(probability)
+    for category, (threshold, _label) in enumerate(WPC_PP_RISK_THRESHOLDS, start=1):
+        categories[finite & (probability >= threshold)] = category
+    return categories
+
+
+def wpc_pp_threshold_for_forecast_label(label: str) -> float:
+    """Return the official PP threshold corresponding to a forecast category."""
+    try:
+        return float(WPC_PP_THRESHOLD_BY_FORECAST_LABEL[str(label)])
+    except KeyError as exc:
+        raise ValueError(
+            f"Unknown forecast category label {label!r}; expected one of "
+            f"{list(WPC_PP_THRESHOLD_BY_FORECAST_LABEL)}"
+        ) from exc
 
 
 def _date8(value) -> str:
