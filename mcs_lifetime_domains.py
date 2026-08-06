@@ -10,7 +10,7 @@ common viewer grid.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 import glob
 import json
@@ -282,6 +282,95 @@ def load_domains(path: str | Path) -> dict[str, MCSCaseDomain]:
     if int(payload.get("schema_version", -1)) != DOMAIN_SCHEMA_VERSION:
         raise RuntimeError(f"Unsupported MCS-domain schema in {path}")
     return {date8(key): MCSCaseDomain(**value) for key, value in payload.get("cases", {}).items()}
+
+
+def resize_domain(domain: MCSCaseDomain, box_size_km: float) -> MCSCaseDomain:
+    """Return the same MCS-centered domain with a different square size.
+
+    Domain manifests preserve the expensive PyFLEXTRKR track selection and
+    lifetime-mean center.  Plotting/verification box size is intentionally a
+    cheap viewer-time choice, so changing it never requires rebuilding the
+    track manifest.
+    """
+    size = float(box_size_km)
+    if not np.isfinite(size) or size <= 0:
+        raise ValueError(f"box_size_km must be a positive finite value, got {box_size_km!r}")
+    extent = _geographic_extent(domain.center_lat, domain.center_lon, size)
+    return replace(
+        domain,
+        box_size_km=size,
+        lon_min=extent[0],
+        lon_max=extent[1],
+        lat_min=extent[2],
+        lat_max=extent[3],
+    )
+
+
+def resize_domains(
+    domains: Mapping[str, MCSCaseDomain], box_size_km: float
+) -> dict[str, MCSCaseDomain]:
+    """Resize every cached MCS center to one viewer-selected box size."""
+    return {date8(key): resize_domain(domain, box_size_km) for key, domain in domains.items()}
+
+
+def domains_with_complete_grid_coverage(
+    dataframe,
+    domains: Mapping[str, MCSCaseDomain],
+    *,
+    date_col: str = "Date",
+    lat_col: str = "Lat",
+    lon_col: str = "Lon",
+) -> tuple[dict[str, MCSCaseDomain], list[dict[str, object]]]:
+    """Keep only domains fully contained by each case's available ML grid.
+
+    An adjustable box must never turn a missing portion of the historical grid
+    into an implicit correct negative.  This inexpensive bounds check mirrors
+    the manifest builder's coverage contract and is rerun whenever the viewer
+    box size changes.
+    """
+    dates = dataframe[date_col].astype(str).str.replace(r"\D", "", regex=True).str[:8]
+    accepted: dict[str, MCSCaseDomain] = {}
+    excluded: list[dict[str, object]] = []
+    for key, domain in domains.items():
+        case_date = date8(key)
+        grid = dataframe.loc[dates == case_date, [lat_col, lon_col]]
+        if grid.empty:
+            excluded.append({"date": case_date, "reason": "no rows in the historical ML viewer grid"})
+            continue
+        bounds = {
+            "lon_min": float(grid[lon_col].min()),
+            "lon_max": float(grid[lon_col].max()),
+            "lat_min": float(grid[lat_col].min()),
+            "lat_max": float(grid[lat_col].max()),
+        }
+        complete = (
+            domain.lon_min >= bounds["lon_min"]
+            and domain.lon_max <= bounds["lon_max"]
+            and domain.lat_min >= bounds["lat_min"]
+            and domain.lat_max <= bounds["lat_max"]
+        )
+        if not complete:
+            excluded.append(
+                {
+                    "date": case_date,
+                    "reason": f"{domain.box_size_km:g}-km MCS box extends beyond the available historical ML grid",
+                    "domain_extent": domain.extent,
+                    "viewer_grid_bounds": [
+                        bounds["lon_min"], bounds["lon_max"], bounds["lat_min"], bounds["lat_max"]
+                    ],
+                }
+            )
+            continue
+        inside = domain_mask(
+            grid[lat_col].to_numpy(float), grid[lon_col].to_numpy(float), domain
+        )
+        if not np.any(inside):
+            excluded.append(
+                {"date": case_date, "reason": f"{domain.box_size_km:g}-km MCS box contains no ML rows"}
+            )
+            continue
+        accepted[case_date] = domain
+    return accepted, excluded
 
 
 def discover_robust_stats(case_root: str | Path, date: object) -> Path:

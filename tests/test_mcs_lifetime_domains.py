@@ -2,13 +2,17 @@ import json
 
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
 
 from mcs_lifetime_domains import (
     domain_from_robust_stats,
     domain_mask,
+    domains_with_complete_grid_coverage,
     filter_dataframe_to_domains,
     load_domains,
+    resize_domain,
+    resize_domains,
     save_domains,
 )
 from build_rap_mcs_lifetime_domains import _validate_viewer_grid_coverage
@@ -74,6 +78,59 @@ def test_domain_mask_is_400_km_local_square(tmp_path):
     assert max(corner_lon) <= domain.lon_max
     assert min(corner_lat) >= domain.lat_min
     assert max(corner_lat) <= domain.lat_max
+
+
+def test_domain_can_be_resized_without_changing_track_center(tmp_path):
+    stats = tmp_path / "mcs_tracks_20240616.nc"
+    _write_stats(stats)
+    original = domain_from_robust_stats(
+        stats, date="20240616", box_size_km=400.0, anchor_lat=44.0, anchor_lon=-98.0
+    )
+    resized = resize_domain(original, 800.0)
+
+    assert resized.center_lat == original.center_lat
+    assert resized.center_lon == original.center_lon
+    assert resized.track_number == original.track_number
+    assert resized.box_size_km == 800.0
+    assert resized.lon_min < original.lon_min
+    assert resized.lon_max > original.lon_max
+    assert resized.lat_min < original.lat_min
+    assert resized.lat_max > original.lat_max
+
+    collection = resize_domains({original.date: original}, 600.0)
+    assert collection[original.date].box_size_km == 600.0
+
+
+def test_domain_resize_rejects_nonpositive_size(tmp_path):
+    stats = tmp_path / "mcs_tracks_20240616.nc"
+    _write_stats(stats)
+    domain = domain_from_robust_stats(stats, date="20240616", anchor_lat=44.0, anchor_lon=-98.0)
+    with pytest.raises(ValueError, match="positive finite"):
+        resize_domain(domain, 0)
+
+
+def test_resized_domains_are_rejected_when_the_ml_grid_would_clip(tmp_path):
+    stats = tmp_path / "mcs_tracks_20240616.nc"
+    _write_stats(stats)
+    original = domain_from_robust_stats(stats, date="20240616", anchor_lat=44.0, anchor_lon=-98.0)
+    frame = pd.DataFrame(
+        {
+            "Date": [original.date] * 5,
+            "Lat": [original.center_lat, original.lat_min - 0.1, original.lat_max + 0.1] * 1
+            + [original.center_lat, original.center_lat],
+            "Lon": [original.center_lon, original.lon_min - 0.1, original.lon_max + 0.1] * 1
+            + [original.lon_min - 0.1, original.lon_max + 0.1],
+        }
+    )
+    accepted, excluded = domains_with_complete_grid_coverage(frame, {original.date: original})
+    assert set(accepted) == {original.date}
+    assert excluded == []
+
+    enlarged = resize_domain(original, 800.0)
+    accepted, excluded = domains_with_complete_grid_coverage(frame, {enlarged.date: enlarged})
+    assert accepted == {}
+    assert [row["date"] for row in excluded] == [original.date]
+    assert "extends beyond" in excluded[0]["reason"]
 
 
 def test_dataframe_filter_and_json_round_trip(tmp_path):

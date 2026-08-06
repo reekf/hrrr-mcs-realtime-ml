@@ -56,3 +56,19 @@ def test_day1_viewer_has_only_the_official_all_proxy_pp_field():
     assert not [token for token in forbidden_individual_pp_fields if token in source]
     assert 'TRUTH_DEFINITIONS = [\n    "Any flood proxy",\n]' in source
     assert "REALTIME_GIANT_PP_COLUMNS = [WPC_PP_COLUMN]" in source
+
+
+def test_day1_viewer_has_adjustable_mcs_box_and_filled_analysis_cells():
+    source = _source()
+    assert 'os.path.abspath("mcs_lifetime_domains_400km.json")' in source
+    assert "mcs_lifetime_domains_800km.json" not in source
+    assert "mcs_case_domain_centers = load_domains" in source
+    assert "resize_domains(mcs_case_domain_centers, MCS_LIFETIME_BOX_KM)" in source
+    assert "domains_with_complete_grid_coverage" in source
+    assert "mcs_domain_coverage_exclusions" in source
+    assert 'description="Box km"' in source
+    assert "_apply_viewer_domain_size(w_box_km.value)" in source
+    assert "_refresh_metric_globals_for_domain()" in source
+    assert "add_categorical_grid_cells" in source
+    assert 'description="Cell fill"' in source
+    assert "ax.scatter(lon[m], lat[m]" not in source

@@ -1,8 +1,10 @@
 # MCS lifetime-centered Day-1 viewer domains
 
-The Day-1 viewer uses one exact 400 x 400 km local azimuthal-equidistant
-square for every case. Its center is the equal-time mean of the selected
-PyFLEXTRKR MCS-stage centroid series over the 12Z-to-12Z valid period.
+The Day-1 viewer uses one exact, adjustable local azimuthal-equidistant square
+for every case. Its center is the equal-time mean of the selected PyFLEXTRKR
+MCS-stage centroid series over the 12Z-to-12Z valid period. The committed
+manifest was built with 400 x 400 km boxes, but its track centers can be
+resized at viewer time without rerunning RAP or PyFLEXTRKR.
 
 ## RAP and PyFLEXTRKR inputs
 
@@ -60,10 +62,27 @@ without rerunning PyFLEXTRKR.
 The notebook requires the domain manifest and filters every case using the
 same projected-square mask. ML forecasts, WPC ERO, and official NOAA 2.5-km
 Practically Perfect fields are all displayed inside the matching case domain.
+Change `Box km` in the notebook controls and click **Plot** to resize the box
+around the same MCS lifetime center. The default can also be changed with the
+single `MCS_LIFETIME_BOX_KM` setting near the top of the notebook. Keep
+`MCS_LIFETIME_DOMAIN_JSON` pointed at `mcs_lifetime_domains_400km.json`; the
+filename identifies the source manifest, not the active viewer size.
+
+If a requested box would extend beyond the available ML grid for a case, that
+case is removed from the date selector and verification metrics at that size.
+The viewer prints the excluded dates so a clipped domain cannot be counted as
+an implicit correct negative.
 
 For neighborhood verification, each forecast/truth field is first expanded on
 the complete available viewer grid. The resulting masks are then cropped to
-the case's exact 400-km square. This order prevents an artificial loss of
+the case's selected square. This order prevents an artificial loss of
 neighborhood influence at the box boundary while ensuring every score uses
 only the requested MCS-centered region. The domain size is included in the
 metric-cache tag to prevent reuse of older fixed-domain scores.
+
+Analysis maps render ML, WPC, Practically Perfect, and agreement fields as
+filled grid-cell polygons rather than fixed-size scatter markers. The cells
+scale with the map when zoomed, and the `Cell fill` control provides a small
+adjustable overlap to eliminate renderer hairline gaps. This change is local
+to the notebook analysis maps; it does not alter the website's circular-dot
+visual design.
