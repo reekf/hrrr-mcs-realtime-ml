@@ -15,12 +15,17 @@
 !tests/test_day1_viewer_contract.py
 !tests/test_mcs_lifetime_domains.py
 !tests/test_viewer_grid_cells.py
+!tests/test_v34_compact_training_contract.py
 
 # Official WPC 2.5-km Practically Perfect loader used by the Day-1 viewer.
 !wpc_practically_perfect.py
 !mcs_lifetime_domains.py
 !viewer_grid_cells.py
 !update_viewer_mcs_domains.py
+!day1_compact_feature_contract.py
+!make_run_hazard_ml_v34_compact_thresholds.py
+!run_hazard_ml_v34_compact_thresholds.sh
+!V34_COMPACT_DAY1_TRAINING.md
 
 # Keep the generated v33 helper code needed by the script.
 !generated_v33_radius_sensitivity_slimmaster_rowsample/
