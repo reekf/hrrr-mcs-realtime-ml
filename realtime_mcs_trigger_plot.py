@@ -115,11 +115,6 @@ DEFAULT_PROJECT_DIRS = [
 
 RUN_VERSION_TAG = "v33"
 DEFAULT_RADII_KM = [40, 60, 75, 100]
-R60KM_V2_LABEL = "r60kmV2"
-R60KM_V2_RADIUS_KM = 60
-R60KM_V2_PROB_COL = "ML_r60kmV2_Prob"
-R60KM_V2_EXPERIMENT_TAG = "v33_r60kmV2_expanded40uniontarget_r60features_apcp13p7cv_domain"
-R60KM_V2_MANIFEST_NAME = "active_artifacts_v33_r60kmV2_expanded40uniontarget_r60features_radiusstats_logloss_apcp13p7cv_domain.json"
 DEFAULT_EXTENT = [-105.0, -80.5, 30.0, 50.0]
 EARTH_RADIUS_KM = 6371.0
 PREDICT_CHUNK_SIZE = 250_000
@@ -521,35 +516,6 @@ def find_artifacts_for_radius(project_dir: Path, radius_km: int | float, origina
     }
 
 
-def find_r60km_v2_artifacts(project_dir: Path, original_root: Path, local_root: Path) -> dict:
-    """Load the distinct r60kmV2 artifact set without colliding with regular r60."""
-    model_cache_dir = project_dir / "prob_flood_models"
-    manifest_path = model_cache_dir / R60KM_V2_MANIFEST_NAME
-    if not manifest_path.exists():
-        raise FileNotFoundError(f"Missing {R60KM_V2_LABEL} artifact manifest: {manifest_path}")
-    manifest = read_json(manifest_path)
-    paths = {
-        "model_path": manifest.get("current_model_alias") or manifest.get("model_path"),
-        "scaler_path": manifest.get("current_scaler_alias") or manifest.get("scaler_path"),
-        "features_path": manifest.get("current_feature_names_alias") or manifest.get("feature_names_path"),
-    }
-    for key, value in list(paths.items()):
-        paths[key] = path_replace_root(value, original_root, local_root)
-    missing = [key for key, value in paths.items() if not value or not os.path.exists(value)]
-    if missing:
-        raise RuntimeError(
-            f"Missing {R60KM_V2_LABEL} artifacts {missing}; manifest={manifest_path}"
-        )
-    return {
-        "radius_km": R60KM_V2_RADIUS_KM,
-        "model_label": R60KM_V2_LABEL,
-        "experiment_tag": manifest.get("run_tag", R60KM_V2_EXPERIMENT_TAG),
-        "manifest_path": str(manifest_path),
-        "manifest": manifest,
-        **{key: str(value) for key, value in paths.items()},
-    }
-
-
 def model_positive_class_probability(model, X_scaled: np.ndarray) -> np.ndarray:
     if hasattr(model, "predict_proba"):
         p2 = np.asarray(model.predict_proba(X_scaled))
@@ -628,9 +594,7 @@ def candidate_training_scripts_for_radius(script_dir: Path, radius_km: int | flo
         if rp.exists() and rp not in seen:
             seen.add(rp)
             clean.append(rp)
-    # Feature extraction is shared by same-radius model variants. Prefer the
-    # original single-target helper so adding r60kmV2 cannot silently change the
-    # operational R60 feature builder selected by filesystem/glob order.
+    # Prefer the standard single-target helper for operational feature builds.
     return sorted(
         clean,
         key=lambda p: (
@@ -1235,74 +1199,6 @@ def predict_realtime_case(
     return out
 
 
-def predict_realtime_r60km_v2_case(
-    date: str,
-    rp: RuntimePaths,
-    force_predict: bool = False,
-    force_features: bool = False,
-    training_script: str | None = None,
-    nam_dir_override: str | None = None,
-    cycle_label: str | None = None,
-    allow_feature_nan_fill_zero: bool = False,
-) -> pd.DataFrame:
-    """Predict the separately versioned r60kmV2 model using shared R60 features."""
-    d = date8(date)
-    out_path = realtime_labeled_prediction_cache_path(rp, d, R60KM_V2_LABEL)
-    if not force_predict and out_path.exists() and out_path.stat().st_size > 1024:
-        log(f"Using existing realtime {R60KM_V2_LABEL} prediction cache: {out_path}")
-        return pd.read_parquet(out_path)
-
-    df = build_realtime_features(
-        d,
-        R60KM_V2_RADIUS_KM,
-        rp=rp,
-        force_features=force_features,
-        training_script=training_script,
-        nam_dir_override=nam_dir_override,
-        cycle_label=cycle_label,
-    )
-    art = find_r60km_v2_artifacts(
-        rp.project_dir,
-        original_root=rp.original_root,
-        local_root=rp.local_root,
-    )
-    feature_names = load_feature_names(art["features_path"])
-    X_raw = strict_realtime_model_matrix(
-        df,
-        feature_names,
-        context=f"realtime_{d}_{R60KM_V2_LABEL}_{cycle_cache_token(cycle_label)}",
-        diagnostic_dir=rp.cache_dir / "diagnostics",
-        allow_nan_fill_zero=allow_feature_nan_fill_zero,
-    )
-    scaler = joblib.load(art["scaler_path"])
-    model = joblib.load(art["model_path"])
-    X_scaled = scaler.transform(X_raw).astype(np.float32, copy=False)
-    probability = np.clip(
-        model_positive_class_probability(model, X_scaled), 0.0, 1.0
-    ).astype(np.float32)
-
-    keep = [c for c in ["Date", "Year", "Lat", "Lon", "Realtime_Cycle_Label"] if c in df.columns]
-    out = df[keep].copy()
-    out["Date"] = d
-    out["Year"] = d[:4]
-    out["ML_Target_Radius_km"] = R60KM_V2_RADIUS_KM
-    out["ML_Model_Label"] = R60KM_V2_LABEL
-    out["ML_Forecast_Prob"] = probability
-    out["ML_Experiment_Tag"] = art["experiment_tag"]
-    out["ML_Model_Path"] = art["model_path"]
-    out["ML_Feature_Names_Path"] = art["features_path"]
-    out["Prediction_Created_UTC"] = datetime.now(timezone.utc).isoformat()
-    out["Realtime_Cycle_Label"] = cycle_label or ""
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out.to_parquet(out_path, index=False)
-    log(
-        f"Saved realtime {R60KM_V2_LABEL} predictions: {out_path} rows={len(out):,} "
-        f"mean={float(np.nanmean(probability)):.6f} p95={float(np.nanpercentile(probability,95)):.6f} "
-        f"p99={float(np.nanpercentile(probability,99)):.6f} max={float(np.nanmax(probability)):.6f}"
-    )
-    return out
-
-
 # ======================================================================================
 # Multi-radius member merge
 # ======================================================================================
@@ -1315,14 +1211,10 @@ def radius_prob_col(radius_km: int | float) -> str:
 def radius_cols_in_df(df: pd.DataFrame, radii: list[int] | None = None) -> list[str]:
     """Return individual-radius ML probability columns in radius order."""
     if radii is not None:
-        ordered = []
-        for radius in radii:
-            ordered.append(radius_prob_col(radius))
-            if int(radius) == R60KM_V2_RADIUS_KM:
-                ordered.append(R60KM_V2_PROB_COL)
+        ordered = [radius_prob_col(radius) for radius in radii]
         return [c for c in ordered if c in df.columns]
-    cols = [c for c in df.columns if re.match(r"^ML_r(?:\d+|60kmV2)_Prob$", str(c))]
-    order = {"ML_r40_Prob": 0, "ML_r60_Prob": 1, R60KM_V2_PROB_COL: 2, "ML_r75_Prob": 3, "ML_r100_Prob": 4}
+    cols = [c for c in df.columns if re.match(r"^ML_r\d+_Prob$", str(c))]
+    order = {"ML_r40_Prob": 0, "ML_r60_Prob": 1, "ML_r75_Prob": 2, "ML_r100_Prob": 3}
     return sorted(cols, key=lambda c: (order.get(c, 99), c))
 
 
@@ -1370,7 +1262,6 @@ def build_predict_verify_realtime_multi_radius(
     nam_dir_override: str | None = None,
     cycle_label: str | None = None,
     allow_feature_nan_fill_zero: bool = False,
-    include_r60km_v2: bool = True,
 ) -> pd.DataFrame:
     """Build/predict each requested radius and merge them onto one grid.
 
@@ -1420,43 +1311,6 @@ def build_predict_verify_realtime_multi_radius(
                 traceback.print_exc(limit=3)
 
     available_models = [f"r{r}km" for r in available]
-    if include_r60km_v2:
-        try:
-            pred = predict_realtime_r60km_v2_case(
-                d,
-                rp=rp,
-                force_predict=force_predict,
-                force_features=force_features,
-                training_script=training_script_by_radius.get(R60KM_V2_RADIUS_KM),
-                nam_dir_override=nam_dir_override,
-                cycle_label=cycle_label,
-                allow_feature_nan_fill_zero=allow_feature_nan_fill_zero,
-            )
-            pred = pred.copy()
-            pred["Date"] = pred["Date"].astype(str).str.slice(0, 8)
-            keep = [c for c in ["Date", "Year", "Lat", "Lon", "Realtime_Cycle_Label"] if c in pred.columns]
-            if "Year" not in keep:
-                pred["Year"] = d[:4]
-                keep.append("Year")
-            one = pred[keep].copy()
-            one[R60KM_V2_PROB_COL] = pd.to_numeric(pred["ML_Forecast_Prob"], errors="coerce").astype(np.float32)
-            one["ML_r60kmV2_Model_Path"] = pred.get("ML_Model_Path", "")
-            one["ML_r60kmV2_Feature_Names_Path"] = pred.get("ML_Feature_Names_Path", "")
-            v2_columns = [R60KM_V2_PROB_COL, "ML_r60kmV2_Model_Path", "ML_r60kmV2_Feature_Names_Path"]
-            if base is None:
-                base = one
-            else:
-                base = merge_grid_by_date_latlon(base, one, columns_to_add=v2_columns)
-            available_models.append(R60KM_V2_LABEL)
-            log(f"Realtime model member {R60KM_V2_LABEL} loaded: {len(pred):,} rows")
-            del pred, one
-            gc.collect()
-        except Exception as exc:
-            missing.append((R60KM_V2_LABEL, repr(exc)))
-            log(f"Skipping realtime model {R60KM_V2_LABEL}: {exc}")
-            if SCRIPT_VERBOSE:
-                traceback.print_exc(limit=3)
-
     if base is None or not available_models:
         detail = "\n".join([f"  {label}: {err}" for label, err in missing])
         raise RuntimeError("No realtime radius members could be loaded.\n" + detail)
@@ -1521,21 +1375,6 @@ def verify_existing_realtime_predictions(
         else:
             base = merge_grid_by_date_latlon(base, one, columns_to_add=[pcol])
         available.append(radius)
-
-    v2_path = realtime_labeled_prediction_cache_path(rp, d, R60KM_V2_LABEL)
-    if v2_path.exists() and v2_path.stat().st_size > 1024:
-        pred = pd.read_parquet(v2_path)
-        pred["Date"] = pred["Date"].astype(str).str.slice(0, 8)
-        keep = [c for c in ["Date", "Year", "Lat", "Lon"] if c in pred.columns]
-        one = pred[keep].copy()
-        one[R60KM_V2_PROB_COL] = pd.to_numeric(pred["ML_Forecast_Prob"], errors="coerce").astype(np.float32)
-        if base is None:
-            base = one
-        else:
-            base = merge_grid_by_date_latlon(base, one, columns_to_add=[R60KM_V2_PROB_COL])
-        log(f"Verification loaded existing {R60KM_V2_LABEL} prediction cache for {d}")
-    else:
-        log(f"Verification skipped missing {R60KM_V2_LABEL} prediction cache for {d}")
 
     if base is None or not available:
         log(f"No existing prediction caches for {d}; internal verification not run.")
@@ -1644,7 +1483,20 @@ def filter_iem_wpc_ero_to_case_valid_window(gdf, date: str):
     return gdf
 
 
-def download_iem_wpc_ero_gdf(date: str, rp: RuntimePaths, force: bool = False):
+def download_iem_wpc_ero_gdf(
+    date: str,
+    rp: RuntimePaths,
+    force: bool = False,
+    outlook_day: int = 1,
+    issuance_date: str | None = None,
+):
+    """Download the WPC ERO whose polygons are valid for ``date``.
+
+    ``date`` is always the 12Z valid-start date.  For Day 2, ``issuance_date``
+    is the preceding RAP initialization/forecast-issuance date and the IEM
+    request explicitly uses ``d=2``.  Keeping those dates separate prevents a
+    Day-1 outlook issued on the valid date from being mistaken for Day 2.
+    """
     try:
         import requests
         import geopandas as gpd
@@ -1652,18 +1504,25 @@ def download_iem_wpc_ero_gdf(date: str, rp: RuntimePaths, force: bool = False):
         log(f"WPC ERO fetch skipped: requests/geopandas unavailable ({exc}).")
         return None
     d = date8(date)
-    start_dt = datetime.strptime(d, "%Y%m%d")
-    target_start = pd.Timestamp(start_dt, tz="UTC") + pd.Timedelta(hours=12)
+    day = int(outlook_day)
+    if day not in (1, 2):
+        raise ValueError(f"Only WPC ERO Day 1 or Day 2 is supported, got {day}")
+    issue_d = date8(issuance_date) if issuance_date is not None else (
+        (datetime.strptime(d, "%Y%m%d") - timedelta(days=day - 1)).strftime("%Y%m%d")
+    )
+    target_dt = datetime.strptime(d, "%Y%m%d")
+    issue_dt = datetime.strptime(issue_d, "%Y%m%d")
+    target_start = pd.Timestamp(target_dt, tz="UTC") + pd.Timedelta(hours=12)
     target_end = target_start + pd.Timedelta(days=1)
-    sts = (start_dt - timedelta(hours=6)).strftime("%Y-%m-%dT%H:%MZ")
-    ets = (start_dt + timedelta(days=1, hours=18)).strftime("%Y-%m-%dT%H:%MZ")
-    cache_base = rp.wpc_cache_dir / f"iem_wpc_ero_day1_{d}_valid12to12"
+    sts = (issue_dt - timedelta(hours=6)).strftime("%Y-%m-%dT%H:%MZ")
+    ets = (issue_dt + timedelta(days=1, hours=18)).strftime("%Y-%m-%dT%H:%MZ")
+    cache_base = rp.wpc_cache_dir / f"iem_wpc_ero_day{day}_issue{issue_d}_valid{d}_12to12"
     geom_candidates = ["cookie", "cutter", "nonoverlap", None, "layers", "layer", "1", "0"]
     last_error = None
     for geom in geom_candidates:
         suffix = "default" if geom is None else str(geom)
         zip_path = cache_base.with_name(cache_base.name + f"_{suffix}.zip")
-        params = {"type": "E", "d": "1", "sts": sts, "ets": ets}
+        params = {"type": "E", "d": str(day), "sts": sts, "ets": ets}
         if geom is not None:
             params["geom"] = geom
         try:
@@ -1691,9 +1550,9 @@ def download_iem_wpc_ero_gdf(date: str, rp: RuntimePaths, force: bool = False):
                 gdf = gdf[gdf[c].astype(str).str.upper().str.contains("E", na=False)].copy()
             if "DAY" in cols_upper:
                 c = cols_upper["DAY"]
-                gdf = gdf[pd.to_numeric(gdf[c], errors="coerce").fillna(-999).astype(int) == 1].copy()
+                gdf = gdf[pd.to_numeric(gdf[c], errors="coerce").fillna(-999).astype(int) == day].copy()
             if gdf.empty:
-                last_error = f"no day-1 WPC ERO rows after filtering for geom={geom}"
+                last_error = f"no day-{day} WPC ERO rows after filtering for geom={geom}"
                 continue
             gdf = filter_iem_wpc_ero_to_case_valid_window(gdf, d)
             if gdf is None or gdf.empty:
@@ -1709,7 +1568,9 @@ def download_iem_wpc_ero_gdf(date: str, rp: RuntimePaths, force: bool = False):
             if gdf.empty:
                 last_error = f"WPC polygons existed but no recognized risk categories for geom={geom}"
                 continue
-            log(f"Loaded {len(gdf)} valid-window WPC ERO polygons from IEM for {d}")
+            gdf.attrs["wpc_outlook_day"] = day
+            gdf.attrs["wpc_issue_date"] = issue_d
+            log(f"Loaded {len(gdf)} valid-window WPC ERO Day {day} polygons from IEM; issue={issue_d} valid={d}")
             return gdf
         except Exception as exc:
             last_error = repr(exc)
@@ -1758,10 +1619,21 @@ def rasterize_wpc_gdf_to_grid(gdf, df_grid: pd.DataFrame) -> np.ndarray:
     return out
 
 
-def add_wpc_ero_to_realtime_from_iem(df: pd.DataFrame, date: str, rp: RuntimePaths, force_wpc: bool = False) -> pd.DataFrame:
+def add_wpc_ero_to_realtime_from_iem(
+    df: pd.DataFrame,
+    date: str,
+    rp: RuntimePaths,
+    force_wpc: bool = False,
+    outlook_day: int = 1,
+    issuance_date: str | None = None,
+) -> pd.DataFrame:
     out = df.copy()
     d = date8(date)
-    wpc_cache = rp.wpc_cache_dir / f"wpc_ero_risk_grid_{d}_valid12to12_{len(out)}rows.parquet"
+    day = int(outlook_day)
+    issue_d = date8(issuance_date) if issuance_date is not None else (
+        (datetime.strptime(d, "%Y%m%d") - timedelta(days=day - 1)).strftime("%Y%m%d")
+    )
+    wpc_cache = rp.wpc_cache_dir / f"wpc_ero_day{day}_issue{issue_d}_valid{d}_12to12_{len(out)}rows.parquet"
     if wpc_cache.exists() and wpc_cache.stat().st_size > 1024 and not force_wpc:
         tmp = pd.read_parquet(wpc_cache)
         if WPC_COL in tmp.columns and len(tmp) == len(out):
@@ -1771,7 +1643,13 @@ def add_wpc_ero_to_realtime_from_iem(df: pd.DataFrame, date: str, rp: RuntimePat
                     out[meta_col] = tmp[meta_col].astype(str).iloc[0]
             log(f"Loaded cached WPC ERO grid: {wpc_cache}")
             return out
-    gdf = download_iem_wpc_ero_gdf(d, rp=rp, force=force_wpc)
+    gdf = download_iem_wpc_ero_gdf(
+        d,
+        rp=rp,
+        force=force_wpc,
+        outlook_day=day,
+        issuance_date=issue_d,
+    )
     if gdf is None or len(gdf) == 0:
         log(f"WPC ERO unavailable for {d}; continuing without WPC panel.")
         return out
@@ -1781,7 +1659,9 @@ def add_wpc_ero_to_realtime_from_iem(df: pd.DataFrame, date: str, rp: RuntimePat
     out["WPC_ERO_Selected_Valid_Start"] = str(gdf.attrs.get("wpc_selected_valid_start", ""))
     out["WPC_ERO_Selected_Valid_End"] = str(gdf.attrs.get("wpc_selected_valid_end", ""))
     out["WPC_ERO_Product_Issuance"] = str(gdf.attrs.get("wpc_selected_prodiss", ""))
-    out[["Date", "Lat", "Lon", WPC_COL, "WPC_ERO_Target_Valid_Start", "WPC_ERO_Target_Valid_End", "WPC_ERO_Selected_Valid_Start", "WPC_ERO_Selected_Valid_End", "WPC_ERO_Product_Issuance"]].to_parquet(wpc_cache, index=False)
+    out["WPC_ERO_Outlook_Day"] = day
+    out["Forecast_Issue_Date"] = issue_d
+    out[["Date", "Lat", "Lon", WPC_COL, "WPC_ERO_Target_Valid_Start", "WPC_ERO_Target_Valid_End", "WPC_ERO_Selected_Valid_Start", "WPC_ERO_Selected_Valid_End", "WPC_ERO_Product_Issuance", "WPC_ERO_Outlook_Day", "Forecast_Issue_Date"]].to_parquet(wpc_cache, index=False)
     log(f"Saved WPC ERO raster cache: {wpc_cache}")
     log(f"WPC risk pixels: >5%={(out[WPC_COL] >= 0.05).sum():,}, >15%={(out[WPC_COL] >= 0.15).sum():,}, >40%={(out[WPC_COL] >= 0.40).sum():,}, >70%={(out[WPC_COL] >= 0.70).sum():,}")
     return out
@@ -1933,6 +1813,14 @@ def add_ufvs_and_realtime_pp(
     max_nearest_dist_km=25.0,
 ) -> pd.DataFrame:
     out = df.copy()
+    # The operational PP product is the all-flood-proxy union only.  Remove any
+    # legacy per-source PP fields carried by an older dataframe/cache while
+    # retaining the raw UFVS_* observations as separate verification layers.
+    legacy_pp_columns = [
+        column for column in out.columns
+        if str(column).startswith("PP_") and column != "PP_Any flood proxy"
+    ]
+    out = out.drop(columns=legacy_pp_columns, errors="ignore")
     d = date8(date)
     ed = extent_dict(extent)
     prefixes = list(REALTIME_PP_SOURCE_PREFIXES)
@@ -1941,7 +1829,10 @@ def add_ufvs_and_realtime_pp(
     pp_cache = rp.pp_cache_dir / f"pp_ufvs_{d}_expand{int(round(float(pp_expansion_radius_km)))}km_smooth{int(round(float(pp_smooth_radius_km)))}km_{len(out)}rows.parquet"
     if pp_cache.exists() and pp_cache.stat().st_size > 1024 and not force_ufvs:
         cached = pd.read_parquet(pp_cache)
-        add_cols = [c for c in cached.columns if c.startswith("UFVS_") or c.startswith("PP_")]
+        add_cols = [
+            c for c in cached.columns
+            if c.startswith("UFVS_") or c == "PP_Any flood proxy"
+        ]
         if add_cols and len(cached) == len(out):
             for c in add_cols:
                 out[c] = cached[c].to_numpy()
@@ -1977,17 +1868,9 @@ def add_ufvs_and_realtime_pp(
     ufvs_cols = [UFVS_PREFIX_TO_COL[p] for p in prefixes if p in UFVS_PREFIX_TO_COL and UFVS_PREFIX_TO_COL[p] in out.columns]
     if ufvs_cols:
         out["UFVS_ANY"] = (out[ufvs_cols].apply(pd.to_numeric, errors="coerce").fillna(0).max(axis=1) > 0).astype(np.int8)
-    point_sets = {
-        "PP_Stage IV > FFG": prefix_to_points.get("ST4gFFG", pd.DataFrame(columns=["Lat", "Lon"])),
-        "PP_Stage IV ARI": prefix_to_points.get("ST4gARI", pd.DataFrame(columns=["Lat", "Lon"])),
-        "PP_USGS": prefix_to_points.get("USGS", pd.DataFrame(columns=["Lat", "Lon"])),
-        "PP_Flash LSR": prefix_to_points.get("LSRFLASH", pd.DataFrame(columns=["Lat", "Lon"])),
-    }
-    if include_regular_flood_lsr:
-        point_sets["PP_Flood LSR"] = prefix_to_points.get("LSRREG", pd.DataFrame(columns=["Lat", "Lon"]))
-    all_pts = [v for v in point_sets.values() if v is not None and len(v) > 0]
+    all_pts = [v for v in prefix_to_points.values() if v is not None and len(v) > 0]
     union_pts = pd.concat(all_pts, ignore_index=True).drop_duplicates(subset=["Lat", "Lon"]) if all_pts else pd.DataFrame(columns=["Lat", "Lon"])
-    point_sets["PP_Any flood proxy"] = union_pts
+    point_sets = {"PP_Any flood proxy": union_pts}
     any_pp_created = False
     pp_meta = []
     for pp_col, pts in point_sets.items():
@@ -2791,13 +2674,12 @@ def get_mcs_detection(args, rp: RuntimePaths):
 # ======================================================================================
 
 
-def risk_category_labels(values):
+def risk_category_labels(values, official_pp=False):
     v = np.asarray(values, dtype=float)
     labels = np.full(v.shape, "<5%", dtype=object)
-    labels[v >= 0.05] = ">5%"
-    labels[v >= 0.15] = ">15%"
-    labels[v >= 0.40] = ">40%"
-    labels[v >= 0.70] = ">70%"
+    thresholds = [0.05, 0.10, 0.20, 0.40] if official_pp else [x[0] for x in RISK_THRESHOLDS]
+    for threshold, label in zip(thresholds, RISK_LABELS[1:]):
+        labels[np.isfinite(v) & (v >= threshold)] = label
     return labels
 
 
@@ -2814,8 +2696,8 @@ def setup_map_ax(ax, extent=DEFAULT_EXTENT):
     ax.set_ylabel("Latitude")
 
 
-def scatter_categorical(ax, lon, lat, values, point_size=7.0, alpha=0.85, show_below_5=False):
-    labels = risk_category_labels(values)
+def scatter_categorical(ax, lon, lat, values, point_size=7.0, alpha=0.85, show_below_5=False, official_pp=False):
+    labels = risk_category_labels(values, official_pp=official_pp)
     transform = ccrs.PlateCarree() if HAS_CARTOPY else None
     for lab in RISK_LABELS:
         if lab == "<5%" and not show_below_5:
@@ -2860,16 +2742,11 @@ def build_plot_panels(
         c = radius_prob_col(r)
         if c in df.columns:
             panels.append((f"ML r{int(r)} km", c))
-        if int(r) == R60KM_V2_RADIUS_KM and R60KM_V2_PROB_COL in df.columns:
-            panels.append(("ML r60kmV2 density-weighted", R60KM_V2_PROB_COL))
     if not panels:
         # Last-resort automatic discovery if args.radii does not match columns.
         for c in radius_cols_in_df(df):
-            if c == R60KM_V2_PROB_COL:
-                panels.append(("ML r60kmV2 density-weighted", c))
-            else:
-                r = int(re.search(r"r(\d+)", c).group(1))
-                panels.append((f"ML r{r} km", c))
+            r = int(re.search(r"r(\d+)", c).group(1))
+            panels.append((f"ML r{r} km", c))
     if ENSEMBLE_MEAN_COL in df.columns:
         panels.append(("ML Ensemble Mean", ENSEMBLE_MEAN_COL))
     if include_wpc and WPC_COL in df.columns and pd.to_numeric(df[WPC_COL], errors="coerce").fillna(0).max() > 0:
@@ -2879,10 +2756,9 @@ def build_plot_panels(
         # makes it obvious that WPC was checked but no category overlapped the grid.
         panels.append(("WPC ERO", WPC_COL))
     if include_pp:
-        for c in ["PP_Any flood proxy", "PP_Stage IV > FFG", "PP_Stage IV ARI", "PP_USGS", "PP_Flash LSR"]:
-            if c in df.columns and pd.to_numeric(df[c], errors="coerce").fillna(0).max() > 0:
-                panels.append((c.replace("PP_", "PP: "), c))
-                break
+        c = "PP_Any flood proxy"
+        if c in df.columns and pd.to_numeric(df[c], errors="coerce").fillna(0).max() > 0:
+            panels.append(("PP: Any flood proxy", c))
     if include_ufvs:
         for c in ["UFVS_ANY", "UFVS_STAGE4_FFG", "UFVS_STAGE4_ARI", "UFVS_USGS", "UFVS_LSR_FLASH"]:
             if c in df.columns and pd.to_numeric(df[c], errors="coerce").fillna(0).max() > 0:
@@ -2933,10 +2809,17 @@ def plot_realtime_ero_panels(
     for ax, (title, col) in zip(axes, panels):
         setup_map_ax(ax, extent)
         vals = pd.to_numeric(sub[col], errors="coerce").fillna(0).clip(0, 1).to_numpy(float)
-        scatter_categorical(ax, lon, lat, vals, point_size=point_size, alpha=alpha, show_below_5=show_below_5)
+        scatter_categorical(
+            ax, lon, lat, vals,
+            point_size=point_size,
+            alpha=alpha,
+            show_below_5=show_below_5,
+            official_pp=(col == "PP_Any flood proxy"),
+        )
         # Public forecast product: radius-member ML probabilities plus WPC only.
         # Never overlay internal generation-gate masks/contours on this graphic.
-        ax.set_title(f"{title}")
+        suffix = " (official 5/10/20/40%)" if col == "PP_Any flood proxy" else ""
+        ax.set_title(f"{title}{suffix}")
     for ax in axes[len(panels):]:
         ax.set_visible(False)
     handles = [Patch(facecolor=RISK_COLORS[lab], edgecolor="0.3", label=lab) for lab in RISK_LABELS if show_below_5 or lab != "<5%"]

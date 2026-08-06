@@ -6,7 +6,7 @@ const RISK_COLORS = {
   40: "#e14b3f",
   70: "#d94ad7",
 };
-const MAP_DATA_VERSION = "5";
+const MAP_DATA_VERSION = "6";
 
 const PRODUCT_META = {
   ml_r40: {
@@ -22,13 +22,6 @@ const PRODUCT_META = {
     note: "60-km radius ML forecasts were the most balanced overall in the test-set analysis.",
     detail: "Predicts rainfall exceeding Flash Flood Guidance within 60 km. This configuration provided the best balance between missed events and overly broad or severe risk areas in the test set.",
     dash: "8 4",
-  },
-  ml_r60v2: {
-    short: "ML r60kmV2 (Beta)",
-    title: "60-km V2 beta/testing ML",
-    note: "r60kmV2 is a beta/testing configuration that can issue risk too often, while its risk-area placement remains useful for evaluation.",
-    detail: "Uses the same 60-km forecast-predictor neighborhoods as the regular r60 model, but its binary loss penalizes low probabilities more strongly where many MRMS-over-FFG grid points or multiple flood/flash-flood reports occurred within 60 km. This cost-sensitive testing member can over-issue risk and its raw probabilities may be less frequency-calibrated than an unweighted model.",
-    dash: "14 4 2 4",
   },
   ml_r75: {
     short: "ML r75 (47 mi)",
@@ -48,7 +41,7 @@ const PRODUCT_META = {
     short: "ML Ensemble Mean",
     title: "ML Ensemble Mean",
     note: "The ensemble mean provides a single consensus forecast from the available ML radius configurations.",
-    detail: "Averages the available r40, r60, r60kmV2, r75, and r100 probabilities independently at each grid point. Unlike probability matching, it does not redistribute values or preserve pooled extremes.",
+    detail: "Averages the available r40, r60, r75, and r100 probabilities independently at each grid point. Unlike probability matching, it does not redistribute values or preserve pooled extremes.",
     dash: "10 3 2 3",
   },
   wpc: {
@@ -67,7 +60,7 @@ const PRODUCT_META = {
   },
 };
 
-const PRODUCT_ORDER = ["ml_r40", "ml_r60", "ml_r60v2", "ml_r75", "ml_r100", "ml_mean", "wpc", "pp"];
+const PRODUCT_ORDER = ["ml_r40", "ml_r60", "ml_r75", "ml_r100", "ml_mean", "wpc", "pp"];
 const THRESHOLDS = [5, 15, 40, 70];
 const OBSERVATION_META = {
   stage4_ffg: { label: "Stage IV > FFG", color: "#00e5ff" },
@@ -121,9 +114,10 @@ const METRIC_META = {
 const SIGNED_METRICS = new Set(["ets", "risk_occurrence_ets"]);
 
 const state = {
+  forecastDay: 1,
   archive: [],
   data: null,
-  selected: "ml_r60v2",
+  selected: "ml_r60",
   contours: new Set(),
   observations: new Set(),
   fillOpacity: 1,
@@ -187,8 +181,19 @@ const state = {
   skillManifest: null,
   riskOccurrence: null,
   runningVerification: null,
+  runningTruth: "pp",
   explainabilityManifest: null,
 };
+
+function horizonRoot() {
+  return state.forecastDay === 2 ? "day2/" : "";
+}
+
+function horizonAsset(path) {
+  if (!path) return path;
+  if (path.startsWith("day2/") || /^https?:/i.test(path)) return path;
+  return `${horizonRoot()}${path}`;
+}
 
 const map = L.map("map", {
   zoomControl: false,
@@ -268,8 +273,32 @@ function colorRgba(hex, alpha = 255) {
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255, alpha];
 }
 
-function continuousRiskColor(probability, alpha = 255) {
-  const stops = THRESHOLDS.map((threshold) => ({ threshold, color: colorRgba(RISK_COLORS[threshold]) }));
+function productRiskThresholds(key = state.selected) {
+  const configured = state.data?.layers?.[key]?.risk_threshold_percent;
+  return Array.isArray(configured) && configured.length === THRESHOLDS.length ? configured : THRESHOLDS;
+}
+
+function categoryRiskColor(index) {
+  return RISK_COLORS[THRESHOLDS[index]];
+}
+
+function updateProbabilityLegend(key = state.selected) {
+  const categoryNames = ["Marginal", "Slight", "Moderate", "High"];
+  const thresholds = productRiskThresholds(key);
+  document.querySelectorAll("#probability-legend [data-risk-rank]").forEach((element) => {
+    const index = Number(element.dataset.riskRank);
+    const swatch = element.querySelector("i");
+    element.replaceChildren();
+    if (swatch) element.appendChild(swatch);
+    element.append(`${categoryNames[index]} (≥${thresholds[index]}%)`);
+  });
+}
+
+function continuousRiskColor(probability, alpha = 255, key = state.selected) {
+  const stops = productRiskThresholds(key).map((threshold, index) => ({
+    threshold,
+    color: colorRgba(categoryRiskColor(index)),
+  }));
   if (probability <= stops[0].threshold) return [...stops[0].color.slice(0, 3), alpha];
   if (probability >= stops.at(-1).threshold) return [...stops.at(-1).color.slice(0, 3), alpha];
   for (let index = 1; index < stops.length; index += 1) {
@@ -530,7 +559,7 @@ function build3dLayers() {
     pickable: true,
     getPosition: (point) => point.position,
     getElevation: (point) => point.probability * SURFACE_HEIGHT_METERS_PER_PERCENT,
-    getFillColor: (point) => continuousRiskColor(point.probability),
+    getFillColor: (point) => continuousRiskColor(point.probability, 255, state.selected),
     transitions: { getElevation: 350 },
   })];
   const domain = forecastDomainBounds();
@@ -587,7 +616,9 @@ function build3dLayers() {
   for (const key of state.contours) {
     const source = state.data.contours?.[key];
     if (!source) continue;
-    for (const threshold of THRESHOLDS) {
+    const thresholds = productRiskThresholds(key);
+    for (let thresholdIndex = 0; thresholdIndex < thresholds.length; thresholdIndex += 1) {
+      const threshold = thresholds[thresholdIndex];
       const paths = (source[String(threshold)] || []).map((line) => ({
         path: line.map(([lat, lon]) => [lon, lat, referenceHeight + threshold * 180]),
         key,
@@ -599,7 +630,7 @@ function build3dLayers() {
         id: `contour-3d-${key}-${threshold}`,
         data: paths,
         getPath: (item) => item.path,
-        getColor: colorRgba(RISK_COLORS[threshold]),
+        getColor: colorRgba(categoryRiskColor(thresholdIndex)),
         getWidth: key === "pp" ? 5200 : 4200,
         widthUnits: "meters",
         widthMinPixels: key === "pp" ? 3 : 2,
@@ -755,6 +786,7 @@ function schedule3dRender() {
 function updateUrl(mode = "replace") {
   const parameters = new URLSearchParams();
   parameters.set("view", state.siteView);
+  parameters.set("day", String(state.forecastDay));
   if (state.data?.date) parameters.set("date", state.data.date);
   if (state.viewMode === "3d") parameters.set("map", "3d");
   const method = mode === "push" ? "pushState" : "replaceState";
@@ -871,19 +903,19 @@ function setViewMode(mode) {
   if (state.data?.date) updateUrl();
 }
 
-function riskColor(encodedValue) {
-  if (encodedValue >= 700) return RISK_COLORS[70];
-  if (encodedValue >= 400) return RISK_COLORS[40];
-  if (encodedValue >= 150) return RISK_COLORS[15];
-  if (encodedValue >= 50) return RISK_COLORS[5];
+function riskColor(encodedValue, key = state.selected) {
+  const thresholds = productRiskThresholds(key);
+  for (let index = thresholds.length - 1; index >= 0; index -= 1) {
+    if (encodedValue >= thresholds[index] * 10) return categoryRiskColor(index);
+  }
   return null;
 }
 
-function riskLabel(encodedValue) {
-  if (encodedValue >= 700) return ">70%";
-  if (encodedValue >= 400) return ">40%";
-  if (encodedValue >= 150) return ">15%";
-  if (encodedValue >= 50) return ">5%";
+function riskLabel(encodedValue, key = state.selected) {
+  const thresholds = productRiskThresholds(key);
+  for (let index = thresholds.length - 1; index >= 0; index -= 1) {
+    if (encodedValue >= thresholds[index] * 10) return `>${thresholds[index]}%`;
+  }
   return "<5%";
 }
 
@@ -971,7 +1003,7 @@ function reportContext(latitude, longitude) {
 }
 
 function productProbabilityRows(index) {
-  const keys = ["ml_r40", "ml_r60", "ml_r60v2", "ml_r75", "ml_r100", "ml_mean", "wpc", "pp"];
+  const keys = ["ml_r40", "ml_r60", "ml_r75", "ml_r100", "ml_mean", "wpc", "pp"];
   return keys.map((key) => {
     const probability = window.XGBFFPBriefing.probabilityPercent(state.data?.layers?.[key], index);
     return {
@@ -1077,7 +1109,7 @@ function renderLocationBriefing() {
   }
   const agreementRule = document.createElement("p");
   agreementRule.className = "briefing-note";
-  agreementRule.textContent = "High: all four members share a category and span ≤10 points. Moderate: adjacent categories or span ≤20 points. Otherwise Low. r60kmV2 is excluded.";
+  agreementRule.textContent = "High: all four members share a category and span ≤10 points. Moderate: adjacent categories or span ≤20 points. Otherwise Low.";
   agreementSection.append(agreementHeading, agreementList, agreementRule);
   content.append(agreementSection);
 
@@ -1232,7 +1264,7 @@ function predictorColor(encodedValue) {
 }
 
 function mapPath(entry) {
-  return entry.map_href || `archive/${entry.date}/map.json`;
+  return entry.map_href || `${horizonRoot()}archive/${entry.date}/map.json`;
 }
 
 function showLoading(message = "Loading map data…") {
@@ -1675,7 +1707,6 @@ function setMessage(key) {
   const radius = { ml_r40: "40 km (25 mi)", ml_r60: "60 km (37 mi)", ml_r75: "75 km (47 mi)", ml_r100: "100 km (62 mi)" }[key];
   let prediction = "";
   if (radius) prediction = ` It predicts the probability that observed rainfall will exceed Flash Flood Guidance within ${radius} of a point.`;
-  if (key === "ml_r60v2") prediction = " It predicts the cost-sensitive probability of the 40-km-expanded MRMS-over-FFG or flood/flash-flood-report union, with stronger loss penalties for dense proxy clusters within 60 km.";
   if (key === "ml_mean") prediction = " It averages the available ML radius configurations at each grid point.";
   if (key === "wpc") prediction = " It predicts the probability of rainfall exceeding Flash Flood Guidance within 40 km (25 mi) of a point.";
   if (key === "pp") prediction = " It shows an observation-based, idealized placement of risk after the valid period—not a forecast.";
@@ -1689,6 +1720,7 @@ function renderFilledLayer() {
   }
   const probabilityLegend = document.getElementById("probability-legend");
   probabilityLegend.hidden = Boolean(state.selectedPredictor);
+  updateProbabilityLegend(state.selected);
   if (state.selectedPredictor) return;
   if (!state.data || !state.data.layers[state.selected]) return;
   if (state.viewMode === "3d") {
@@ -1704,7 +1736,7 @@ function renderFilledLayer() {
   const radius = Math.max(2.2, Math.min(4.2, 2.2 + (map.getZoom() - 4) * 0.35));
 
   for (let index = 0; index < values.length; index += 1) {
-    const color = riskColor(values[index]);
+    const color = riskColor(values[index], state.selected);
     if (!color) continue;
     L.circleMarker([lat[index], lon[index]], {
       pane: "forecastPane",
@@ -1770,7 +1802,9 @@ function renderContours() {
   for (const key of state.contours) {
     const layerContours = state.data?.contours?.[key];
     if (!layerContours) continue;
-    for (const threshold of THRESHOLDS) {
+    const thresholds = productRiskThresholds(key);
+    for (let thresholdIndex = 0; thresholdIndex < thresholds.length; thresholdIndex += 1) {
+      const threshold = thresholds[thresholdIndex];
       const lines = layerContours[String(threshold)] || [];
       for (const line of lines) {
         L.polyline(line, {
@@ -1782,7 +1816,7 @@ function renderContours() {
         }).addTo(group);
         const polyline = L.polyline(line, {
           pane: "contourPane",
-          color: RISK_COLORS[threshold],
+          color: categoryRiskColor(thresholdIndex),
           weight: key === "pp" ? 3.8 : 3.3,
           opacity: 1,
           dashArray: PRODUCT_META[key]?.dash,
@@ -2203,8 +2237,11 @@ function buildLayerControls() {
 }
 
 function updateDateUI(entry) {
-  document.getElementById("valid-period").textContent = `Valid ${state.data.valid_period_label}`;
-  const staticHref = entry?.plot_href || `archive/${state.data.date}/latest.png`;
+  const issueLabel = state.forecastDay === 2 && (state.data.issue_date || entry?.issue_date)
+    ? ` · Issued ${state.data.issue_date || entry.issue_date}`
+    : "";
+  document.getElementById("valid-period").textContent = `Valid ${state.data.valid_period_label}${issueLabel}`;
+  const staticHref = entry?.plot_href || `${horizonRoot()}archive/${state.data.date}/latest.png`;
   document.getElementById("current-png-link").href = `${staticHref}?v=${encodeURIComponent(entry?.site_updated_utc || state.data.generated_utc)}`;
   const verificationLink = document.getElementById("current-verification-link");
   if (entry?.verification_available && entry.verification_plot_href) {
@@ -2228,11 +2265,9 @@ async function loadDate(date, fit = false) {
     state.data = await response.json();
     state.surface3dCache.clear();
     if (!state.data.layers[state.selected]) {
-      state.selected = state.data.layers.ml_r60v2
-        ? "ml_r60v2"
-        : state.data.layers.ml_r60
-          ? "ml_r60"
-          : Object.keys(state.data.layers)[0];
+      state.selected = state.data.layers.ml_r60
+        ? "ml_r60"
+        : Object.keys(state.data.layers)[0];
     }
     state.contours = new Set([...state.contours].filter((key) => state.data.layers[key]));
     state.observations = new Set([...state.observations].filter((key) => state.data.observations?.[key]));
@@ -2266,11 +2301,14 @@ function populateDates() {
   for (const entry of state.archive) {
     const option = document.createElement("option");
     option.value = entry.date;
-    option.textContent = `${String(entry.date).slice(0, 4)}-${String(entry.date).slice(4, 6)}-${String(entry.date).slice(6, 8)}`;
+    const validLabel = `${String(entry.date).slice(0, 4)}-${String(entry.date).slice(4, 6)}-${String(entry.date).slice(6, 8)}`;
+    option.textContent = state.forecastDay === 2 && entry.issue_date
+      ? `${validLabel} valid (issued ${entry.issue_date})`
+      : validLabel;
     option.disabled = entry.map_available === false;
     select.append(option);
   }
-  select.addEventListener("change", () => loadDate(select.value));
+  select.onchange = () => loadDate(select.value);
 }
 
 function populateArchive() {
@@ -2334,7 +2372,7 @@ function metricValueText(value) {
 }
 
 function dashboardProductLabel(label) {
-  return label === "ML r60kmV2" ? "ML r60kmV2 (Beta)" : label;
+  return label;
 }
 
 function bestRowsForMetric(rows, metric) {
@@ -2456,12 +2494,12 @@ function renderSkillDashboard() {
     const card = document.createElement("figure");
     card.className = "dashboard-figure";
     const image = document.createElement("img");
-    image.src = figure.path;
+    image.src = horizonAsset(figure.path);
     image.alt = figure.title;
     image.loading = "lazy";
     image.decoding = "async";
     const imageLink = document.createElement("a");
-    imageLink.href = figure.path;
+    imageLink.href = horizonAsset(figure.path);
     imageLink.target = "_blank";
     imageLink.rel = "noopener";
     imageLink.className = "full-resolution-image";
@@ -2476,7 +2514,7 @@ function renderSkillDashboard() {
         : "Frequency and spatial coverage are descriptive, not standalone skill.";
     detail.textContent = `${figure.target} · ${figure.test_period} · ${figure.test_case_count || "Unknown"} test days. ${direction}`;
     const fullResolution = document.createElement("a");
-    fullResolution.href = figure.path;
+    fullResolution.href = horizonAsset(figure.path);
     fullResolution.target = "_blank";
     fullResolution.rel = "noopener";
     fullResolution.textContent = "Open full-resolution figure";
@@ -2494,8 +2532,8 @@ async function loadSkillDashboard() {
   }
   try {
     const [manifestResponse, occurrenceResponse] = await Promise.all([
-      fetch("model-skill/manifest.json"),
-      fetch("model-skill/risk-occurrence.json"),
+      fetch(`${horizonRoot()}model-skill/manifest.json`),
+      fetch(`${horizonRoot()}model-skill/risk-occurrence.json`),
     ]);
     if (!manifestResponse.ok || !occurrenceResponse.ok) throw new Error("Model-skill assets unavailable");
     [state.skillManifest, state.riskOccurrence] = await Promise.all([
@@ -2513,7 +2551,10 @@ function renderRunningDashboard() {
   const windowName = document.getElementById("running-window").value;
   const metric = document.getElementById("running-metric").value;
   const threshold = document.getElementById("running-threshold").value;
-  const windowData = state.runningVerification?.windows?.[windowName];
+  const truthKey = document.getElementById("running-truth").value;
+  const truthSet = state.runningVerification?.truth_sets?.[truthKey];
+  const windowData = truthSet?.windows?.[windowName]
+    || (truthKey === "pp" ? state.runningVerification?.windows?.[windowName] : null);
   const status = document.getElementById("running-status");
   const summary = document.getElementById("running-summary");
   const caseChart = document.getElementById("running-risk-cases-chart");
@@ -2525,7 +2566,7 @@ function renderRunningDashboard() {
   caseChart.replaceChildren();
   table.replaceChildren();
   summary.replaceChildren();
-  download.href = `verification/rolling/${windowName}.json`;
+  download.href = `${horizonRoot()}verification/rolling/${truthKey}/${windowName}.json`;
   if (!windowData) {
     status.textContent = "No completed issued-forecast verification is available for this window.";
     warning.hidden = true;
@@ -2627,7 +2668,7 @@ async function loadRunningDashboard() {
   }
   try {
     const response = await fetch(
-      `verification/rolling/latest.json?v=${Date.now()}`,
+      `${horizonRoot()}verification/rolling/latest.json?v=${Date.now()}`,
       { cache: "no-store" },
     );
     if (!response.ok) throw new Error("Running verification unavailable");
@@ -2655,7 +2696,7 @@ function renderExplainabilityDashboard() {
   }
   const selected = figures[0];
   const image = document.getElementById("shap-image");
-  image.src = selected.path;
+  image.src = horizonAsset(selected.path);
   image.alt = selected.title;
   document.getElementById("shap-caption").textContent = `${selected.title} · independent ${selected.test_period} test set`;
   figure.hidden = false;
@@ -2670,7 +2711,7 @@ async function loadExplainabilityDashboard() {
     return;
   }
   try {
-    const response = await fetch("explainability/manifest.json");
+    const response = await fetch(`${horizonRoot()}explainability/manifest.json`);
     if (!response.ok) throw new Error("Explainability manifest unavailable");
     state.explainabilityManifest = await response.json();
     renderExplainabilityDashboard();
@@ -2794,7 +2835,7 @@ document.getElementById("copy-briefing").addEventListener("click", async () => {
 for (const id of ["skill-occurrence-threshold", "skill-occurrence-metric"]) {
   document.getElementById(id).addEventListener("change", renderSkillOccurrence);
 }
-for (const id of ["running-window", "running-metric", "running-threshold"]) {
+for (const id of ["running-window", "running-truth", "running-metric", "running-threshold"]) {
   document.getElementById(id).addEventListener("change", renderRunningDashboard);
 }
 document.getElementById("shap-model").addEventListener("change", renderExplainabilityDashboard);
@@ -2886,11 +2927,55 @@ map.on("zoomend", () => {
 map.on("click", (event) => selectBriefingLocation(event.latlng.lat, event.latlng.lng));
 window.addEventListener("popstate", () => {
   const parameters = new URLSearchParams(location.search);
+  const requestedDay = Number(parameters.get("day")) === 2 ? 2 : 1;
+  if (requestedDay !== state.forecastDay) {
+    loadForecastHorizon(requestedDay, parameters.get("date"), false);
+  }
   const requestedView = parameters.get("view");
   setSiteView(requestedView === "3d" ? "forecast" : requestedView, false);
   const requestedMap = parameters.get("map") || (requestedView === "3d" ? "3d" : "2d");
   if (requestedMap !== state.viewMode) setViewMode(requestedMap);
 });
+
+async function loadForecastHorizon(day, requestedDate = null, updateHistory = true) {
+  const nextDay = Number(day) === 2 ? 2 : 1;
+  state.forecastDay = nextDay;
+  document.getElementById("forecast-day-select").value = String(nextDay);
+  state.skillManifest = null;
+  state.riskOccurrence = null;
+  state.runningVerification = null;
+  state.explainabilityManifest = null;
+  if (nextDay === 2) {
+    document.getElementById("shap-kind").value = "importance";
+    if (!new Set(["r40", "r60", "r75", "r100"]).has(document.getElementById("shap-model").value)) {
+      document.getElementById("shap-model").value = "r60";
+    }
+  }
+  showLoading(`Loading Day ${nextDay} archive…`);
+  const response = await fetch(`${horizonRoot()}archive/index.json?v=${Date.now()}`, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Day ${nextDay} archive index unavailable`);
+  const archive = await response.json();
+  state.archive = Array.isArray(archive) ? archive : archive.entries || [];
+  populateDates();
+  populateArchive();
+  const initial = state.archive.find((entry) => String(entry.date) === String(requestedDate) && entry.map_available !== false)
+    || state.archive.find((entry) => entry.map_available !== false)
+    || state.archive[0];
+  if (initial) {
+    await loadDate(initial.date, true);
+  } else {
+    state.data = null;
+    renderFilledLayer();
+    renderContours();
+    document.getElementById("valid-period").textContent = `No archived Day ${nextDay} forecast yet`;
+    document.getElementById("product-message").textContent = `No Day ${nextDay} real-time forecast has passed the MCS issuance gate yet. Test-set verification and feature importance remain available.`;
+    hideLoading();
+  }
+  if (state.siteView === "skill") await loadSkillDashboard();
+  else if (state.siteView === "running") await loadRunningDashboard();
+  else if (state.siteView === "explainability") await loadExplainabilityDashboard();
+  if (updateHistory) updateUrl("push");
+}
 
 async function init() {
   setupDialogs();
@@ -2901,19 +2986,9 @@ async function init() {
     setSiteView(initialRequestedView, false);
   }
   try {
-    const response = await fetch(`archive/index.json?v=${Date.now()}`);
-    if (!response.ok) throw new Error("Archive index unavailable");
-    const archive = await response.json();
-    state.archive = Array.isArray(archive) ? archive : archive.entries || [];
-    populateDates();
-    populateArchive();
     const parameters = new URLSearchParams(location.search);
-    const requested = parameters.get("date");
-    const initial = state.archive.find((entry) => entry.date === requested && entry.map_available !== false)
-      || state.archive.find((entry) => entry.map_available !== false)
-      || state.archive[0];
-    if (!initial) throw new Error("No forecasts are available");
-    await loadDate(initial.date, true);
+    const requestedDay = Number(parameters.get("day")) === 2 ? 2 : 1;
+    await loadForecastHorizon(requestedDay, parameters.get("date"), false);
     const requestedView = parameters.get("view");
     const requestedMap = parameters.get("map") || (requestedView === "3d" ? "3d" : "2d");
     if (requestedMap === "3d") setViewMode("3d");
@@ -2929,5 +3004,15 @@ async function init() {
     console.error(error);
   }
 }
+
+document.getElementById("forecast-day-select").addEventListener("change", async (event) => {
+  try {
+    await loadForecastHorizon(Number(event.currentTarget.value), null, true);
+  } catch (error) {
+    document.getElementById("product-message").textContent = `Day ${event.currentTarget.value} forecast data are not available yet.`;
+    console.error(error);
+    hideLoading();
+  }
+});
 
 init();

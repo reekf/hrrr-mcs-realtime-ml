@@ -16,6 +16,9 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+import numpy as np
+from scipy.spatial import cKDTree
+
 
 REPO_DIR = Path(__file__).resolve().parent
 DOCS_DIR = REPO_DIR / "docs"
@@ -30,16 +33,15 @@ THRESHOLD_LABELS = {
 PRODUCTS = (
     "ml_r40",
     "ml_r60",
-    "ml_r60v2",
     "ml_r75",
     "ml_r100",
     "ml_mean",
     "wpc",
 )
+DAY2_PRODUCTS = ("ml_r40", "ml_r60", "ml_r75", "ml_r100", "ml_mean", "wpc")
 PRODUCT_LABELS = {
     "ml_r40": "ML r40",
     "ml_r60": "ML r60",
-    "ml_r60v2": "ML r60kmV2",
     "ml_r75": "ML r75",
     "ml_r100": "ML r100",
     "ml_mean": "ML ensemble mean",
@@ -126,14 +128,61 @@ def daily_product(values: list[int], truth_values: list[int], threshold: int) ->
     return metrics
 
 
-def load_realtime_daily(archive_dir: Path) -> list[dict]:
+def ufvs_expanded40_from_observations(payload: dict) -> list[int] | None:
+    """Recover the UFVS-expanded truth from older map archives.
+
+    New maps store this grid directly.  Older verified maps still contain the
+    underlying UFVS observation points, so rebuilding the 40-km binary mask is
+    exact enough for the issued-forecast archive and avoids discarding history.
+    """
+    point_rows = []
+    for source in payload.get("observations", {}).values():
+        point_rows.extend(source.get("points", []))
+    if not point_rows:
+        return None
+    lat = np.asarray(payload.get("grid", {}).get("lat", []), dtype=float)
+    lon = np.asarray(payload.get("grid", {}).get("lon", []), dtype=float)
+    points = np.asarray(point_rows, dtype=float)
+    if len(lat) == 0 or points.ndim != 2 or points.shape[1] < 2:
+        return None
+    def xyz(latitude, longitude):
+        lat_r = np.deg2rad(latitude)
+        lon_r = np.deg2rad(longitude)
+        return np.column_stack((np.cos(lat_r) * np.cos(lon_r), np.cos(lat_r) * np.sin(lon_r), np.sin(lat_r)))
+    grid_xyz = xyz(lat, lon)
+    point_xyz = xyz(points[:, 0], points[:, 1])
+    chord = 2.0 * np.sin((40.0 / 6371.0) / 2.0)
+    distance, _ = cKDTree(point_xyz).query(grid_xyz, k=1, distance_upper_bound=chord)
+    return (np.isfinite(distance).astype(np.uint16) * 1000).tolist()
+
+
+def load_realtime_daily(
+    archive_dir: Path,
+    *,
+    products: tuple[str, ...] = PRODUCTS,
+    forecast_day: int = 1,
+    truth_key: str = "pp",
+) -> list[dict]:
     records = []
+    product_keys = tuple(products)
     for path in sorted(archive_dir.glob("20??????/map.json")):
         payload = json.loads(path.read_text())
         if payload.get("source_class") != "realtime":
             continue
+        if int(payload.get("forecast_day", 1)) != int(forecast_day):
+            continue
         layers = payload.get("layers", {})
-        truth_values = layers.get("pp", {}).get("values")
+        truth_entry = payload.get("verification_truths", {}).get(truth_key, {})
+        if truth_key == "pp" and not truth_entry:
+            truth_entry = layers.get("pp", {})
+        elif truth_key == "ufvs" and not truth_entry:
+            recovered = ufvs_expanded40_from_observations(payload)
+            if recovered:
+                truth_entry = {
+                    "label": "UFVS Any flood proxy expanded 40 km",
+                    "values": recovered,
+                }
+        truth_values = truth_entry.get("values")
         if not isinstance(truth_values, list) or not truth_values:
             continue
         if any(not isinstance(value, (int, float)) or not 0 <= value <= 1000 for value in truth_values):
@@ -141,8 +190,8 @@ def load_realtime_daily(archive_dir: Path) -> list[dict]:
         grid_count = len(payload.get("grid", {}).get("lat", []))
         if grid_count != len(truth_values):
             raise ValueError(f"{path}: PP/grid lengths differ")
-        products = {}
-        for product in PRODUCTS:
+        product_metrics = {}
+        for product in product_keys:
             values = layers.get(product, {}).get("values")
             if not isinstance(values, list):
                 continue
@@ -150,20 +199,24 @@ def load_realtime_daily(archive_dir: Path) -> list[dict]:
                 raise ValueError(f"{path}: {product}/grid lengths differ")
             if any(not isinstance(value, (int, float)) or not 0 <= value <= 1000 for value in values):
                 raise ValueError(f"{path}: {product} probabilities must be finite values from 0 to 1000")
-            products[product] = {
+            product_metrics[product] = {
                 str(threshold): daily_product(values, truth_values, threshold)
                 for threshold in THRESHOLDS
             }
-        if not products:
+        if not product_metrics:
             continue
         records.append(
             {
                 "schema_version": 2,
                 "dataset_class": "realtime-issued-verification",
-                "verification_target": "Practically Perfect: Any flood proxy",
+                "forecast_day": int(forecast_day),
+                "verification_target": truth_entry.get("label") or (
+                    "Practically Perfect: Any flood proxy" if truth_key == "pp"
+                    else "UFVS Any flood proxy expanded 40 km"
+                ),
                 "date": str(payload["date"]),
                 "valid_period_label": payload.get("valid_period_label", ""),
-                "products": products,
+                "products": product_metrics,
             }
         )
     return records
@@ -189,12 +242,9 @@ def select_windows(records: list[dict]) -> dict[str, tuple[list[dict], date, dat
         return {}
     ordered = sorted(records, key=lambda row: row["date"])
     latest = parse_date(ordered[-1]["date"])
-    weekly_rows = ordered[-7:]
-    weekly_start = parse_date(weekly_rows[0]["date"])
     monthly_start = latest - timedelta(days=29)
     seasonal_start, seasonal_end, season = season_bounds(latest)
     return {
-        "weekly": (weekly_rows, weekly_start, latest, "Latest seven verified forecasts"),
         "monthly": (
             [row for row in ordered if monthly_start <= parse_date(row["date"]) <= latest],
             monthly_start,
@@ -211,10 +261,15 @@ def select_windows(records: list[dict]) -> dict[str, tuple[list[dict], date, dat
 
 
 def aggregate_window(
-    records: list[dict], start: date, end: date, definition: str, window_name: str
+    records: list[dict],
+    start: date,
+    end: date,
+    definition: str,
+    window_name: str,
+    products_to_use: tuple[str, ...] = PRODUCTS,
 ) -> dict:
     products = {}
-    for product in PRODUCTS:
+    for product in products_to_use:
         threshold_payload = {}
         for threshold in THRESHOLDS:
             rows = [
@@ -292,7 +347,8 @@ def aggregate_window(
     return {
         "schema_version": 3,
         "dataset_class": "realtime-issued-verification",
-        "verification_target": "Practically Perfect: Any flood proxy",
+        "forecast_day": int(records[0].get("forecast_day", 1)) if records else 1,
+        "verification_target": records[0].get("verification_target", "") if records else "",
         "window": window_name,
         "definition": definition,
         "start_date": start.strftime("%Y%m%d"),
@@ -399,7 +455,12 @@ def publish_risk_occurrence(project_dir: Path, docs_dir: Path, generated: str) -
     source = project_dir / "paper_verification_bs_ets_final/ets_pp_any_flood_proxy_metrics.csv"
     if not source.is_file():
         raise FileNotFoundError(source)
-    excluded_sources = {"ML Local PMM 100km", "ML Ensemble Max", "ML r100kmV2"}
+    excluded_sources = {
+        "ML Local PMM 100km",
+        "ML Ensemble Max",
+        "ML r60kmV2",
+        "ML r100kmV2",
+    }
     grouped: dict[tuple[str, int], dict[str, int]] = defaultdict(
         lambda: {"hits": 0, "misses": 0, "false_alarms": 0, "correct_negatives": 0}
     )
@@ -441,12 +502,24 @@ def publish_risk_occurrence(project_dir: Path, docs_dir: Path, generated: str) -
             "csi": metrics["csi"],
             "ets": metrics["ets"],
         }
+    verified_test_case_count = max(
+        (
+            row["verified_day_count"]
+            for thresholds in products.values()
+            for row in thresholds.values()
+        ),
+        default=0,
+    )
     payload = {
         "schema_version": 1,
         "dataset_class": "formal-independent-test-set",
         "test_period": "2024–2025",
         "verification_target": "Practically Perfect: Any flood proxy",
-        "count_unit": "forecast-day risk-occurrence contingency counts across 45 test cases",
+        "test_case_count": verified_test_case_count,
+        "count_unit": (
+            "forecast-day risk-occurrence contingency counts across "
+            f"{verified_test_case_count} available test cases"
+        ),
         "definition": (
             "For each test day and threshold, hit means both the forecast and Practically "
             "Perfect contain the selected risk; miss means only Practically Perfect does; "
@@ -504,33 +577,74 @@ def validate_manifest_paths(docs_dir: Path, manifest: dict) -> None:
             raise FileNotFoundError(f"Manifest path is missing: {figure['path']}")
 
 
-def publish_realtime_verification(docs_dir: Path, generated: str) -> dict:
-    output_root = docs_dir / "verification"
-    records = load_realtime_daily(docs_dir / "archive")
-    for record in records:
-        write_json(output_root / f"daily/{record['date']}.json", record)
-    windows = {}
-    for name, (selected, start, end, definition) in select_windows(records).items():
-        window = aggregate_window(selected, start, end, definition, name)
-        window["generated_utc"] = generated
-        windows[name] = window
-        write_json(output_root / f"rolling/{name}.json", window)
+def publish_realtime_verification(
+    docs_dir: Path,
+    generated: str,
+    *,
+    forecast_day: int = 1,
+    products: tuple[str, ...] = PRODUCTS,
+) -> dict:
+    root = docs_dir if int(forecast_day) == 1 else docs_dir / "day2"
+    output_root = root / "verification"
+    truth_sets = {}
+    daily_dates = set()
+    for truth_key in ("pp", "ufvs"):
+        records = load_realtime_daily(
+            root / "archive",
+            products=products,
+            forecast_day=forecast_day,
+            truth_key=truth_key,
+        )
+        daily_dates.update(row["date"] for row in records)
+        for record in records:
+            write_json(output_root / f"daily/{truth_key}/{record['date']}.json", record)
+        windows = {}
+        for name, (selected, start, end, definition) in select_windows(records).items():
+            window = aggregate_window(
+                selected,
+                start,
+                end,
+                definition,
+                name,
+                products_to_use=products,
+            )
+            window["generated_utc"] = generated
+            windows[name] = window
+            write_json(output_root / f"rolling/{truth_key}/{name}.json", window)
+        truth_sets[truth_key] = {
+            "label": (
+                records[0]["verification_target"] if records else (
+                    "Practically Perfect: Any flood proxy" if truth_key == "pp"
+                    else "UFVS Any flood proxy expanded 40 km"
+                )
+            ),
+            "windows": windows,
+        }
+    pp_windows = truth_sets["pp"]["windows"]
     latest = {
-        "schema_version": 3,
+        "schema_version": 4,
         "dataset_class": "realtime-issued-verification",
+        "forecast_day": int(forecast_day),
         "generated_utc": generated,
-        "windows": windows,
+        "default_truth": "pp",
+        "truth_sets": truth_sets,
+        "windows": pp_windows,
     }
     write_json(output_root / "rolling/latest.json", latest)
     index = {
-        "schema_version": 3,
+        "schema_version": 4,
         "dataset_class": "realtime-issued-verification",
+        "forecast_day": int(forecast_day),
         "generated_utc": generated,
-        "daily_record_count": len(records),
-        "daily_dates": [row["date"] for row in records],
-        "daily_path_template": "verification/daily/{date}.json",
+        "daily_record_count": len(daily_dates),
+        "daily_dates": sorted(daily_dates),
+        "daily_path_template": "verification/daily/{truth}/{date}.json",
         "rolling_paths": {
-            name: f"verification/rolling/{name}.json" for name in windows
+            truth: {
+                name: f"verification/rolling/{truth}/{name}.json"
+                for name in data["windows"]
+            }
+            for truth, data in truth_sets.items()
         },
     }
     write_json(output_root / "index.json", index)
@@ -562,7 +676,8 @@ def main() -> int:
             explainability = publish_explainability_assets(args.project_dir, args.docs_dir, generated)
             validate_manifest_paths(args.docs_dir, explainability)
     if not args.skill_only:
-        publish_realtime_verification(args.docs_dir, generated)
+        publish_realtime_verification(args.docs_dir, generated, forecast_day=1, products=PRODUCTS)
+        publish_realtime_verification(args.docs_dir, generated, forecast_day=2, products=DAY2_PRODUCTS)
     print(f"Published XGBFFP dashboard data under {args.docs_dir}")
     return 0
 

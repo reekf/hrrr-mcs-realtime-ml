@@ -8,9 +8,20 @@
 # Keep the clean operational script.
 !realtime_mcs_trigger_plot.py
 
+# Keep focused regression checks for operational scripts.
+!tests/
+!tests/test_mcs_connected_components.py
+!tests/test_wpc_practically_perfect.py
+!tests/test_day1_viewer_contract.py
+
+# Official WPC 2.5-km Practically Perfect loader used by the Day-1 viewer.
+!wpc_practically_perfect.py
+
 # Keep the generated v33 helper code needed by the script.
 !generated_v33_radius_sensitivity_slimmaster_rowsample/
 !generated_v33_radius_sensitivity_slimmaster_rowsample/*.py
+!generated_v33_day2_radius_sensitivity_slimmaster_rowsample/
+!generated_v33_day2_radius_sensitivity_slimmaster_rowsample/*.py
 
 # Optional requirements file/directory if present.
 !requirements_hazard_ml
@@ -36,3 +47,11 @@ core.*
 # Automation wrapper
 !publish_latest_ml_output.sh
 !fetch_mping_reports.py
+
+# Separate XGBFFP Day-2 training and verification workflow.
+!make_run_hazard_ml_v33_day2_radius_sensitivity_from_WORKING_v28_radiusstats_SLIMMASTER_ROWSAMPLE.py
+!run_hazard_ml_v33_day2_radius_sensitivity_from_WORKING_v28_radiusstats_SLIMMASTER_ROWSAMPLE.sh
+!build_v33day2_test_predictions_memsafe.py
+!hazard_ml_v33_day2_verification_viewer.ipynb
+!DAY2_XGBFFP_TRAINING_AND_VERIFICATION.md
+!tests/test_v33_day2_workflow_contract.py

@@ -71,6 +71,7 @@ from html import unescape
 
 import numpy as np
 import pandas as pd
+from mode_case_catalog import load_unique_case_dates
 import requests
 import pygrib
 import joblib
@@ -5293,7 +5294,7 @@ if __name__ == "__main__":
 
     validate_mode_csv_inputs()
 
-    all_dates = extract_unique_dates([MODE_2018_CSV, MODE_2024_CSV, MODE_2025_CSV])
+    all_dates = load_unique_case_dates()
     all_dates, skipped_dates_in_rap_gap = filter_dates_for_rap_direct_availability(all_dates)
     all_dates = preflight_filter_rap_source_coverage(all_dates)
 

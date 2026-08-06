@@ -1,0 +1,18 @@
+{
+  "dataset_class": "realtime-issued-verification",
+  "default_truth": "pp",
+  "forecast_day": 2,
+  "generated_utc": "2026-07-28T21:27:31Z",
+  "schema_version": 4,
+  "truth_sets": {
+    "pp": {
+      "label": "Practically Perfect: Any flood proxy",
+      "windows": {}
+    },
+    "ufvs": {
+      "label": "UFVS Any flood proxy expanded 40 km",
+      "windows": {}
+    }
+  },
+  "windows": {}
+}
